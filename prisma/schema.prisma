@@ -1,0 +1,145 @@
+// Schema Prisma para ERP de Condomínio
+// Configurado para MySQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String      @id @default(cuid())
+  email           String      @unique
+  name            String?
+  photo           String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  isResident      Boolean     @default(true)
+  resident        Resident?
+  employee        Employee?
+  accessLogs      AccessLog[]
+  
+  @@map("users")
+}
+
+model Resident {
+  id               String           @id @default(cuid())
+  userId           String           @unique
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  unitId           String
+  unit             Unit             @relation(fields: [unitId], references: [id])
+  phone            String?
+  emergencyContact String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  guests           Guest[]
+  financialEntries FinancialEntry[]
+  
+  @@map("residents")
+}
+
+model Employee {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  position     String
+  accessCardId String   @unique
+  department   String?
+  salary       Decimal? @db.Decimal(10, 2)
+  hireDate     DateTime @default(now())
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@map("employees")
+}
+
+model Guest {
+  id          String      @id @default(cuid())
+  name        String
+  document    String?
+  phone       String?
+  invitedById String
+  invitedBy   Resident    @relation(fields: [invitedById], references: [id])
+  validFrom   DateTime    @default(now())
+  validUntil  DateTime
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  accessLogs  AccessLog[]
+  
+  @@map("guests")
+}
+
+model Unit {
+  id        String     @id @default(cuid())
+  block     String
+  number    String
+  floor     Int?
+  area      Decimal?   @db.Decimal(8, 2)
+  bedrooms  Int?
+  bathrooms Int?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  residents Resident[]
+  
+  @@unique([block, number])
+  @@map("units")
+}
+
+enum AccessType {
+  RESIDENT
+  EMPLOYEE
+  GUEST
+}
+
+enum AccessStatus {
+  APPROVED
+  REJECTED
+  PENDING
+}
+
+model AccessLog {
+  id                 String       @id @default(cuid())
+  timestamp          DateTime     @default(now())
+  accessType         AccessType
+  status             AccessStatus @default(APPROVED)
+  userId             String?
+  user               User?        @relation(fields: [userId], references: [id])
+  guestId            String?
+  guest              Guest?       @relation(fields: [guestId], references: [id])
+  arduinoCommandSent String?
+  entryExit          String?      // "Entrada" ou "Saida"
+  location           String?      // Portão principal, garagem, etc
+  notes              String?      @db.Text
+  
+  @@map("access_logs")
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+model FinancialEntry {
+  id          String          @id @default(cuid())
+  date        DateTime        @default(now())
+  description String
+  value       Decimal         @db.Decimal(10, 2)
+  type        TransactionType
+  category    String?
+  residentId  String?
+  resident    Resident?       @relation(fields: [residentId], references: [id])
+  dueDate     DateTime?
+  isPaid      Boolean         @default(false)
+  paidDate    DateTime?
+  paymentMethod String?
+  reference   String?         // Número do boleto, referência, etc
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  
+  @@map("financial_entries")
+}

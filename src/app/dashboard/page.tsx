@@ -21,7 +21,7 @@ interface DashboardStats {
   }>
 }
 
-export default function Home() {
+export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats>({
     totalResidents: 0,
     totalEmployees: 0,
