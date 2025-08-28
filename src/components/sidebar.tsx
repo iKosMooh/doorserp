@@ -11,7 +11,8 @@ import {
   UserPlus, 
   Building,
   Settings,
-  Camera
+  Camera,
+  Zap
 } from "lucide-react"
 
 const navigation = [
@@ -23,6 +24,7 @@ const navigation = [
   { name: "Convidados", href: "/guests", icon: UserPlus },
   { name: "Unidades", href: "/units", icon: Building },
   { name: "Financeiro", href: "/financial", icon: DollarSign },
+  { name: "Controle Arduino", href: "/arduino-control", icon: Zap },
   { name: "Configurações", href: "/settings", icon: Settings },
 ]
 
