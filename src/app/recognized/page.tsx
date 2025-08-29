@@ -63,7 +63,7 @@ export default function RecognizedPage() {
       }, 1000)
       return () => clearTimeout(timer)
     } else {
-      // Redirecionar após o countdown
+      // Redirecionar após o countdown e reativar reconhecimento
       router.push('/face-recognition')
     }
   }, [countdown, router])
@@ -216,6 +216,17 @@ export default function RecognizedPage() {
                   <div className="text-sm text-muted-foreground">Status:</div>
                   <div className="text-lg font-semibold text-green-600">APROVADO</div>
                 </div>
+              </div>
+            </div>
+
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="text-sm text-blue-600 font-medium mb-2">
+                🔌 Sistema de Controle de Acesso
+              </div>
+              <div className="text-xs text-blue-600">
+                • LED de acesso ativado por 5 segundos<br/>
+                • Comunicação com Arduino via porta serial<br/>
+                • Acesso liberado automaticamente
               </div>
             </div>
 

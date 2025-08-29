@@ -1,12 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { MainLayout } from "@/components/main-layout";
+import { RecognizedPersonModal } from "@/components/ui/modal";
 
 export default function FaceRecognition() {
-  const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const captureCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -25,7 +24,190 @@ export default function FaceRecognition() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasHighConfidenceMatch, setHasHighConfidenceMatch] = useState(false);
   const [isPausedAfterMatch, setIsPausedAfterMatch] = useState(false);
+  const [isPageActive, setIsPageActive] = useState(true);
+  const [recognitionEnabled, setRecognitionEnabled] = useState(true);
+  const [showRecognizedModal, setShowRecognizedModal] = useState(false);
+  const [recognizedPerson, setRecognizedPerson] = useState<{
+    name: string;
+    type: "RESIDENT" | "EMPLOYEE" | "GUEST";
+    unitNumber?: string;
+    building?: string;
+    position?: string;
+    confidence: number;
+  } | null>(null);
+  const [modalCountdown, setModalCountdown] = useState(5);
   const pauseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const detectionIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const modalTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Controle de visibilidade da página para pausar reconhecimento
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      const isHidden = document.hidden;
+      setIsPageActive(!isHidden);
+      setRecognitionEnabled(!isHidden);
+      
+      if (isHidden) {
+        console.log('🚫 Página não está visível - reconhecimento pausado');
+        // Limpar intervalos de detecção quando sair da página
+        if (detectionIntervalRef.current) {
+          clearTimeout(detectionIntervalRef.current);
+          detectionIntervalRef.current = null;
+        }
+      } else {
+        console.log('✅ Página visível - reconhecimento ativo');
+      }
+    };
+
+    const handleBeforeUnload = () => {
+      setRecognitionEnabled(false);
+      // Limpar todos os timeouts
+      if (pauseTimeoutRef.current) {
+        clearTimeout(pauseTimeoutRef.current);
+      }
+      if (detectionIntervalRef.current) {
+        clearTimeout(detectionIntervalRef.current);
+      }
+      if (modalTimeoutRef.current) {
+        clearTimeout(modalTimeoutRef.current);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      setRecognitionEnabled(false);
+    };
+  }, []);
+
+  // Controle do countdown do modal
+  useEffect(() => {
+    if (showRecognizedModal && modalCountdown > 0) {
+      modalTimeoutRef.current = setTimeout(() => {
+        setModalCountdown(prev => prev - 1);
+      }, 1000);
+    } else if (showRecognizedModal && modalCountdown === 0) {
+      closeModal();
+    }
+
+    return () => {
+      if (modalTimeoutRef.current) {
+        clearTimeout(modalTimeoutRef.current);
+      }
+    };
+  }, [showRecognizedModal, modalCountdown]);
+
+  // Função para fechar o modal e retomar reconhecimento
+  const closeModal = () => {
+    setShowRecognizedModal(false);
+    setRecognizedPerson(null);
+    setModalCountdown(5);
+    setIsPausedAfterMatch(false);
+    setRecognitionEnabled(true);
+    
+    if (modalTimeoutRef.current) {
+      clearTimeout(modalTimeoutRef.current);
+      modalTimeoutRef.current = null;
+    }
+  };
+
+  // Função para controlar Arduino quando reconhecer alguém
+  const triggerArduinoAccess = async (personData: { name: string; type: string; confidence: number }) => {
+    try {
+      console.log(`🔌 Acionando Arduino para acesso autorizado de ${personData.name} (${(personData.confidence * 100).toFixed(1)}%)`);
+      
+      // Conectar ao Arduino se não estiver conectado
+      const statusResponse = await fetch('/api/arduino?action=status');
+      const statusData = await statusResponse.json();
+      
+      if (!statusData.connected) {
+        console.log('📡 Conectando ao Arduino...');
+        const connectResponse = await fetch('/api/arduino', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'connect', port: 'COM4' })
+        });
+        
+        if (!connectResponse.ok) {
+          console.error('❌ Erro ao conectar Arduino');
+          return;
+        }
+        
+        // Aguardar conexão estabilizar
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      
+      // Ligar LED(s) de acesso - por enquanto só LED 1, mas preparado para múltiplos
+      const ledsToActivate = [1]; // Configurável para múltiplos LEDs no futuro
+      
+      for (const ledNumber of ledsToActivate) {
+        const command = `L${ledNumber}_ON`;
+        console.log(`💡 Ligando LED ${ledNumber} para ${personData.name}`);
+        
+        await fetch('/api/arduino', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'command', command })
+        });
+      }
+      
+      // Aguardar 5 segundos e desligar LEDs
+      setTimeout(async () => {
+        for (const ledNumber of ledsToActivate) {
+          const command = `L${ledNumber}_OFF`;
+          console.log(`🔴 Desligando LED ${ledNumber} após acesso de ${personData.name}`);
+          
+          await fetch('/api/arduino', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'command', command })
+          });
+        }
+      }, 5000);
+      
+    } catch (error) {
+      console.error('❌ Erro ao controlar Arduino:', error);
+    }
+  };
+
+  // Função para salvar log de acesso
+  const saveAccessLog = async (data: {
+    personName: string
+    accessType: string
+    unitNumber?: string
+    building?: string
+    confidence: number
+  }) => {
+    try {
+      const response = await fetch('/api/access-logs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          personName: data.personName,
+          accessType: data.accessType,
+          unitNumber: data.unitNumber,
+          building: data.building,
+          status: 'APPROVED',
+          method: 'FACIAL_RECOGNITION',
+          confidence: data.confidence,
+          timestamp: new Date().toISOString()
+        })
+      })
+
+      if (!response.ok) {
+        console.error('Erro ao salvar log de acesso:', await response.text())
+      } else {
+        console.log('Log de acesso salvo com sucesso')
+      }
+    } catch (error) {
+      console.error('Erro ao salvar log de acesso:', error)
+    }
+  };
 
   // Funções para cache local
   const saveLabelDescriptorsToCache = (labelDescriptors: unknown[]) => {
@@ -181,12 +363,16 @@ export default function FaceRecognition() {
       }
       setCurrentStream(stream);
       
-      // Garantir que os labels estejam carregados quando a câmera iniciar
-      if (labelsRef.current.length === 0) {
-        setTimeout(async () => {
+      console.log('📹 Câmera iniciada - carregando labels para reconhecimento...');
+      
+      // Carregar labels automaticamente quando iniciar a câmera
+      setTimeout(async () => {
+        if (faceApiLoaded) {
           await loadLabels();
-        }, 1000);
-      }
+          console.log('✅ Labels carregados - sistema pronto para reconhecimento');
+        }
+      }, 1500); // Aguardar um pouco mais para garantir que tudo está estável
+      
     } catch (error) {
       console.error('Erro ao iniciar câmera:', error);
     }
@@ -475,24 +661,32 @@ export default function FaceRecognition() {
     };
 
     const detectFaces = async (canvasSize: { width: number; height: number }) => {
-      if (!video.videoWidth || !faceApiLoaded) return;
+      if (!video.videoWidth || !faceApiLoaded || !recognitionEnabled || !isPageActive) {
+        // Se reconhecimento não está ativo, aguardar antes de tentar novamente
+        if (!recognitionEnabled || !isPageActive) {
+          detectionIntervalRef.current = setTimeout(() => detectFaces(canvasSize), 2000);
+        } else {
+          detectionIntervalRef.current = setTimeout(() => detectFaces(canvasSize), 1000);
+        }
+        return;
+      }
       
       // Se está pausado após um match, aguardar
       if (isPausedAfterMatch) {
-        setTimeout(() => detectFaces(canvasSize), 1000);
+        detectionIntervalRef.current = setTimeout(() => detectFaces(canvasSize), 1000);
         return;
       }
       
       // Aguardar um pouco mais se os labels ainda não estiverem prontos
       if (labelsRef.current.length === 0) {
-        setTimeout(() => detectFaces(canvasSize), 1000);
+        detectionIntervalRef.current = setTimeout(() => detectFaces(canvasSize), 1000);
         return;
       }
       
       try {
         // Verificar se os modelos estão carregados antes de detectar
         if (!faceapi.nets.ssdMobilenetv1.isLoaded) {
-          setTimeout(() => detectFaces(canvasSize), 500);
+          detectionIntervalRef.current = setTimeout(() => detectFaces(canvasSize), 500);
           return;
         }
 
@@ -572,24 +766,41 @@ export default function FaceRecognition() {
                     
                     // Determinar o tipo da pessoa baseado nos dados cadastrados
                     // Por enquanto, vamos assumir que é um morador, mas isso pode ser expandido
-                    const recognizedPerson = {
+                    const personData = {
                       name: match.label,
                       type: 'RESIDENT' as const, // Pode ser expandido para verificar no banco de dados
                       confidence: 1 - match.distance,
                       // Adicionar outros dados conforme necessário
                     };
                     
-                    // Construir URL com parâmetros
-                    const params = new URLSearchParams({
-                      name: recognizedPerson.name,
-                      type: recognizedPerson.type,
-                      confidence: recognizedPerson.confidence.toString()
+                    // Pausar reconhecimento e mostrar modal
+                    setRecognitionEnabled(false);
+                    setIsPausedAfterMatch(true);
+                    
+                    // Limpar interval de detecção
+                    if (detectionIntervalRef.current) {
+                      clearTimeout(detectionIntervalRef.current);
+                      detectionIntervalRef.current = null;
+                    }
+                    
+                    // Salvar dados da pessoa reconhecida
+                    setRecognizedPerson(personData);
+                    
+                    // Acionar Arduino para liberar acesso (não aguardar para não bloquear)
+                    triggerArduinoAccess(personData).catch(error => {
+                      console.error('Erro ao acionar Arduino:', error);
                     });
                     
-                    // Redirecionar após pequeno delay para dar tempo de ver a bolinha verde
-                    setTimeout(() => {
-                      router.push(`/recognized?${params.toString()}`);
-                    }, 1500);
+                    // Salvar log de acesso
+                    saveAccessLog({
+                      personName: personData.name,
+                      accessType: personData.type,
+                      confidence: personData.confidence
+                    });
+                    
+                    // Mostrar modal
+                    setShowRecognizedModal(true);
+                    setModalCountdown(5);
                   }
                   
                   // Log detalhado quando encontrar um match válido
@@ -635,7 +846,7 @@ export default function FaceRecognition() {
             pauseTimeoutRef.current = null;
             
             // Forçar uma nova detecção imediata após retomar
-            setTimeout(() => detectFaces(canvasSize), 100);
+            detectionIntervalRef.current = setTimeout(() => detectFaces(canvasSize), 100);
           }, 10000); // 10 segundos
           
           // Não continuar com a detecção normal, apenas limpar canvas
@@ -698,7 +909,7 @@ export default function FaceRecognition() {
         setHasHighConfidenceMatch(false);
       }
       
-      setTimeout(() => detectFaces(canvasSize), 300);
+      detectionIntervalRef.current = setTimeout(() => detectFaces(canvasSize), 300);
     };
 
     // Iniciar a configuração do canvas
@@ -708,26 +919,67 @@ export default function FaceRecognition() {
   return (
     <MainLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Reconhecimento Facial</h1>
-          <p className="text-muted-foreground">
-            Sistema de reconhecimento facial para controle de acesso
-          </p>
+        {/* Header modernizado */}
+        <div className="modern-card">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-orange-500 rounded-2xl flex items-center justify-center">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Reconhecimento Facial</h1>
+              <p className="text-gray-600">Sistema de identificação em tempo real</p>
+            </div>
+          </div>
+
+          {/* Status do Sistema modernizado */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl">
+              <div className={`w-3 h-3 rounded-full ${faceApiLoaded ? 'bg-green-500' : 'bg-red-500'} animate-pulse`}></div>
+              <div>
+                <p className="font-semibold text-blue-900">Face API</p>
+                <p className="text-sm text-blue-700">{faceApiLoaded ? 'Carregado' : 'Carregando...'}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl">
+              <div className={`w-3 h-3 rounded-full ${labels.length > 0 ? 'bg-green-500' : 'bg-yellow-500'} animate-pulse`}></div>
+              <div>
+                <p className="font-semibold text-purple-900">Pessoas</p>
+                <p className="text-sm text-purple-700">{labels.length} cadastradas</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-xl">
+              <div className={`w-3 h-3 rounded-full ${recognitionEnabled && isPageActive ? 'bg-green-500' : 'bg-red-500'} animate-pulse`}></div>
+              <div>
+                <p className="font-semibold text-green-900">Status</p>
+                <p className="text-sm text-green-700">{recognitionEnabled && isPageActive ? 'Ativo' : 'Pausado'}</p>
+              </div>
+            </div>
+          </div>
+
+          {faceApiLoaded && labels.length > 0 && recognitionEnabled && (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+              <p className="text-green-800 font-semibold">✅ Sistema Pronto para Reconhecimento</p>
+            </div>
+          )}
         </div>
 
-        <div className="bg-card p-6 rounded-lg border">
+        <div className="modern-card">
           {!faceApiLoaded && (
-            <div className="text-center py-4 text-blue-600 font-medium">
-              Carregando modelos de IA... Por favor, aguarde.
+            <div className="text-center py-8">
+              <div className="animate-spin w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+              <p className="text-blue-600 font-medium">Carregando modelos de IA... Por favor, aguarde.</p>
             </div>
           )}
           
           {faceApiLoaded && (
             <div className={`text-center py-4 font-medium ${labels.length > 0 ? 'text-green-600' : 'text-orange-600'}`}>
               {labels.length > 0 ? (
-                <div>
-                  <div>✅ Sistema ativo! {labels.length} pessoa(s) cadastrada(s) para reconhecimento.</div>
-                  <div className="text-xs mt-1 opacity-80">
+                <div className="bg-green-50 rounded-xl p-4 border border-green-200">
+                  <div className="text-green-800">✅ Sistema ativo! {labels.length} pessoa(s) cadastrada(s) para reconhecimento.</div>
+                  <div className="text-xs mt-2 text-green-600">
                     Total de fotos de treinamento: {
                       labels.reduce((total: number, label) => {
                         const l = label as { descriptors?: Float32Array[] };
@@ -737,7 +989,9 @@ export default function FaceRecognition() {
                   </div>
                 </div>
               ) : (
-                '⚠️ Sistema pronto, mas nenhuma pessoa cadastrada ainda.'
+                <div className="bg-orange-50 rounded-xl p-4 border border-orange-200">
+                  <div className="text-orange-800">⚠️ Sistema pronto, mas nenhuma pessoa cadastrada ainda.</div>
+                </div>
               )}
             </div>
           )}
@@ -747,7 +1001,7 @@ export default function FaceRecognition() {
               value={selectedCamera} 
               onChange={(e) => setSelectedCamera(e.target.value)}
               disabled={!faceApiLoaded}
-              className="px-3 py-2 border rounded-md min-w-[200px]"
+              className="modern-select"
             >
               <option value="">Selecione uma câmera...</option>
               {cameras.map((camera, index) => (
@@ -759,28 +1013,28 @@ export default function FaceRecognition() {
             <button 
               onClick={startVideo} 
               disabled={!faceApiLoaded}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50"
+              className="modern-button-primary"
             >
               Iniciar Câmera
             </button>
             <button 
               onClick={loadLabels} 
               disabled={!faceApiLoaded}
-              className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 disabled:opacity-50"
+              className="modern-button-secondary"
             >
               Recarregar Labels
             </button>
             <button 
               onClick={clearLabelsCache} 
               disabled={!faceApiLoaded}
-              className="px-4 py-2 bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90 disabled:opacity-50"
+              className="bg-red-500 text-white font-semibold py-3 px-6 rounded-xl hover:bg-red-600 transition-all duration-300 disabled:opacity-50"
             >
               Limpar Cache
             </button>
           </div>
           
-          <div className="flex flex-col items-center space-y-4">
-            <div className="relative">
+          <div className="flex flex-col items-center space-y-6">
+            <div className="relative video-wrapper">
               <video 
                 ref={videoRef}
                 autoPlay 
@@ -788,12 +1042,12 @@ export default function FaceRecognition() {
                 height="560" 
                 muted
                 onPlay={onVideoPlay}
-                className="rounded-lg border"
+                className="rounded-2xl border-2 border-gray-200 shadow-lg"
               />
-              <canvas ref={canvasRef} className="absolute top-0 left-0" />
+              <canvas ref={canvasRef} className="absolute top-0 left-0 rounded-2xl" />
               
-              {/* Indicadores de status */}
-              <div className="absolute bottom-4 right-4 flex gap-2">
+              {/* Indicadores de status modernizados */}
+              <div className="status-indicators">
                 {isAnalyzing && (
                   <div className="indicator orange" title="Analisando rosto"></div>
                 )}
@@ -804,19 +1058,19 @@ export default function FaceRecognition() {
             </div>
             <canvas ref={captureCanvasRef} style={{ display: 'none' }} />
             
-            <div className="flex flex-wrap gap-4 items-center">
+            <div className="flex flex-wrap gap-4 items-center justify-center">
               <input 
                 type="text" 
                 value={personName}
                 onChange={(e) => setPersonName(e.target.value)}
                 placeholder="Nome da pessoa"
                 disabled={!faceApiLoaded || isCapturing}
-                className="px-3 py-2 border rounded-md min-w-[200px]"
+                className="modern-input min-w-[200px]"
               />
               <button 
                 onClick={capturePhoto} 
                 disabled={!faceApiLoaded || isCapturing || !personName.trim() || capturedPhotos.length >= 5}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50"
+                className="modern-button-primary"
               >
                 {isCapturing ? 'Capturando...' : `Capturar Foto ${capturedPhotos.length + 1}/5`}
               </button>
@@ -824,7 +1078,7 @@ export default function FaceRecognition() {
                 <button 
                   onClick={cancelCapture} 
                   disabled={isCapturing}
-                  className="px-4 py-2 bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90"
+                  className="bg-red-500 text-white font-semibold py-3 px-6 rounded-xl hover:bg-red-600 transition-all duration-300"
                   title={`Cancelar cadastro e apagar ${capturedPhotos.length} foto(s) de "${personName}"`}
                 >
                   Cancelar e Apagar ({capturedPhotos.length} foto{capturedPhotos.length > 1 ? 's' : ''})
@@ -833,15 +1087,15 @@ export default function FaceRecognition() {
             </div>
 
             {capturedPhotos.length > 0 && (
-              <div className="bg-muted p-4 rounded-lg w-full max-w-2xl">
-                <p className="font-medium mb-2">Fotos capturadas: {capturedPhotos.length}/5</p>
-                <div className="flex gap-2 flex-wrap mb-2">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-2xl w-full max-w-2xl border border-blue-200">
+                <p className="font-semibold mb-4 text-blue-900">Fotos capturadas: {capturedPhotos.length}/5</p>
+                <div className="flex gap-3 flex-wrap mb-4 justify-center">
                   {capturedPhotos.map((photo, index) => (
                     <Image
                       key={index}
                       src={photo}
                       alt={`Foto ${index + 1}`}
-                      className="photo-thumbnail rounded border-2 border-primary"
+                      className="photo-thumbnail hover:scale-105 transition-transform"
                       width={80}
                       height={80}
                       style={{ objectFit: 'cover' }}
@@ -849,60 +1103,91 @@ export default function FaceRecognition() {
                   ))}
                 </div>
                 {capturedPhotos.length < 5 && (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-blue-700 text-center">
                     Continue capturando fotos para melhor precisão do reconhecimento
                   </p>
                 )}
               </div>
             )}
             
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-3 bg-gray-50 px-4 py-3 rounded-xl">
               <input 
                 type="checkbox" 
                 id="showLandmarks"
                 checked={showLandmarks}
                 onChange={(e) => setShowLandmarks(e.target.checked)}
-                className="w-4 h-4"
+                className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
               />
-              <label htmlFor="showLandmarks" className="text-sm">
+              <label htmlFor="showLandmarks" className="text-sm font-medium text-gray-700">
                 Mostrar informações de reconhecimento
               </label>
             </div>
           </div>
 
           {statusMessage && (
-            <div className="mt-4 p-3 bg-green-100 text-green-800 rounded-md text-center">
-              {statusMessage}
+            <div className="bg-green-50 border border-green-200 p-4 rounded-xl text-center">
+              <p className="text-green-800 font-medium">{statusMessage}</p>
             </div>
           )}
 
-          <div className="mt-6 bg-muted p-4 rounded-lg">
-            <h3 className="font-semibold mb-2">Pessoas Cadastradas:</h3>
-            <ul className="space-y-1">
-              {personList.map((person, index) => {
-                // Encontrar quantas fotos essa pessoa tem nos labels
-                const personLabel = labels.find(label => {
-                  const l = label as { label?: string };
-                  return l.label === person;
-                }) as { descriptors?: Float32Array[] } | undefined;
-                
-                const photoCount = personLabel?.descriptors?.length || 0;
-                
-                return (
-                  <li key={index} className="flex items-center justify-between py-1">
-                    <span>{person}</span>
-                    {photoCount > 0 && (
-                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                        {photoCount} foto(s)
-                      </span>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
+          <div className="modern-card bg-gradient-to-r from-gray-50 to-slate-50">
+            <h3 className="text-xl font-semibold mb-4 text-gray-900 flex items-center gap-3">
+              <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                </svg>
+              </div>
+              Pessoas Cadastradas
+            </h3>
+            
+            {personList.length > 0 ? (
+              <div className="grid gap-3">
+                {personList.map((person, index) => {
+                  // Encontrar quantas fotos essa pessoa tem nos labels
+                  const personLabel = labels.find(label => {
+                    const l = label as { label?: string };
+                    return l.label === person;
+                  }) as { descriptors?: Float32Array[] } | undefined;
+                  
+                  const photoCount = personLabel?.descriptors?.length || 0;
+                  
+                  return (
+                    <div key={index} className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200 hover:shadow-md transition-all duration-300">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                          <span className="text-white font-semibold">{person.charAt(0).toUpperCase()}</span>
+                        </div>
+                        <span className="font-medium text-gray-900">{person}</span>
+                      </div>
+                      {photoCount > 0 && (
+                        <span className="status-indicator status-success">
+                          {photoCount} foto{photoCount > 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <p className="text-lg font-medium">Nenhuma pessoa cadastrada</p>
+                <p className="text-sm">Comece capturando fotos para treinar o sistema</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Modal de Pessoa Reconhecida */}
+      <RecognizedPersonModal
+        isOpen={showRecognizedModal}
+        onClose={closeModal}
+        person={recognizedPerson}
+        countdown={modalCountdown}
+      />
     </MainLayout>
   );
 }

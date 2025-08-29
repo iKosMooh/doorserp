@@ -25,9 +25,15 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-background font-sans antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-gradient-to-br from-slate-50 via-white to-orange-50 font-sans antialiased`}
       >
-        {children}
+        <div className="min-h-screen relative">
+          {/* Background decorativo */}
+          <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-transparent to-orange-500/5 pointer-events-none" />
+          <div className="relative z-10">
+            {children}
+          </div>
+        </div>
       </body>
     </html>
   );
