@@ -97,7 +97,7 @@ export function Sidebar() {
                 <Shield className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold gradient-text">DoorsERP</h1>
+                <h1 className="text-xl font-extrabold gradient-text text-black">DoorsERP</h1>
                 <p className="text-xs text-gray-500">Sistema de Portaria</p>
               </div>
             </div>

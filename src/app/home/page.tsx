@@ -97,14 +97,14 @@ export default function DashboardPage() {
     <MainLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-3xl text-black font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">
             Visão geral do sistema de gestão do condomínio
           </p>
         </div>
 
         {/* Cards de estatísticas */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="text-black grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
@@ -213,7 +213,7 @@ export default function DashboardPage() {
           <CardContent>
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="text-black">
                   <TableHead>Hora</TableHead>
                   <TableHead>Nome</TableHead>
                   <TableHead>Tipo</TableHead>
@@ -223,10 +223,10 @@ export default function DashboardPage() {
               <TableBody>
                 {stats.recentAccess.map((access) => (
                   <TableRow key={access.id}>
-                    <TableCell className="font-medium">
+                    <TableCell className="font-medium text-black">
                       {new Date(access.timestamp).toLocaleString('pt-BR')}
                     </TableCell>
-                    <TableCell>{access.personName}</TableCell>
+                    <TableCell className="text-black">{access.personName}</TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                         access.accessType === 'RESIDENT' 
