@@ -181,7 +181,7 @@ export default function ArduinoControlPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 text-black">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
