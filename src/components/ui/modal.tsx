@@ -6,9 +6,10 @@ interface ModalProps {
   isOpen: boolean
   onClose: () => void
   children: React.ReactNode
+  title?: string
 }
 
-export function Modal({ isOpen, onClose, children }: ModalProps) {
+export function Modal({ isOpen, onClose, children, title }: ModalProps) {
   if (!isOpen) return null
 
   return (
@@ -20,14 +21,21 @@ export function Modal({ isOpen, onClose, children }: ModalProps) {
       />
       
       {/* Modal Content */}
-      <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-auto">
+      <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-auto">
+        {title && (
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+          </div>
+        )}
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors z-10"
         >
           <X className="h-5 w-5" />
         </button>
-        {children}
+        <div className={title ? "p-6" : ""}>
+          {children}
+        </div>
       </div>
     </div>
   )

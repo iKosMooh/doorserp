@@ -1,5 +1,7 @@
-import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { NextRequest, NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export async function GET(request: NextRequest) {
   try {
@@ -25,38 +27,40 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Buscar unidades do condomínio
-    const units = await prisma.unit.findMany({
+    // Buscar convidados do condomínio
+    const guests = await prisma.guest.findMany({
       where: {
         condominiumId
       },
       include: {
-        residents: {
-          where: {
-            isActive: true
-          },
+        invitedByResident: {
           include: {
             user: {
               select: {
                 name: true
               }
+            },
+            unit: {
+              select: {
+                block: true,
+                number: true
+              }
             }
           }
         }
       },
-      orderBy: [
-        { block: 'asc' },
-        { number: 'asc' }
-      ]
+      orderBy: {
+        createdAt: 'desc'
+      }
     });
 
     return NextResponse.json({
       success: true,
-      data: units
+      data: guests
     });
 
   } catch (error) {
-    console.error('Erro ao buscar unidades:', error);
+    console.error('Erro ao buscar convidados:', error);
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -70,22 +74,24 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const {
+      name,
+      document,
+      phone,
       condominiumId,
-      block,
-      number,
-      floor,
-      area,
-      bedrooms,
-      bathrooms,
-      parkingSpaces,
-      unitType,
-      monthlyFee
+      invitedByResidentId,
+      visitPurpose,
+      vehiclePlate,
+      validFrom,
+      validUntil,
+      maxEntries,
+      accessDurationMinutes,
+      autoExpire
     } = body;
 
     // Validações básicas
-    if (!condominiumId || !block || !number) {
+    if (!name || !condominiumId || !invitedByResidentId) {
       return NextResponse.json(
-        { error: 'Condomínio, bloco e número são obrigatórios' },
+        { error: 'Nome, condomínio e morador convidante são obrigatórios' },
         { status: 400 }
       );
     }
@@ -102,42 +108,46 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verificar se já existe uma unidade com o mesmo bloco/número
-    const existingUnit = await prisma.unit.findFirst({
-      where: {
-        condominiumId,
-        block,
-        number
-      }
+    // Verificar se o morador existe
+    const resident = await prisma.resident.findUnique({
+      where: { id: invitedByResidentId }
     });
 
-    if (existingUnit) {
+    if (!resident) {
       return NextResponse.json(
-        { error: 'Já existe uma unidade com este bloco/número' },
-        { status: 400 }
+        { error: 'Morador não encontrado' },
+        { status: 404 }
       );
     }
 
-    // Criar a unidade
-    const unit = await prisma.unit.create({
+    // Criar o convidado
+    const guest = await prisma.guest.create({
       data: {
+        name,
+        document,
+        phone,
         condominiumId,
-        block,
-        number,
-        floor,
-        area: area ? parseFloat(area) : null,
-        bedrooms,
-        bathrooms,
-        parkingSpaces: parkingSpaces || 0,
-        unitType: unitType || 'APARTMENT',
-        monthlyFee: monthlyFee ? parseFloat(monthlyFee) : 0
+        invitedByResidentId,
+        visitPurpose,
+        vehiclePlate,
+        validFrom: validFrom ? new Date(validFrom) : new Date(),
+        validUntil: validUntil ? new Date(validUntil) : null,
+        maxEntries: maxEntries || 1,
+        accessDurationMinutes: accessDurationMinutes || 60,
+        autoExpire: autoExpire !== false
       },
       include: {
-        residents: {
+        invitedByResident: {
           include: {
             user: {
               select: {
                 name: true
+              }
+            },
+            unit: {
+              select: {
+                block: true,
+                number: true
               }
             }
           }
@@ -147,11 +157,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: unit
+      data: guest
     });
 
   } catch (error) {
-    console.error('Erro ao criar unidade:', error);
+    console.error('Erro ao criar convidado:', error);
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }

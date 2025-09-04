@@ -1,5 +1,13 @@
-// Schema Prisma para ERP de Condomínio
-// Configurado para MySQL
+// =====================================================
+// SCHEMA PRISMA PARA SISTEMA DE MÚLTIPLOS CONDOMÍNIOS
+// =====================================================
+// Sistema completo para gerenciar múltiplos condomínios com:
+// - Controle de acesso independente por condomínio
+// - Sistema financeiro separado por condomínio
+// - Configuração Arduino individual por condomínio
+// - Funcionários específicos por condomínio
+// - Múltiplos níveis de acesso e permissões
+// =====================================================
 
 generator client {
   provider = "prisma-client-js"
@@ -10,136 +18,526 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// =====================================================
+// MODELOS PRINCIPAIS DO SISTEMA
+// =====================================================
+
+model Condominium {
+  id                      String    @id @default(cuid())
+  name                    String
+  cnpj                    String?   @unique
+  address                 String
+  city                    String
+  state                   String
+  zipCode                 String    @map("zip_code")
+  phone                   String?
+  email                   String?
+  adminContact            String?   @map("admin_contact")
+  totalUnits              Int       @default(0) @map("total_units")
+  isActive                Boolean   @default(true) @map("is_active")
+  subscriptionPlan        SubscriptionPlan @default(BASIC) @map("subscription_plan")
+  subscriptionExpiresAt   DateTime? @map("subscription_expires_at")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+  
+  // Relacionamentos
+  arduinoConfigurations   ArduinoConfiguration[]
+  userAccess              UserCondominiumAccess[]
+  units                   Unit[]
+  residents               Resident[]
+  employees               Employee[]
+  guests                  Guest[]
+  accessLogs              AccessLog[]
+  securityAlerts          SecurityAlert[]
+  financialCategories     FinancialCategory[]
+  financialAccounts       FinancialAccount[]
+  financialEntries        FinancialEntry[]
+  
+  @@map("condominiums")
+}
+
 model User {
-  id              String      @id @default(cuid())
-  email           String      @unique
-  name            String?
-  photo           String?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  isResident      Boolean     @default(true)
-  resident        Resident?
-  employee        Employee?
-  accessLogs      AccessLog[]
+  id                      String    @id @default(cuid())
+  email                   String    @unique
+  name                    String
+  photo                   String?
+  phone                   String?
+  document                String?
+  documentType            DocumentType @default(CPF) @map("document_type")
+  birthDate               DateTime? @map("birth_date")
+  faceRecognitionFolder   String?   @map("face_recognition_folder") // Pasta do reconhecimento facial
+  faceRecognitionEnabled  Boolean   @default(false) @map("face_recognition_enabled") // Se o reconhecimento facial está habilitado
+  faceModelsCount         Int       @default(0) @map("face_models_count") // Quantidade de modelos de face treinados
+  lastFaceTraining        DateTime? @map("last_face_training") // Último treinamento dos modelos de face
+  isActive                Boolean   @default(true) @map("is_active")
+  isSuperAdmin            Boolean   @default(false) @map("is_super_admin")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+  
+  // Relacionamentos
+  condominiumAccess       UserCondominiumAccess[]
+  residents               Resident[]
+  employees               Employee[]
+  accessLogs              AccessLog[]
+  alertsTriggered         SecurityAlert[] @relation("AlertTriggeredBy")
+  alertsResolved          SecurityAlert[] @relation("AlertResolvedBy")
+  financialEntriesCreated FinancialEntry[] @relation("FinancialEntryCreatedBy")
+  financialEntriesApproved FinancialEntry[] @relation("FinancialEntryApprovedBy")
+  accessGranted           UserCondominiumAccess[] @relation("AccessGrantedBy")
   
   @@map("users")
 }
 
-model Resident {
-  id               String           @id @default(cuid())
-  userId           String           @unique
-  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  unitId           String
-  unit             Unit             @relation(fields: [unitId], references: [id])
-  phone            String?
-  emergencyContact String?
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  guests           Guest[]
+model UserCondominiumAccess {
+  id               String      @id @default(cuid())
+  userId           String      @map("user_id")
+  condominiumId    String      @map("condominium_id")
+  accessLevel      AccessLevel @map("access_level")
+  isActive         Boolean     @default(true) @map("is_active")
+  grantedAt        DateTime    @default(now()) @map("granted_at")
+  expiresAt        DateTime?   @map("expires_at")
+  grantedBy        String?     @map("granted_by")
+  notes            String?
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
+  
+  // Relacionamentos
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  condominium      Condominium @relation(fields: [condominiumId], references: [id], onDelete: Cascade)
+  grantedByUser    User?       @relation("AccessGrantedBy", fields: [grantedBy], references: [id], onDelete: SetNull)
+  
+  @@unique([userId, condominiumId])
+  @@map("user_condominium_access")
+}
+
+model ArduinoConfiguration {
+  id                String      @id @default(cuid())
+  condominiumId     String      @map("condominium_id")
+  deviceName        String      @map("device_name")
+  deviceCode        String      @unique @map("device_code")
+  wifiSsid          String?     @map("wifi_ssid")
+  wifiPassword      String?     @map("wifi_password")
+  connectionPort    String      @default("COM4") @map("connection_port")
+  baudRate          Int         @default(9600) @map("baud_rate")
+  deviceLocation    String?     @map("device_location")
+  deviceType        DeviceType  @default(MAIN_GATE) @map("device_type")
+  pinConfigurations Json?       @map("pin_configurations")
+  commandMapping    Json?       @map("command_mapping")
+  isOnline          Boolean     @default(false) @map("is_online")
+  lastPing          DateTime?   @map("last_ping")
+  firmwareVersion   String?     @map("firmware_version")
+  installationDate  DateTime    @default(now()) @map("installation_date")
+  isActive          Boolean     @default(true) @map("is_active")
+  notes             String?
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+  
+  // Relacionamentos
+  condominium       Condominium @relation(fields: [condominiumId], references: [id], onDelete: Cascade)
+  accessLogs        AccessLog[]
+  securityAlerts    SecurityAlert[]
+  
+  @@unique([condominiumId, deviceLocation])
+  @@map("arduino_configurations")
+}
+
+model Unit {
+  id               String      @id @default(cuid())
+  condominiumId    String      @map("condominium_id")
+  block            String
+  number           String
+  floor            Int?
+  area             Decimal?    @db.Decimal(8, 2)
+  bedrooms         Int?
+  bathrooms        Int?
+  parkingSpaces    Int         @default(0) @map("parking_spaces")
+  unitType         UnitType    @default(APARTMENT) @map("unit_type")
+  monthlyFee       Decimal     @default(0.00) @db.Decimal(10, 2) @map("monthly_fee")
+  isOccupied       Boolean     @default(false) @map("is_occupied")
+  isActive         Boolean     @default(true) @map("is_active")
+  notes            String?
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
+  
+  // Relacionamentos
+  condominium      Condominium @relation(fields: [condominiumId], references: [id], onDelete: Cascade)
+  residents        Resident[]
   financialEntries FinancialEntry[]
   
+  @@unique([condominiumId, block, number])
+  @@map("units")
+}
+
+model Resident {
+  id                 String            @id @default(cuid())
+  userId             String            @map("user_id")
+  unitId             String            @map("unit_id")
+  condominiumId      String            @map("condominium_id")
+  relationshipType   RelationshipType  @default(OWNER) @map("relationship_type")
+  emergencyContact   String?           @map("emergency_contact")
+  vehiclePlates      Json?             @map("vehicle_plates")
+  accessPermissions  Json?             @map("access_permissions")
+  moveInDate         DateTime          @default(now()) @map("move_in_date")
+  moveOutDate        DateTime?         @map("move_out_date")
+  isActive           Boolean           @default(true) @map("is_active")
+  notes              String?
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+  
+  // Relacionamentos
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  unit               Unit              @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  condominium        Condominium       @relation(fields: [condominiumId], references: [id], onDelete: Cascade)
+  guests             Guest[]
+  financialEntries   FinancialEntry[]
+  
+  @@unique([userId, unitId])
   @@map("residents")
 }
 
 model Employee {
-  id           String   @id @default(cuid())
-  userId       String   @unique
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  position     String
-  accessCardId String   @unique
-  department   String?
-  salary       Decimal? @db.Decimal(10, 2)
-  hireDate     DateTime @default(now())
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id               String      @id @default(cuid())
+  userId           String      @map("user_id")
+  condominiumId    String      @map("condominium_id")
+  employeeCode     String      @map("employee_code")
+  position         String
+  department       String?
+  accessCardId     String?     @unique @map("access_card_id")
+  salary           Decimal?    @db.Decimal(10, 2)
+  commissionRate   Decimal     @default(0.00) @db.Decimal(5, 2) @map("commission_rate")
+  workSchedule     Json?       @map("work_schedule")
+  permissions      Json?
+  hireDate         DateTime    @default(now()) @map("hire_date")
+  terminationDate  DateTime?   @map("termination_date")
+  isActive         Boolean     @default(true) @map("is_active")
+  supervisorId     String?     @map("supervisor_id")
+  notes            String?
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
   
+  // Relacionamentos
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  condominium      Condominium @relation(fields: [condominiumId], references: [id], onDelete: Cascade)
+  supervisor       Employee?   @relation("EmployeeSupervisor", fields: [supervisorId], references: [id], onDelete: SetNull)
+  subordinates     Employee[]  @relation("EmployeeSupervisor")
+  guestsAuthorized Guest[]
+  
+  @@unique([condominiumId, employeeCode])
+  @@unique([userId, condominiumId])
   @@map("employees")
 }
 
 model Guest {
-  id          String      @id @default(cuid())
-  name        String
-  document    String?
-  phone       String?
-  invitedById String
-  invitedBy   Resident    @relation(fields: [invitedById], references: [id])
-  validFrom   DateTime    @default(now())
-  validUntil  DateTime
-  isActive    Boolean     @default(true)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  accessLogs  AccessLog[]
+  id                     String      @id @default(cuid())
+  name                   String
+  document               String?
+  phone                  String?
+  condominiumId          String      @map("condominium_id")
+  invitedByResidentId    String      @map("invited_by_resident_id")
+  invitedByEmployeeId    String?     @map("invited_by_employee_id")
+  visitPurpose           String?     @map("visit_purpose")
+  vehiclePlate           String?     @map("vehicle_plate")
+  accessCode             String?     @map("access_code")
+  validFrom              DateTime    @default(now()) @map("valid_from")
+  validUntil             DateTime?   @map("valid_until") // Pode ser NULL para acesso sem limite
+  accessDurationMinutes  Int         @default(60) @map("access_duration_minutes") // Duração do acesso em minutos
+  autoExpire             Boolean     @default(true) @map("auto_expire") // Se o acesso expira automaticamente
+  maxEntries             Int         @default(1) @map("max_entries")
+  currentEntries         Int         @default(0) @map("current_entries")
+  authorizedLocations    Json?       @map("authorized_locations")
+  visitorPhoto           String?     @map("visitor_photo") // Foto do visitante
+  faceRecognitionFolder  String?     @map("face_recognition_folder") // Pasta temporária para reconhecimento facial
+  faceRecognitionEnabled Boolean     @default(false) @map("face_recognition_enabled") // Se reconhecimento facial está habilitado
+  notificationSent       Boolean     @default(false) @map("notification_sent") // Se notificação foi enviada
+  lastAccessAttempt      DateTime?   @map("last_access_attempt") // Último tentativa de acesso
+  isActive               Boolean     @default(true) @map("is_active")
+  notes                  String?
+  createdAt              DateTime    @default(now()) @map("created_at")
+  updatedAt              DateTime    @updatedAt @map("updated_at")
+  
+  // Relacionamentos
+  condominium            Condominium @relation(fields: [condominiumId], references: [id], onDelete: Cascade)
+  invitedByResident      Resident    @relation(fields: [invitedByResidentId], references: [id], onDelete: Cascade)
+  invitedByEmployee      Employee?   @relation(fields: [invitedByEmployeeId], references: [id], onDelete: SetNull)
+  accessLogs             AccessLog[]
   
   @@map("guests")
 }
 
-model Unit {
-  id        String     @id @default(cuid())
-  block     String
-  number    String
-  floor     Int?
-  area      Decimal?   @db.Decimal(8, 2)
-  bedrooms  Int?
-  bathrooms Int?
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  residents Resident[]
+// =====================================================
+// SISTEMA DE CONTROLE DE ACESSO E SEGURANÇA
+// =====================================================
+
+model AccessLog {
+  id                 String         @id @default(cuid())
+  condominiumId      String         @map("condominium_id")
+  arduinoId         String?        @map("arduino_id")
+  timestamp          DateTime       @default(now())
+  accessType         AccessType     @map("access_type")
+  accessMethod       AccessMethod   @map("access_method")
+  status             AccessStatus   @default(APPROVED)
+  userId             String?        @map("user_id")
+  guestId            String?        @map("guest_id")
+  entryExit          EntryExit      @map("entry_exit")
+  location           String?
+  arduinoCommandSent String?        @map("arduino_command_sent")
+  responseTimeMs     Int?           @map("response_time_ms")
+  vehiclePlate       String?        @map("vehicle_plate")
+  photoEvidence      String?        @map("photo_evidence")
+  additionalData     Json?          @map("additional_data")
+  denialReason       String?        @map("denial_reason")
+  authorizedBy       String?        @map("authorized_by")
+  notes              String?
   
-  @@unique([block, number])
-  @@map("units")
+  // Relacionamentos
+  condominium        Condominium    @relation(fields: [condominiumId], references: [id], onDelete: Cascade)
+  arduino            ArduinoConfiguration? @relation(fields: [arduinoId], references: [id], onDelete: SetNull)
+  user               User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  guest              Guest?         @relation(fields: [guestId], references: [id], onDelete: SetNull)
+  
+  @@map("access_logs")
+}
+
+model SecurityAlert {
+  id               String         @id @default(cuid())
+  condominiumId    String         @map("condominium_id")
+  arduinoId       String?        @map("arduino_id")
+  alertType        AlertType      @map("alert_type")
+  severity         AlertSeverity  @default(MEDIUM)
+  title            String
+  description      String?
+  triggeredBy      String?        @map("triggered_by")
+  location         String?
+  isResolved       Boolean        @default(false) @map("is_resolved")
+  resolvedBy       String?        @map("resolved_by")
+  resolvedAt       DateTime?      @map("resolved_at")
+  resolutionNotes  String?        @map("resolution_notes")
+  additionalData   Json?          @map("additional_data")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+  
+  // Relacionamentos
+  condominium      Condominium    @relation(fields: [condominiumId], references: [id], onDelete: Cascade)
+  arduino          ArduinoConfiguration? @relation(fields: [arduinoId], references: [id], onDelete: SetNull)
+  triggeredByUser  User?          @relation("AlertTriggeredBy", fields: [triggeredBy], references: [id], onDelete: SetNull)
+  resolvedByUser   User?          @relation("AlertResolvedBy", fields: [resolvedBy], references: [id], onDelete: SetNull)
+  
+  @@map("security_alerts")
+}
+
+// =====================================================
+// SISTEMA FINANCEIRO POR CONDOMÍNIO
+// =====================================================
+
+model FinancialCategory {
+  id                String            @id @default(cuid())
+  condominiumId     String            @map("condominium_id")
+  name              String
+  description       String?
+  type              TransactionType
+  isDefault         Boolean           @default(false) @map("is_default")
+  parentCategoryId  String?           @map("parent_category_id")
+  isActive          Boolean           @default(true) @map("is_active")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  
+  // Relacionamentos
+  condominium       Condominium       @relation(fields: [condominiumId], references: [id], onDelete: Cascade)
+  parentCategory    FinancialCategory? @relation("CategoryHierarchy", fields: [parentCategoryId], references: [id], onDelete: SetNull)
+  subcategories     FinancialCategory[] @relation("CategoryHierarchy")
+  financialEntries  FinancialEntry[]
+  
+  @@unique([condominiumId, name])
+  @@map("financial_categories")
+}
+
+model FinancialAccount {
+  id               String            @id @default(cuid())
+  condominiumId    String            @map("condominium_id")
+  accountName      String            @map("account_name")
+  accountType      AccountType       @default(CHECKING) @map("account_type")
+  bankName         String?           @map("bank_name")
+  accountNumber    String?           @map("account_number")
+  agency           String?
+  currentBalance   Decimal           @default(0.00) @db.Decimal(15, 2) @map("current_balance")
+  isActive         Boolean           @default(true) @map("is_active")
+  notes            String?
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  
+  // Relacionamentos
+  condominium      Condominium       @relation(fields: [condominiumId], references: [id], onDelete: Cascade)
+  financialEntries FinancialEntry[]
+  
+  @@map("financial_accounts")
+}
+
+model FinancialEntry {
+  id               String            @id @default(cuid())
+  condominiumId    String            @map("condominium_id")
+  accountId        String            @map("account_id")
+  categoryId       String            @map("category_id")
+  transactionDate  DateTime          @default(now()) @map("transaction_date")
+  dueDate          DateTime?         @map("due_date")
+  description      String
+  amount           Decimal           @db.Decimal(15, 2)
+  type             TransactionType
+  status           PaymentStatus     @default(PENDING)
+  paidAmount       Decimal           @default(0.00) @db.Decimal(15, 2) @map("paid_amount")
+  paidDate         DateTime?         @map("paid_date")
+  paymentMethod    PaymentMethod?    @map("payment_method")
+  residentId       String?           @map("resident_id")
+  unitId           String?           @map("unit_id")
+  supplierVendor   String?           @map("supplier_vendor")
+  documentNumber   String?           @map("document_number")
+  referenceMonth   String?           @map("reference_month")
+  isRecurring      Boolean           @default(false) @map("is_recurring")
+  recurrencePattern RecurrencePattern? @map("recurrence_pattern")
+  parentEntryId    String?           @map("parent_entry_id")
+  createdBy        String            @map("created_by")
+  approvedBy       String?           @map("approved_by")
+  approvalDate     DateTime?         @map("approval_date")
+  additionalData   Json?             @map("additional_data")
+  notes            String?
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  
+  // Relacionamentos
+  condominium      Condominium       @relation(fields: [condominiumId], references: [id], onDelete: Cascade)
+  account          FinancialAccount  @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  category         FinancialCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  resident         Resident?         @relation(fields: [residentId], references: [id], onDelete: SetNull)
+  unit             Unit?             @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  parentEntry      FinancialEntry?   @relation("RecurringEntries", fields: [parentEntryId], references: [id], onDelete: SetNull)
+  childEntries     FinancialEntry[]  @relation("RecurringEntries")
+  createdByUser    User              @relation("FinancialEntryCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  approvedByUser   User?             @relation("FinancialEntryApprovedBy", fields: [approvedBy], references: [id], onDelete: SetNull)
+  
+  @@map("financial_entries")
+}
+
+// =====================================================
+// ENUMS
+// =====================================================
+
+enum SubscriptionPlan {
+  BASIC
+  PREMIUM
+  ENTERPRISE
+}
+
+enum DocumentType {
+  CPF
+  RG
+  CNH
+  PASSPORT
+}
+
+enum AccessLevel {
+  RESIDENT
+  EMPLOYEE
+  ADMIN
+  VISITOR
+}
+
+enum DeviceType {
+  MAIN_GATE
+  GARAGE
+  PEDESTRIAN
+  EMERGENCY
+}
+
+enum UnitType {
+  APARTMENT
+  HOUSE
+  COMMERCIAL
+  STORAGE
+}
+
+enum RelationshipType {
+  OWNER
+  TENANT
+  FAMILY_MEMBER
+  AUTHORIZED
 }
 
 enum AccessType {
   RESIDENT
   EMPLOYEE
   GUEST
+  UNKNOWN
+  EMERGENCY
+}
+
+enum AccessMethod {
+  FACIAL_RECOGNITION
+  ACCESS_CARD
+  ACCESS_CODE
+  MANUAL
+  EMERGENCY
 }
 
 enum AccessStatus {
   APPROVED
   REJECTED
   PENDING
+  FORCED
 }
 
-model AccessLog {
-  id                 String       @id @default(cuid())
-  timestamp          DateTime     @default(now())
-  accessType         AccessType
-  status             AccessStatus @default(APPROVED)
-  userId             String?
-  user               User?        @relation(fields: [userId], references: [id])
-  guestId            String?
-  guest              Guest?       @relation(fields: [guestId], references: [id])
-  arduinoCommandSent String?
-  entryExit          String?      // "Entrada" ou "Saida"
-  location           String?      // Portão principal, garagem, etc
-  notes              String?      @db.Text
-  
-  @@map("access_logs")
+enum EntryExit {
+  ENTRY
+  EXIT
+}
+
+enum AlertType {
+  UNAUTHORIZED_ACCESS
+  FORCED_ENTRY
+  SYSTEM_OFFLINE
+  SUSPICIOUS_ACTIVITY
+  EMERGENCY
+}
+
+enum AlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }
 
 enum TransactionType {
   INCOME
   EXPENSE
+  TRANSFER
 }
 
-model FinancialEntry {
-  id          String          @id @default(cuid())
-  date        DateTime        @default(now())
-  description String
-  value       Decimal         @db.Decimal(10, 2)
-  type        TransactionType
-  category    String?
-  residentId  String?
-  resident    Resident?       @relation(fields: [residentId], references: [id])
-  dueDate     DateTime?
-  isPaid      Boolean         @default(false)
-  paidDate    DateTime?
-  paymentMethod String?
-  reference   String?         // Número do boleto, referência, etc
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  
-  @@map("financial_entries")
+enum PaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+  PARTIAL
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CREDIT_CARD
+  DEBIT_CARD
+  PIX
+  BOLETO
+  CHECK
+}
+
+enum AccountType {
+  CHECKING
+  SAVINGS
+  CASH
+  CREDIT_CARD
+  INVESTMENT
+}
+
+enum RecurrencePattern {
+  MONTHLY
+  QUARTERLY
+  YEARLY
 }

@@ -18,13 +18,16 @@ import {
   Zap,
   Menu,
   Building,
-  Activity
+  Activity,
+  Settings,
+  UserPlus
 } from "lucide-react";
+import { CondominiumSelector } from "@/components/CondominiumSelector";
 
 const menuItems = [
   {
     title: "Dashboard",
-    href: "/home",
+    href: "/dashboard",
     icon: LayoutDashboard,
     color: "text-blue-600"
   },
@@ -33,6 +36,12 @@ const menuItems = [
     href: "/face-recognition",
     icon: Camera,
     color: "text-green-600"
+  },
+  {
+    title: "Reconhecimento do Condomínio",
+    href: "/condominium-recognition",
+    icon: Shield,
+    color: "text-emerald-600"
   },
   {
     title: "Moradores",
@@ -45,6 +54,12 @@ const menuItems = [
     href: "/employees",
     icon: UserCheck,
     color: "text-orange-600"
+  },
+  {
+    title: "Convidados",
+    href: "/guests",
+    icon: UserPlus,
+    color: "text-pink-600"
   },
   {
     title: "Unidades",
@@ -75,6 +90,12 @@ const menuItems = [
     href: "/recognized",
     icon: FileText,
     color: "text-teal-600"
+  },
+  {
+    title: "Configurações",
+    href: "/settings",
+    icon: Settings,
+    color: "text-gray-600"
   },
 ];
 
@@ -108,6 +129,11 @@ export function Sidebar() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Seletor de Condomínio */}
+      <div className="p-4 border-b border-gray-100">
+        <CondominiumSelector collapsed={collapsed} />
       </div>
 
       {/* Navigation */}

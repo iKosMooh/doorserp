@@ -9,7 +9,7 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
-/public/labels/
+/public/assets/lib/face-api/labels
 
 # testing
 /coverage

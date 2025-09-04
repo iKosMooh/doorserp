@@ -1,22 +1,20 @@
-/*
- * Controle de Portas Arduino via Comunicação Serial
- * Este código permite controlar as portas digitais do Arduino
- * através de comandos recebidos via porta serial
- * 
- * Comandos suportados:
- * L1_ON  - Liga LED no pino 13
- * L1_OFF - Desliga LED no pino 13
- * L2_ON  - Liga LED no pino 12
- * L2_OFF - Desliga LED no pino 12
- * L3_ON  - Liga LED no pino 11
- * L3_OFF - Desliga LED no pino 11
- * L4_ON  - Liga LED no pino 10
- * L4_OFF - Desliga LED no pino 10
- * ALL_ON - Liga todos os LEDs
- * ALL_OFF - Desliga todos os LEDs
- * STATUS - Retorna estado atual
- * PING   - Teste de conexão
- */
+// * Controle de Portas Arduino via Comunicação Serial
+// * Este código permite controlar as portas digitais do Arduino
+// * através de comandos recebidos via porta serial
+// * 
+// * Comandos suportados:
+// * L1_ON  - Liga LED no pino 13
+// * L1_OFF - Desliga LED no pino 13
+// * L2_ON  - Liga LED no pino 12
+// * L2_OFF - Desliga LED no pino 12
+// * L3_ON  - Liga LED no pino 11
+// * L3_OFF - Desliga LED no pino 11
+// * L4_ON  - Liga LED no pino 10
+// * L4_OFF - Desliga LED no pino 10
+// * ALL_ON - Liga todos os LEDs
+// * ALL_OFF - Desliga todos os LEDs
+// * STATUS - Retorna estado atual
+// * PING   - Teste de conexão
 
 // Definição dos pinos que serão controlados
 const int LED_PIN_1 = 2;  // LED interno do Arduino (pino 2)
