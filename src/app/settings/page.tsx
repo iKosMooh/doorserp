@@ -5,7 +5,9 @@ import { MainLayout } from "@/components/main-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import { CreateCondominiumModal } from "@/components/CreateCondominiumModal"
 import { useCondominium } from "@/contexts/CondominiumContext"
+import { useAuth } from "@/contexts/AuthContext"
 import { 
   Settings, 
   Building2, 
@@ -19,7 +21,9 @@ import {
   Eye,
   CheckCircle,
   XCircle,
-  Crown
+  Crown,
+  Key,
+  User
 } from "lucide-react"
 
 interface CondominiumData {
@@ -50,11 +54,22 @@ interface CondominiumData {
 
 export default function SettingsPage() {
   const { selectedCondominium, condominiums, loading: condominiumLoading, loadCondominiums } = useCondominium()
+  const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [viewingCondominium, setViewingCondominium] = useState<CondominiumData | null>(null)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  
+  // Estados para mudança de senha
+  const [showPasswordForm, setShowPasswordForm] = useState(false)
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  })
+  const [passwordMessage, setPasswordMessage] = useState({ type: '', text: '' })
 
   const [formData, setFormData] = useState({
     name: '',
@@ -216,6 +231,58 @@ export default function SettingsPage() {
     return plans[plan] || { label: plan, color: 'bg-gray-100 text-gray-800' }
   }
 
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setPasswordMessage({ type: '', text: '' })
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordMessage({ type: 'error', text: 'As senhas não coincidem' })
+      return
+    }
+
+    if (passwordForm.newPassword.length < 6) {
+      setPasswordMessage({ type: 'error', text: 'A senha deve ter pelo menos 6 caracteres' })
+      return
+    }
+
+    try {
+      setLoading(true)
+      const response = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          currentPassword: passwordForm.currentPassword,
+          newPassword: passwordForm.newPassword,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setPasswordMessage({ type: 'success', text: 'Senha alterada com sucesso!' })
+        setPasswordForm({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        })
+        setShowPasswordForm(false)
+      } else {
+        setPasswordMessage({ type: 'error', text: data.message || 'Erro ao alterar senha' })
+      }
+    } catch {
+      setPasswordMessage({ type: 'error', text: 'Erro de conexão. Tente novamente.' })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCreateCondominiumSuccess = async () => {
+    await loadCondominiums();
+    setShowCreateModal(false);
+  };
+
   if (condominiumLoading) {
     return (
       <MainLayout>
@@ -237,7 +304,7 @@ export default function SettingsPage() {
             </p>
           </div>
           <Button 
-            onClick={() => setShowForm(true)}
+            onClick={() => setShowCreateModal(true)}
             className="bg-green-600 hover:bg-green-700"
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -629,6 +696,127 @@ export default function SettingsPage() {
           </Card>
         )}
 
+        {/* Informações do Usuário */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Informações da Conta
+            </CardTitle>
+            <CardDescription>
+              Dados do usuário logado
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-500">Nome</label>
+                <p className="font-semibold">{user?.name}</p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-500">Email</label>
+                <p>{user?.email}</p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-500">Tipo de Usuário</label>
+                <p>{user?.isAdmin ? 'Administrador Global' : 'Usuário de Condomínio'}</p>
+              </div>
+              {!user?.isAdmin && (
+                <div className="space-y-2 md:col-span-2 lg:col-span-3">
+                  <label className="text-sm font-medium text-gray-500">Condomínios com Acesso</label>
+                  <div className="flex flex-wrap gap-2">
+                    {user?.condominiums.map(condo => (
+                      <span key={condo.id} className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
+                        {condo.name} ({condo.accessLevel})
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="mt-6 pt-6 border-t">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium">Alterar Senha</h3>
+                  <p className="text-sm text-gray-600">Mantenha sua conta segura alterando sua senha regularmente</p>
+                </div>
+                <Button
+                  onClick={() => setShowPasswordForm(!showPasswordForm)}
+                  variant="outline"
+                >
+                  <Key className="w-4 h-4 mr-2" />
+                  {showPasswordForm ? 'Cancelar' : 'Alterar Senha'}
+                </Button>
+              </div>
+
+              {showPasswordForm && (
+                <form onSubmit={handleChangePassword} className="mt-4 space-y-4 p-4 bg-gray-50 rounded-lg">
+                  {passwordMessage.text && (
+                    <div className={`p-4 rounded-md ${
+                      passwordMessage.type === 'success' 
+                        ? 'bg-green-50 border border-green-300 text-green-700'
+                        : 'bg-red-50 border border-red-300 text-red-700'
+                    }`}>
+                      {passwordMessage.text}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700">
+                        Senha Atual
+                      </label>
+                      <input
+                        type="password"
+                        id="currentPassword"
+                        required
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        value={passwordForm.currentPassword}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
+                        Nova Senha
+                      </label>
+                      <input
+                        type="password"
+                        id="newPassword"
+                        required
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        value={passwordForm.newPassword}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                        Confirmar Nova Senha
+                      </label>
+                      <input
+                        type="password"
+                        id="confirmPassword"
+                        required
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        value={passwordForm.confirmPassword}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Button type="submit" disabled={loading}>
+                      {loading ? 'Alterando...' : 'Confirmar Alteração'}
+                    </Button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Lista de condomínios */}
         <Card>
           <CardHeader>
@@ -763,6 +951,13 @@ export default function SettingsPage() {
             )}
           </CardContent>
         </Card>
+        
+        {/* Modal de Criação de Condomínio */}
+        <CreateCondominiumModal
+          isOpen={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={handleCreateCondominiumSuccess}
+        />
       </div>
     </MainLayout>
   )

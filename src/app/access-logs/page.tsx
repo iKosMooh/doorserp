@@ -5,7 +5,7 @@ import { MainLayout } from "@/components/main-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Search, Download, LogIn, LogOut, Shield, Users, Clock, Calendar, Trash2 } from "lucide-react"
+import { Search, Download, LogIn, LogOut, Shield, Users, Clock, Calendar } from "lucide-react"
 
 interface AccessLog {
   id: string
@@ -133,56 +133,6 @@ export default function AccessLogsPage() {
     // TODO: Implementar exportação para Excel/PDF
   }
 
-  const handleDeleteAllLogs = async () => {
-    // Primeira confirmação
-    const firstConfirm = confirm(
-      "⚠️ ATENÇÃO: Esta ação irá deletar TODOS os logs de acesso permanentemente!\n\n" +
-      `Serão deletados ${totalAccess} registros de acesso.\n\n` +
-      "Esta ação NÃO pode ser desfeita!\n\n" +
-      "Tem certeza que deseja continuar?"
-    )
-
-    if (!firstConfirm) {
-      return
-    }
-
-    // Segunda confirmação
-    const secondConfirm = confirm(
-      "🚨 ÚLTIMA CONFIRMAÇÃO!\n\n" +
-      "Você está prestes a deletar TODOS os logs de acesso do sistema.\n\n" +
-      "Esta é sua última chance de cancelar esta operação irreversível.\n\n" +
-      "Clique OK apenas se tem ABSOLUTA certeza!"
-    )
-
-    if (!secondConfirm) {
-      return
-    }
-
-    try {
-      setLoading(true)
-      
-      const response = await fetch('/api/access-logs?confirm=true', {
-        method: 'DELETE'
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        alert(`✅ Sucesso!\n\n${data.deletedCount} logs de acesso foram deletados.`)
-        
-        // Atualizar a lista de logs
-        setLogs([])
-      } else {
-        const errorData = await response.json()
-        alert(`❌ Erro ao deletar logs:\n\n${errorData.error}`)
-      }
-    } catch (error) {
-      console.error('Erro ao deletar logs:', error)
-      alert('❌ Erro inesperado ao deletar logs. Tente novamente.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   if (loading) {
     return (
       <MainLayout>
@@ -203,21 +153,10 @@ export default function AccessLogsPage() {
               Monitore todos os acessos ao condomínio
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button 
-              onClick={handleDeleteAllLogs} 
-              variant="destructive"
-              className="flex items-center gap-2"
-              disabled={loading || totalAccess === 0}
-            >
-              <Trash2 className="h-4 w-4" />
-              Apagar Todos os Logs
-            </Button>
-            <Button onClick={handleExport} className="flex items-center gap-2">
-              <Download className="h-4 w-4" />
-              Exportar Logs
-            </Button>
-          </div>
+          <Button onClick={handleExport} className="flex items-center gap-2">
+            <Download className="h-4 w-4" />
+            Exportar Logs
+          </Button>
         </div>
 
         {/* Estatísticas */}
@@ -386,67 +325,56 @@ export default function AccessLogsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredLogs.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                      {totalAccess === 0 
-                        ? "Nenhum log de acesso encontrado" 
-                        : "Nenhum log corresponde aos filtros aplicados"
-                      }
+                {filteredLogs.map((log) => (
+                  <TableRow key={log.id}>
+                    <TableCell className="font-medium">
+                      <div>
+                        <div>{new Date(log.timestamp).toLocaleDateString('pt-BR')}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {new Date(log.timestamp).toLocaleTimeString('pt-BR')}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium">{log.personName}</div>
+                      {log.authorizedBy && (
+                        <div className="text-sm text-muted-foreground">
+                          Autorizado por: {log.authorizedBy}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getPersonTypeColor(log.personType)}`}>
+                        {getPersonTypeLabel(log.personType)}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        {log.accessType === "ENTRY" ? (
+                          <LogIn className="h-3 w-3 text-green-600" />
+                        ) : (
+                          <LogOut className="h-3 w-3 text-blue-600" />
+                        )}
+                        {getAccessTypeLabel(log.accessType)}
+                      </div>
+                    </TableCell>
+                    <TableCell>{getMethodLabel(log.method)}</TableCell>
+                    <TableCell>{log.location}</TableCell>
+                    <TableCell>
+                      {log.unitNumber ? `${log.building}-${log.unitNumber}` : '-'}
+                    </TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(log.status)}`}>
+                        {getStatusLabel(log.status)}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="max-w-xs truncate" title={log.notes}>
+                        {log.notes || '-'}
+                      </div>
                     </TableCell>
                   </TableRow>
-                ) : (
-                  filteredLogs.map((log) => (
-                    <TableRow key={log.id}>
-                      <TableCell className="font-medium">
-                        <div>
-                          <div>{new Date(log.timestamp).toLocaleDateString('pt-BR')}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {new Date(log.timestamp).toLocaleTimeString('pt-BR')}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="font-medium">{log.personName}</div>
-                        {log.authorizedBy && (
-                          <div className="text-sm text-muted-foreground">
-                            Autorizado por: {log.authorizedBy}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getPersonTypeColor(log.personType)}`}>
-                          {getPersonTypeLabel(log.personType)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          {log.accessType === "ENTRY" ? (
-                            <LogIn className="h-3 w-3 text-green-600" />
-                          ) : (
-                            <LogOut className="h-3 w-3 text-blue-600" />
-                          )}
-                          {getAccessTypeLabel(log.accessType)}
-                        </div>
-                      </TableCell>
-                      <TableCell>{getMethodLabel(log.method)}</TableCell>
-                      <TableCell>{log.location}</TableCell>
-                      <TableCell>
-                        {log.unitNumber ? `${log.building}-${log.unitNumber}` : '-'}
-                      </TableCell>
-                      <TableCell>
-                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(log.status)}`}>
-                          {getStatusLabel(log.status)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="max-w-xs truncate" title={log.notes}>
-                          {log.notes || '-'}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </CardContent>

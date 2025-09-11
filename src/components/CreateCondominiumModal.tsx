@@ -387,8 +387,8 @@ export function CreateCondominiumModal({ isOpen, onClose, onSuccess }: CreateCon
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.address || !formData.city || !formData.state) {
-      setError('Nome, endereço, cidade e estado são obrigatórios');
+    if (!formData.name || !formData.address || !formData.city || !formData.state || !formData.zipCode) {
+      setError('Nome, endereço, cidade, estado e CEP são obrigatórios');
       return;
     }
 

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -20,9 +20,11 @@ import {
   Building,
   Activity,
   Settings,
-  UserPlus
+  UserPlus,
+  LogOut
 } from "lucide-react";
 import { CondominiumSelector } from "@/components/CondominiumSelector";
+import { useAuth } from "@/contexts/AuthContext";
 
 const menuItems = [
   {
@@ -86,6 +88,18 @@ const menuItems = [
     color: "text-yellow-600"
   },
   {
+    title: "Deploy Arduino",
+    href: "/arduino-deploy",
+    icon: Zap,
+    color: "text-amber-600"
+  },
+  {
+    title: "Cadastro Arduino",
+    href: "/arduino-register",
+    icon: Settings,
+    color: "text-blue-600"
+  },
+  {
     title: "Pessoas Reconhecidas",
     href: "/recognized",
     icon: FileText,
@@ -103,6 +117,15 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const { logout } = useAuth();
+
+  const handleLogout = async () => {
+    if (confirm('Tem certeza que deseja sair?')) {
+      await logout();
+      router.push('/login');
+    }
+  };
 
   const SidebarContent = () => (
     <div className={cn(
@@ -185,7 +208,21 @@ export function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-gray-200">
+      <div className="p-4 border-t border-gray-200 space-y-2">
+        {/* Botão de Logout */}
+        <button
+          onClick={handleLogout}
+          className={cn(
+            "w-full flex items-center rounded-xl p-3",
+            "text-red-600 hover:text-red-700 hover:bg-red-50 transition-all duration-200",
+            collapsed ? "justify-center" : "justify-start space-x-3"
+          )}
+        >
+          <LogOut className="w-5 h-5" />
+          {!collapsed && <span className="font-medium">Sair</span>}
+        </button>
+        
+        {/* Botão de Recolher */}
         <button
           onClick={() => setCollapsed(!collapsed)}
           className={cn(

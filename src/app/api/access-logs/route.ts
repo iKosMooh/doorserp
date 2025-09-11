@@ -228,34 +228,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-
-export async function DELETE(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const confirmDelete = searchParams.get('confirm')
-    
-    if (confirmDelete !== 'true') {
-      return NextResponse.json(
-        { error: "Confirmação obrigatória para deletar todos os logs" },
-        { status: 400 }
-      )
-    }
-
-    // Deletar todos os logs de acesso
-    const deleteResult = await prisma.accessLog.deleteMany({})
-
-    console.log(`🗑️ ${deleteResult.count} logs de acesso foram deletados`)
-
-    return NextResponse.json({
-      success: true,
-      message: `${deleteResult.count} logs de acesso foram deletados com sucesso`,
-      deletedCount: deleteResult.count
-    })
-  } catch (error) {
-    console.error("Erro ao deletar logs de acesso:", error)
-    return NextResponse.json(
-      { error: "Erro interno do servidor" },
-      { status: 500 }
-    )
-  }
-}

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { prisma } from '@/lib/prisma'
 
 // Tipos para as bibliotecas do SerialPort
 interface SerialPortInfo {
@@ -257,16 +258,36 @@ async function desconectarArduino(): Promise<boolean> {
   }
 }
 
-// API GET - Status e listagem de portas
+// API GET - Status, listagem de portas e configurações
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const action = searchParams.get('action')
+    const condominiumId = searchParams.get('condominiumId')
 
     // Lista portas disponíveis
     if (action === 'ports') {
       const ports = await listarPortas()
       return NextResponse.json({ ports })
+    }
+
+    // Lista configurações Arduino do condomínio
+    if (condominiumId) {
+      const arduinoConfigs = await prisma.arduinoConfiguration.findMany({
+        where: {
+          condominiumId: condominiumId,
+          isActive: true
+        },
+        orderBy: {
+          deviceName: 'asc'
+        }
+      })
+
+      return NextResponse.json({
+        success: true,
+        configs: arduinoConfigs,
+        count: arduinoConfigs.length
+      })
     }
 
     // Retorna status atual
