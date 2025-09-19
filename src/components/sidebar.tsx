@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -26,12 +26,18 @@ import {
 import { CondominiumSelector } from "@/components/CondominiumSelector";
 import { useAuth } from "@/contexts/AuthContext";
 
-const menuItems = [
+const adminMenuItems = [
   {
-    title: "Dashboard",
+    title: "Dashboard Admin",
     href: "/dashboard",
     icon: LayoutDashboard,
     color: "text-blue-600"
+  },
+  {
+    title: "Gerenciar Moradores",
+    href: "/residents-management",
+    icon: Users,
+    color: "text-purple-600"
   },
   {
     title: "Reconhecimento Facial",
@@ -100,6 +106,12 @@ const menuItems = [
     color: "text-blue-600"
   },
   {
+    title: "Serial Monitor",
+    href: "/serial-monitor",
+    icon: Activity,
+    color: "text-teal-600"
+  },
+  {
     title: "Pessoas Reconhecidas",
     href: "/recognized",
     icon: FileText,
@@ -113,12 +125,90 @@ const menuItems = [
   },
 ];
 
+const residentMenuItems = [
+  {
+    title: "Painel do Morador",
+    href: "/resident-dashboard",
+    icon: Home,
+    color: "text-blue-600"
+  },
+  {
+    title: "Meus Convidados",
+    href: "/guests",
+    icon: UserPlus,
+    color: "text-pink-600"
+  },
+  {
+    title: "Reconhecimento Facial",
+    href: "/face-recognition",
+    icon: Camera,
+    color: "text-green-600"
+  },
+  {
+    title: "Meus Acessos",
+    href: "/access-logs",
+    icon: Activity,
+    color: "text-red-600"
+  },
+  {
+    title: "Configurações",
+    href: "/settings",
+    icon: Settings,
+    color: "text-gray-600"
+  },
+];
+
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [userInfo, setUserInfo] = useState<{
+    isAdmin?: boolean;
+    isSuperAdmin?: boolean;
+    name?: string;
+  } | null>(null);
   const pathname = usePathname();
   const router = useRouter();
   const { logout } = useAuth();
+
+  // Fetch user info to determine menu items - apenas uma vez
+  useEffect(() => {
+    let isMounted = true;
+    
+    const fetchUserInfo = async () => {
+      try {
+        const response = await fetch('/api/auth/me');
+        if (response.ok && isMounted) {
+          const data = await response.json();
+          setUserInfo(data.user);
+        }
+      } catch (error) {
+        if (isMounted) {
+          console.error('Erro ao obter informações do usuário:', error);
+        }
+      }
+    };
+
+    if (!userInfo) {
+      fetchUserInfo();
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Determine which menu items to show based on user role
+  const getMenuItems = () => {
+    if (!userInfo) return adminMenuItems; // Default fallback
+    
+    if (userInfo.isAdmin || userInfo.isSuperAdmin) {
+      return adminMenuItems;
+    } else {
+      return residentMenuItems;
+    }
+  };
+
+  const menuItems = getMenuItems();
 
   const handleLogout = async () => {
     if (confirm('Tem certeza que deseja sair?')) {

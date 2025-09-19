@@ -2,8 +2,43 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 
+// Cache simples para evitar múltiplas consultas
+interface CondominiumData {
+  id: string;
+  name: string;
+  cnpj: string | null;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  phone: string | null;
+  email: string | null;
+  adminContact: string | null;
+  totalUnits: number;
+  isActive: boolean;
+  subscriptionPlan: string;
+  subscriptionExpiresAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+let condominiumsCache: CondominiumData[] | null = null;
+let cacheTimestamp = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
+
 export async function GET() {
   try {
+    // Verificar se há cache válido
+    const now = Date.now();
+    if (condominiumsCache && (now - cacheTimestamp) < CACHE_DURATION) {
+      return NextResponse.json({
+        success: true,
+        condominiums: condominiumsCache,
+        fromCache: true
+      });
+    }
+
+    // Buscar dados atualizados
     const condominiums = await prisma.condominium.findMany({
       where: {
         isActive: true
@@ -12,6 +47,10 @@ export async function GET() {
         name: 'asc'
       }
     });
+
+    // Atualizar cache
+    condominiumsCache = condominiums;
+    cacheTimestamp = now;
 
     return NextResponse.json({
       success: true,
@@ -124,6 +163,10 @@ export async function POST(request: NextRequest) {
 
       return { condominium, user, defaultPassword };
     });
+
+    // Invalidar cache após criação
+    condominiumsCache = null;
+    cacheTimestamp = 0;
 
     const response = {
       success: true,
