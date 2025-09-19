@@ -13,8 +13,8 @@
 -- =====================================================
 
 -- Criar banco de dados
-CREATE DATABASE IF NOT EXISTS doorserp_multi CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE doorserp_multi;
+CREATE DATABASE IF NOT EXISTS doorserp_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE doorserp_db;
 
 -- =====================================================
 -- TABELAS PRINCIPAIS DO SISTEMA
@@ -39,10 +39,10 @@ CREATE TABLE condominiums (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
-    INDEX idx_condominiums_name (name),
-    INDEX idx_condominiums_city (city),
-    INDEX idx_condominiums_state (state),
-    INDEX idx_condominiums_active (is_active)
+    INDEX condominiums_name_idx (name),
+    INDEX condominiums_city_idx (city),
+    INDEX condominiums_state_idx (state),
+    INDEX condominiums_is_active_idx (is_active)
 );
 
 -- Tabela de Usuários (Sistema de Autenticação)
@@ -69,10 +69,10 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
-    INDEX idx_users_email (email),
-    INDEX idx_users_username (username),
-    INDEX idx_users_active (is_active),
-    INDEX idx_users_admin (is_admin)
+    INDEX users_email_idx (email),
+    INDEX users_username_idx (username),
+    INDEX users_is_active_idx (is_active),
+    INDEX users_is_admin_idx (is_admin)
 );
 
 -- Tabela de Sessões de Usuário
@@ -204,7 +204,7 @@ CREATE TABLE employees (
     employee_code VARCHAR(255) NOT NULL,
     position VARCHAR(255) NOT NULL,
     department VARCHAR(255),
-    access_card_id VARCHAR(50) UNIQUE,
+    access_card_id VARCHAR(255) UNIQUE,
     salary DECIMAL(10,2),
     commission_rate DECIMAL(5,2) DEFAULT 0.00,
     work_schedule LONGTEXT,
@@ -267,50 +267,49 @@ CREATE TABLE guests (
 
 -- Tabela de Logs de Acesso
 CREATE TABLE access_logs (
-    id VARCHAR(36) PRIMARY KEY,
-    condominium_id VARCHAR(36) NOT NULL,
-    arduino_id VARCHAR(36),
+    id VARCHAR(191) PRIMARY KEY,
+    condominium_id VARCHAR(191) NOT NULL,
+    arduino_id VARCHAR(191),
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     access_type ENUM('RESIDENT', 'EMPLOYEE', 'GUEST', 'UNKNOWN', 'EMERGENCY') NOT NULL,
     access_method ENUM('FACIAL_RECOGNITION', 'ACCESS_CARD', 'ACCESS_CODE', 'MANUAL', 'EMERGENCY') NOT NULL,
     status ENUM('APPROVED', 'REJECTED', 'PENDING', 'FORCED') DEFAULT 'APPROVED',
-    user_id VARCHAR(36),
-    guest_id VARCHAR(36),
+    user_id VARCHAR(191),
+    guest_id VARCHAR(191),
     entry_exit ENUM('ENTRY', 'EXIT') NOT NULL,
     location VARCHAR(255),
     arduino_command_sent VARCHAR(255),
     response_time_ms INT,
-    vehicle_plate VARCHAR(10),
-    photo_evidence VARCHAR(500),
+    vehicle_plate VARCHAR(255),
+    photo_evidence VARCHAR(255),
     additional_data LONGTEXT,
     denial_reason TEXT,
-    authorized_by VARCHAR(36),
+    authorized_by VARCHAR(191),
     notes TEXT,
     
     FOREIGN KEY (condominium_id) REFERENCES condominiums(id) ON DELETE CASCADE,
     FOREIGN KEY (arduino_id) REFERENCES arduino_configurations(id) ON DELETE SET NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (guest_id) REFERENCES guests(id) ON DELETE SET NULL,
-    INDEX idx_access_logs_condominium_id (condominium_id),
-    INDEX idx_access_logs_timestamp (timestamp),
-    INDEX idx_access_logs_access_type (access_type),
-    INDEX idx_access_logs_access_method (access_method),
-    INDEX idx_access_logs_arduino_id (arduino_id)
+    INDEX access_logs_arduino_id_fkey (arduino_id),
+    INDEX access_logs_condominium_id_fkey (condominium_id),
+    INDEX access_logs_guest_id_fkey (guest_id),
+    INDEX access_logs_user_id_fkey (user_id)
 );
 
 -- Tabela de Alertas de Segurança
 CREATE TABLE security_alerts (
-    id VARCHAR(36) PRIMARY KEY,
-    condominium_id VARCHAR(36) NOT NULL,
-    arduino_id VARCHAR(36),
+    id VARCHAR(191) PRIMARY KEY,
+    condominium_id VARCHAR(191) NOT NULL,
+    arduino_id VARCHAR(191),
     alert_type ENUM('UNAUTHORIZED_ACCESS', 'FORCED_ENTRY', 'SYSTEM_OFFLINE', 'SUSPICIOUS_ACTIVITY', 'EMERGENCY') NOT NULL,
     severity ENUM('LOW', 'MEDIUM', 'HIGH', 'CRITICAL') DEFAULT 'MEDIUM',
     title VARCHAR(255) NOT NULL,
     description TEXT,
-    triggered_by VARCHAR(36),
+    triggered_by VARCHAR(191),
     location VARCHAR(255),
     is_resolved BOOLEAN DEFAULT FALSE,
-    resolved_by VARCHAR(36),
+    resolved_by VARCHAR(191),
     resolved_at TIMESTAMP NULL,
     resolution_notes TEXT,
     additional_data LONGTEXT,
@@ -321,31 +320,29 @@ CREATE TABLE security_alerts (
     FOREIGN KEY (arduino_id) REFERENCES arduino_configurations(id) ON DELETE SET NULL,
     FOREIGN KEY (triggered_by) REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (resolved_by) REFERENCES users(id) ON DELETE SET NULL,
-    INDEX idx_security_alerts_condominium_id (condominium_id),
-    INDEX idx_security_alerts_created_at (created_at),
-    INDEX idx_security_alerts_resolved (is_resolved),
-    INDEX idx_security_alerts_alert_type (alert_type)
+    INDEX security_alerts_arduino_id_fkey (arduino_id),
+    INDEX security_alerts_condominium_id_fkey (condominium_id),
+    INDEX security_alerts_resolved_by_fkey (resolved_by),
+    INDEX security_alerts_triggered_by_fkey (triggered_by)
 );
 
 -- Tabela de Categorias Financeiras
 CREATE TABLE financial_categories (
-    id VARCHAR(36) PRIMARY KEY,
-    condominium_id VARCHAR(36) NOT NULL,
+    id VARCHAR(191) PRIMARY KEY,
+    condominium_id VARCHAR(191) NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     type ENUM('INCOME', 'EXPENSE', 'TRANSFER') NOT NULL,
     is_default BOOLEAN DEFAULT FALSE,
-    parent_category_id VARCHAR(36),
+    parent_category_id VARCHAR(191),
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
     FOREIGN KEY (condominium_id) REFERENCES condominiums(id) ON DELETE CASCADE,
     FOREIGN KEY (parent_category_id) REFERENCES financial_categories(id) ON DELETE SET NULL,
-    UNIQUE KEY unique_condominium_category_name (condominium_id, name),
-    INDEX idx_financial_categories_condominium_id (condominium_id),
-    INDEX idx_financial_categories_type (type),
-    INDEX idx_financial_categories_parent_id (parent_category_id)
+    UNIQUE KEY financial_categories_condominium_id_name_key (condominium_id, name),
+    INDEX financial_categories_parent_category_id_fkey (parent_category_id)
 );
 
 -- Tabela de Contas Financeiras

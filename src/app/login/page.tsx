@@ -41,7 +41,7 @@ export default function LoginPage() {
             } else {
                 setError(data.message || 'Erro ao fazer login')
             }
-        } catch (error) {
+        } catch {
             setError('Erro de conexão. Tente novamente.')
         } finally {
             setIsLoading(false)

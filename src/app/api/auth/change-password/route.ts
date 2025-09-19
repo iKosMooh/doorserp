@@ -32,10 +32,11 @@ export async function POST(request: NextRequest) {
         }
 
         // Verificar token
-        let decoded: any
+        let decoded: { userId: string }
         try {
-            decoded = jwt.verify(token, JWT_SECRET)
+            decoded = jwt.verify(token, JWT_SECRET) as { userId: string }
         } catch (error) {
+            console.error('Erro ao verificar token:', error)
             return NextResponse.json(
                 { success: false, message: 'Token inválido' },
                 { status: 401 }

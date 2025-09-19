@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useCondominium } from '@/contexts/CondominiumContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { CreateCondominiumModal } from './CreateCondominiumModal';
@@ -35,25 +35,18 @@ export function CondominiumSelector({ collapsed = false }: CondominiumSelectorPr
     selectedCondominium, 
     setSelectedCondominium, 
     condominiums, 
-    loadCondominiums,
+    refreshCondominiums,
     loading: contextLoading 
   } = useCondominium();
   const [isOpen, setIsOpen] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
 
-  const refreshCondominiums = useCallback(async () => {
-    if (user && condominiums.length === 0) {
-      await loadCondominiums();
-    }
-  }, [user, condominiums.length, loadCondominiums]);
-
-  useEffect(() => {
-    refreshCondominiums();
-  }, [refreshCondominiums]);
+  // Remover o useEffect que estava causando o loop
+  // O contexto já carrega automaticamente os condomínios
 
   const handleCreateCondominiumSuccess = async () => {
-    await loadCondominiums();
+    await refreshCondominiums();
     setShowCreateModal(false);
   };
 

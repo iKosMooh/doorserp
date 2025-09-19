@@ -54,7 +54,7 @@ export default function ChangePasswordPage() {
             } else {
                 setError(data.message || 'Erro ao alterar senha')
             }
-        } catch (error) {
+        } catch {
             setError('Erro de conexão. Tente novamente.')
         } finally {
             setIsLoading(false)

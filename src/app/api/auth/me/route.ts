@@ -16,10 +16,10 @@ export async function GET(request: NextRequest) {
         }
 
         // Verificar token
-        let decoded: any
+        let decoded: { userId: string; email: string; isAdmin: boolean }
         try {
-            decoded = jwt.verify(token, JWT_SECRET)
-        } catch (error) {
+            decoded = jwt.verify(token, JWT_SECRET) as { userId: string; email: string; isAdmin: boolean }
+        } catch {
             return NextResponse.json(
                 { success: false, message: 'Token inválido' },
                 { status: 401 }
@@ -50,8 +50,9 @@ export async function GET(request: NextRequest) {
             id: user.id,
             email: user.email,
             name: user.name,
-            isAdmin: (user as any).isAdmin || false,
-            mustChangePassword: (user as any).mustChangePassword || false,
+            isAdmin: user.isAdmin || false,
+            isSuperAdmin: user.isSuperAdmin || false,
+            mustChangePassword: user.mustChangePassword || false,
             condominiums: user.condominiumAccess.map(access => ({
                 id: access.condominium.id,
                 name: access.condominium.name,

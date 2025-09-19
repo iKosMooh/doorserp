@@ -7,7 +7,9 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key'
 // Rotas que requerem autenticação
 const protectedRoutes = [
   '/dashboard',
+  '/resident-dashboard',
   '/residents',
+  '/residents-management',
   '/employees',
   '/guests',
   '/units',
@@ -16,7 +18,12 @@ const protectedRoutes = [
   '/settings',
   '/condominium-recognition',
   '/arduino-control',
-  '/face-recognition'
+  '/arduino-deploy',
+  '/arduino-register',
+  '/serial-monitor',
+  '/face-recognition',
+  '/recognized',
+  '/change-password'
 ]
 
 // Rotas de autenticação (usuário logado não deve acessar)
@@ -50,7 +57,7 @@ export function middleware(request: NextRequest) {
       if (isAuthRoute) {
         return NextResponse.redirect(new URL('/dashboard', request.url))
       }
-    } catch (error) {
+    } catch {
       // Token inválido, remover e redirecionar para login se necessário
       const response = isProtectedRoute 
         ? NextResponse.redirect(new URL('/login', request.url))

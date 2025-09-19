@@ -38,6 +38,17 @@ export default function ArduinoDeployPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
   const [isCompiling, setIsCompiling] = useState(false);
+
+  // Função para traduzir tipos de dispositivo
+  const getDeviceTypeLabel = (deviceType: string) => {
+    const labels: Record<string, string> = {
+      'MAIN_GATE': 'Portão Principal',
+      'GARAGE': 'Garagem',
+      'PEDESTRIAN': 'Pedestre',
+      'EMERGENCY': 'Emergência'
+    };
+    return labels[deviceType] || deviceType;
+  };
   const [deployResult, setDeployResult] = useState<DeployResult | null>(null);
   const [compileResult, setCompileResult] = useState<DeployResult | null>(null);
 
@@ -461,7 +472,7 @@ void openGate() {
                 <h3 className="font-semibold text-gray-700 mb-2">Informações do Dispositivo</h3>
                 <div className="text-sm text-gray-600 space-y-1">
                   <p><strong>Código:</strong> {selectedConfig.deviceCode}</p>
-                  <p><strong>Tipo:</strong> {selectedConfig.deviceType}</p>
+                  <p><strong>Tipo:</strong> {getDeviceTypeLabel(selectedConfig.deviceType)}</p>
                   <p><strong>Local:</strong> {selectedConfig.deviceLocation || 'Não especificado'}</p>
                   <p><strong>Status:</strong> {selectedConfig.isOnline ? 'Online' : 'Offline'}</p>
                   {selectedConfig.lastPing && (

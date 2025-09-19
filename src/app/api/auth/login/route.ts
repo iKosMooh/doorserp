@@ -7,6 +7,8 @@ import type { User, UserCondominiumAccess, Condominium } from '@prisma/client'
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key'
 
 type UserWithAccess = User & {
+    isAdmin?: boolean
+    mustChangePassword?: boolean
     condominiumAccess: (UserCondominiumAccess & {
         condominium: Condominium
     })[]
@@ -35,7 +37,7 @@ export async function POST(request: NextRequest) {
                     }
                 }
             }
-        })
+        }) as UserWithAccess | null
 
         if (!user) {
             return NextResponse.json(
@@ -67,7 +69,7 @@ export async function POST(request: NextRequest) {
             { 
                 userId: user.id,
                 email: user.email,
-                isAdmin: (user as any).isAdmin || false
+                isAdmin: user.isAdmin || false
             },
             JWT_SECRET,
             { expiresIn: '24h' }
@@ -93,8 +95,8 @@ export async function POST(request: NextRequest) {
             id: user.id,
             email: user.email,
             name: user.name,
-            isAdmin: (user as any).isAdmin || false,
-            mustChangePassword: (user as any).mustChangePassword || false,
+            isAdmin: user.isAdmin || false,
+            mustChangePassword: user.mustChangePassword || false,
             condominiums: user.condominiumAccess.map(access => ({
                 id: access.condominium.id,
                 name: access.condominium.name,
