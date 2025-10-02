@@ -84,6 +84,191 @@ async function listarPortas() {
   }
 }
 
+// Detecta automaticamente porta COM do Arduino
+async function detectarPortaArduino(): Promise<string | null> {
+  console.log('🔍 Detectando porta do Arduino automaticamente...')
+  
+  if (!SerialPort) {
+    console.log('⚠️ SerialPort não disponível, retornando COM4 como padrão')
+    return 'COM4'
+  }
+
+  try {
+    const ports = await SerialPort.list()
+    console.log('📋 Portas disponíveis para detecção:', ports.map(p => p.path))
+
+    // Prioridades de busca para Arduino
+    const portasPrioridade = [
+      'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9', 'COM10'
+    ]
+
+    // Primeiro, buscar por portas que podem ser Arduino (USB, CH340, etc.)
+    const portasArduino = ports.filter(port => {
+      const manufacturer = (port.manufacturer || '').toLowerCase()
+      const isArduino = manufacturer.includes('arduino') || 
+                       manufacturer.includes('ch340') || 
+                       manufacturer.includes('cp210') ||
+                       manufacturer.includes('ftdi') ||
+                       manufacturer.includes('usb')
+      
+      if (isArduino) {
+        console.log(`🎯 Porta Arduino potencial encontrada: ${port.path} (${port.manufacturer})`)
+      }
+      
+      return isArduino
+    })
+
+    // Se encontrou portas Arduino específicas, testar elas primeiro
+    if (portasArduino.length > 0) {
+      for (const port of portasArduino) {
+        console.log(`🔌 Testando porta Arduino identificada: ${port.path}`)
+        const sucesso = await testarConexaoPorta(port.path)
+        if (sucesso) {
+          console.log(`✅ Arduino encontrado na porta: ${port.path}`)
+          return port.path
+        }
+      }
+    }
+
+    // Se não encontrou Arduino específico, testar portas por prioridade
+    for (const porta of portasPrioridade) {
+      const portaExiste = ports.some(p => p.path === porta)
+      if (portaExiste) {
+        console.log(`🔌 Testando porta por prioridade: ${porta}`)
+        
+        // Primeiro verifica se está disponível
+        const status = await verificarPortaDisponivel(porta)
+        if (!status.available) {
+          console.log(`🚫 Porta ${porta} não disponível: ${status.error}`)
+          continue
+        }
+        
+        const sucesso = await testarConexaoPorta(porta)
+        if (sucesso) {
+          console.log(`✅ Arduino encontrado na porta: ${porta}`)
+          return porta
+        }
+      }
+    }
+
+    console.log('❌ Nenhuma porta Arduino encontrada automaticamente')
+    return null
+  } catch (error) {
+    console.error('❌ Erro na detecção automática:', error)
+    return null
+  }
+}
+
+// Verifica se uma porta está disponível (não em uso)
+async function verificarPortaDisponivel(portaPath: string): Promise<{ available: boolean; error?: string }> {
+  if (!SerialPort) return { available: true }
+
+  return new Promise((resolve) => {
+    let testPort: SerialPortInstance | null = null
+    let timeout: NodeJS.Timeout | null = null
+
+    try {
+      testPort = new SerialPort({
+        path: portaPath,
+        baudRate: 9600,
+        autoOpen: false
+      })
+
+      // Timeout rápido de 1 segundo para verificação
+      timeout = setTimeout(() => {
+        if (testPort && testPort.isOpen) {
+          testPort.close(() => {})
+        }
+        resolve({ available: false, error: 'Timeout na verificação' })
+      }, 1000)
+
+      testPort.on('open', () => {
+        if (timeout) clearTimeout(timeout)
+        testPort!.close(() => {
+          resolve({ available: true })
+        })
+      })
+
+      testPort.on('error', (...args: unknown[]) => {
+        const err = args[0] as Error
+        if (timeout) clearTimeout(timeout)
+        
+        let errorMsg = err.message
+        if (err.message.includes('Access denied')) {
+          errorMsg = 'Porta em uso por outro programa'
+        } else if (err.message.includes('File not found')) {
+          errorMsg = 'Porta não encontrada'
+        }
+        
+        resolve({ available: false, error: errorMsg })
+      })
+
+      testPort.open()
+    } catch (error) {
+      if (timeout) clearTimeout(timeout)
+      const errorMessage = error instanceof Error ? error.message : 'Erro na verificação'
+      resolve({ available: false, error: errorMessage })
+    }
+  })
+}
+
+// Testa conexão com uma porta específica
+async function testarConexaoPorta(portaPath: string): Promise<boolean> {
+  if (!SerialPort) return false
+
+  // Primeiro verifica se a porta está disponível
+  const verificacao = await verificarPortaDisponivel(portaPath)
+  if (!verificacao.available) {
+    console.log(`🚫 Porta ${portaPath} não disponível: ${verificacao.error}`)
+    return false
+  }
+
+  return new Promise<boolean>((resolve) => {
+    let testPort: SerialPortInstance | null = null
+    let timeout: NodeJS.Timeout | null = null
+
+    try {
+      console.log(`🧪 Testando conexão com ${portaPath}...`)
+      
+      testPort = new SerialPort({
+        path: portaPath,
+        baudRate: 9600,
+        autoOpen: false
+      })
+
+      // Timeout de 3 segundos para o teste
+      timeout = setTimeout(() => {
+        console.log(`⏰ Timeout ao testar ${portaPath}`)
+        if (testPort && testPort.isOpen) {
+          testPort.close(() => {})
+        }
+        resolve(false)
+      }, 3000)
+
+      testPort.on('open', () => {
+        console.log(`✅ Teste bem-sucedido: ${portaPath}`)
+        if (timeout) clearTimeout(timeout)
+        testPort!.close(() => {
+          resolve(true)
+        })
+      })
+
+      testPort.on('error', (...args: unknown[]) => {
+        const err = args[0] as Error
+        console.log(`❌ Erro ao testar ${portaPath}: ${err.message}`)
+        if (timeout) clearTimeout(timeout)
+        resolve(false)
+      })
+
+      testPort.open()
+    } catch (error) {
+      console.log(`❌ Exceção ao testar ${portaPath}:`, error)
+      if (timeout) clearTimeout(timeout)
+      resolve(false)
+    }
+  })
+}
+
 // Conecta ao Arduino
 async function conectarArduino(portaPath: string): Promise<boolean> {
   if (!SerialPort) {
@@ -167,7 +352,18 @@ async function conectarArduino(portaPath: string): Promise<boolean> {
         if (err) {
           console.error('❌ Erro ao abrir porta:', err.message)
           isConnected = false
-          lastError = err.message
+          
+          // Melhorar mensagens de erro para o usuário
+          if (err.message.includes('Access denied')) {
+            lastError = `Acesso negado à porta ${portaPath}. Possíveis soluções:\n• Feche outros programas que possam estar usando a porta (Arduino IDE, Serial Monitor, etc.)\n• Reconecte o cabo USB\n• Tente uma porta diferente\n• Execute o programa como administrador`
+          } else if (err.message.includes('File not found')) {
+            lastError = `Porta ${portaPath} não encontrada. Verifique se o Arduino está conectado e na porta correta.`
+          } else if (err.message.includes('Permission denied')) {
+            lastError = `Permissão negada para ${portaPath}. Execute como administrador ou verifique as permissões.`
+          } else {
+            lastError = `Erro na porta ${portaPath}: ${err.message}`
+          }
+          
           resolve(false)
         } else {
           console.log('✅ Porta aberta com sucesso')
@@ -216,7 +412,36 @@ async function enviarComandoSerial(comando: string): Promise<{ success: boolean;
 async function simularComando(comando: string): Promise<{ success: boolean; message?: string; error?: string }> {
   console.log(`🎭 Simulando comando: ${comando}`)
   
-  // Simula mudança de estado dos LEDs
+  // Simula comandos da cancela
+  if (comando.toUpperCase() === 'FACE_RECOGNIZED' || comando.toUpperCase() === 'OPEN_GATE') {
+    return { 
+      success: true, 
+      message: `Cancela aberta por reconhecimento facial (simulação)` 
+    }
+  }
+  
+  if (comando.toUpperCase() === 'CLOSE_GATE') {
+    return { 
+      success: true, 
+      message: `Cancela fechada manualmente (simulação)` 
+    }
+  }
+  
+  if (comando.toUpperCase() === 'STATUS') {
+    return { 
+      success: true, 
+      message: `Estado da cancela: SIMULAÇÃO (simulação)` 
+    }
+  }
+  
+  if (comando.toUpperCase() === 'PING') {
+    return { 
+      success: true, 
+      message: `PONG (simulação)` 
+    }
+  }
+  
+  // Simula mudança de estado dos LEDs (compatibilidade com comandos antigos)
   if (comando.startsWith('L')) {
     const match = comando.match(/L(\d+)_(ON|OFF)/i)
     if (match) {
@@ -229,7 +454,7 @@ async function simularComando(comando: string): Promise<{ success: boolean; mess
         
         return { 
           success: true, 
-          message: `LED ${ledNum} ${estado ? 'ligado' : 'desligado'} (simulação)` 
+          message: `LED ${ledNum} ${estado ? 'ligado' : 'desligado'} (simulação - use FACE_RECOGNIZED para abrir cancela)` 
         }
       }
     }
@@ -269,6 +494,33 @@ export async function GET(request: NextRequest) {
     if (action === 'ports') {
       const ports = await listarPortas()
       return NextResponse.json({ ports })
+    }
+
+    // Detecta porta Arduino automaticamente
+    if (action === 'detect') {
+      const portaDetectada = await detectarPortaArduino()
+      return NextResponse.json({ 
+        success: !!portaDetectada,
+        detectedPort: portaDetectada,
+        message: portaDetectada ? `Arduino detectado na porta ${portaDetectada}` : 'Nenhuma porta Arduino encontrada'
+      })
+    }
+
+    // Verifica status de uma porta específica
+    if (action === 'check-port') {
+      const porta = searchParams.get('port')
+      if (!porta) {
+        return NextResponse.json({ success: false, error: 'Porta não especificada' })
+      }
+
+      const status = await verificarPortaDisponivel(porta)
+      return NextResponse.json({
+        success: true,
+        port: porta,
+        available: status.available,
+        error: status.error,
+        message: status.available ? `Porta ${porta} disponível` : `Porta ${porta}: ${status.error}`
+      })
     }
 
     // Lista configurações Arduino do condomínio
@@ -321,15 +573,44 @@ export async function POST(request: NextRequest) {
     const { action, command, port } = body
 
     // Conectar
-    if (action === 'connect' && port) {
-      const sucesso = await conectarArduino(port)
+    if (action === 'connect') {
+      let portaParaConectar = port
+
+      // Se não especificou porta ou especificou 'auto', detecta automaticamente
+      if (!port || port === 'auto') {
+        console.log('🔍 Detectando porta Arduino automaticamente...')
+        portaParaConectar = await detectarPortaArduino()
+        
+        if (!portaParaConectar) {
+          return NextResponse.json({
+            success: false,
+            connected: false,
+            error: 'Nenhuma porta Arduino encontrada automaticamente. Possíveis soluções:\n• Verifique se o Arduino está conectado via USB\n• Instale os drivers corretos (CH340, CP210x, etc.)\n• Tente desconectar e reconectar o cabo USB\n• Feche outros programas que possam estar usando a porta',
+            message: 'Detecção automática falhou'
+          })
+        }
+      } else {
+        // Se especificou uma porta, verificar se está disponível primeiro
+        const status = await verificarPortaDisponivel(portaParaConectar)
+        if (!status.available) {
+          return NextResponse.json({
+            success: false,
+            connected: false,
+            error: `Porta ${portaParaConectar} não está disponível: ${status.error}`,
+            message: 'Porta não disponível'
+          })
+        }
+      }
+
+      const sucesso = await conectarArduino(portaParaConectar)
       
       return NextResponse.json({
         success: sucesso,
         connected: isConnected,
         port: currentPort,
+        detectedAutomatically: !port || port === 'auto',
         message: sucesso 
-          ? `${SerialPort ? 'Conectado' : 'Simulação conectada'} à porta ${port}` 
+          ? `${SerialPort ? 'Conectado' : 'Simulação conectada'} à porta ${portaParaConectar}${(!port || port === 'auto') ? ' (detectada automaticamente)' : ''}` 
           : `Erro ao conectar: ${lastError}`,
         error: sucesso ? undefined : lastError
       })
@@ -348,15 +629,22 @@ export async function POST(request: NextRequest) {
 
     // Enviar comando
     if (action === 'command' && command) {
-      // Verifica se está conectado
+      // Se não está conectado, executar em modo simulação
       if (!isConnected) {
-        return NextResponse.json(
-          { success: false, error: 'Arduino não conectado. Conecte primeiro.' },
-          { status: 400 }
-        )
+        console.log(`⚠️ Arduino não conectado, executando comando em modo simulação: ${command}`)
+        const resultado = await simularComando(command)
+        
+        return NextResponse.json({
+          success: true,
+          command: command,
+          message: `${resultado.message} (Arduino não conectado)`,
+          ledStates: ledStates,
+          mode: 'simulation',
+          warning: 'Arduino não conectado - comando simulado'
+        })
       }
 
-      // Envia comando
+      // Envia comando (real ou simulado)
       const resultado = SerialPort && isConnected 
         ? await enviarComandoSerial(command)
         : await simularComando(command)

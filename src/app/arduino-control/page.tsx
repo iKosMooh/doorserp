@@ -407,7 +407,10 @@ export default function ArduinoControlPage() {
             
             <p><strong>4. Comandos Disponíveis:</strong></p>
             <ul className="list-disc pl-6 space-y-1">
-              <li><code className="bg-gray-100 px-1 rounded">L1_ON/L1_OFF</code> - Controla LED do pino 13</li>
+              <li><code className="bg-gray-100 px-1 rounded">FACE_RECOGNIZED</code> - Abre cancela (reconhecimento facial)</li>
+              <li><code className="bg-gray-100 px-1 rounded">OPEN_GATE</code> - Abre cancela manualmente</li>
+              <li><code className="bg-gray-100 px-1 rounded">CLOSE_GATE</code> - Fecha cancela manualmente</li>
+              <li><code className="bg-gray-100 px-1 rounded">L1_ON/L1_OFF</code> - Controla LED do pino 13 (compatibilidade)</li>
               <li><code className="bg-gray-100 px-1 rounded">L2_ON/L2_OFF</code> - Controla LED do pino 12</li>
               <li><code className="bg-gray-100 px-1 rounded">ALL_ON/ALL_OFF</code> - Controla todos os LEDs</li>
               <li><code className="bg-gray-100 px-1 rounded">STATUS</code> - Verifica estado atual</li>

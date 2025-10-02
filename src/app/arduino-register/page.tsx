@@ -198,6 +198,11 @@ export default function ArduinoRegisterPage() {
       return
     }
 
+    if (!selectedCondominium.id || selectedCondominium.id.length < 10) {
+      showMessage('ID do condomínio inválido. Recarregue a página.', 'error')
+      return
+    }
+
     if (!formData.deviceName || !formData.connectionPort) {
       showMessage('Nome do dispositivo e porta são obrigatórios', 'error')
       return

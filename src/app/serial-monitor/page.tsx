@@ -45,6 +45,7 @@ export default function SerialMonitorPage() {
   const predefinedCommands = [
     { label: 'Status', command: 'STATUS', icon: Activity, color: 'bg-blue-500' },
     { label: 'Ping', command: 'PING', icon: Wifi, color: 'bg-green-500' },
+    { label: 'Reconhecimento Facial', command: 'FACE_RECOGNIZED', icon: Zap, color: 'bg-emerald-500' },
     { label: 'Abrir Cancela', command: 'OPEN_GATE', icon: Zap, color: 'bg-yellow-500' },
     { label: 'Fechar Cancela', command: 'CLOSE_GATE', icon: Zap, color: 'bg-red-500' },
     { label: 'LED 1 ON', command: 'L1_ON', icon: Cpu, color: 'bg-purple-500' },

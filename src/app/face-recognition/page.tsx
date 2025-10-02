@@ -119,54 +119,43 @@ export default function FaceRecognition() {
     try {
       console.log(`🔌 Acionando Arduino para acesso autorizado de ${personData.name} (${(personData.confidence * 100).toFixed(1)}%)`);
       
-      // Conectar ao Arduino se não estiver conectado
-      const statusResponse = await fetch('/api/arduino?action=status');
+      // Conectar ao Arduino se não estiver conectado (usando detecção automática)
+      const statusResponse = await fetch('/api/arduino');
       const statusData = await statusResponse.json();
       
       if (!statusData.connected) {
-        console.log('📡 Conectando ao Arduino...');
+        console.log('📡 Conectando ao Arduino automaticamente...');
         const connectResponse = await fetch('/api/arduino', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'connect', port: 'COM4' })
+          body: JSON.stringify({ action: 'connect', port: 'auto' })
         });
         
-        if (!connectResponse.ok) {
-          console.error('❌ Erro ao conectar Arduino');
-          return;
+        const connectData = await connectResponse.json();
+        if (!connectData.success) {
+          console.log('❌ Erro ao conectar Arduino, executando em modo simulação');
+        } else {
+          console.log(`✅ Arduino conectado na porta ${connectData.port}`);
         }
         
         // Aguardar conexão estabilizar
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
       
-      // Ligar LED(s) de acesso - por enquanto só LED 1, mas preparado para múltiplos
-      const ledsToActivate = [1]; // Configurável para múltiplos LEDs no futuro
+      // Enviar comando para abrir a cancela
+      const command = 'FACE_RECOGNIZED';
+      console.log(`� Enviando comando de reconhecimento facial para ${personData.name}`);
       
-      for (const ledNumber of ledsToActivate) {
-        const command = `L${ledNumber}_ON`;
-        console.log(`💡 Ligando LED ${ledNumber} para ${personData.name}`);
-        
-        await fetch('/api/arduino', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'command', command })
-        });
-      }
+      const response = await fetch('/api/arduino', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'command', command })
+      });
       
-      // Aguardar 5 segundos e desligar LEDs
-      setTimeout(async () => {
-        for (const ledNumber of ledsToActivate) {
-          const command = `L${ledNumber}_OFF`;
-          console.log(`🔴 Desligando LED ${ledNumber} após acesso de ${personData.name}`);
-          
-          await fetch('/api/arduino', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'command', command })
-          });
-        }
-      }, 5000);
+      const data = await response.json();
+      console.log(`� Comando ${command} ${data.success ? 'enviado com sucesso' : 'falhou'} (${data.mode || 'unknown'})`);
+      
+      // O Arduino controla automaticamente o fechamento da cancela após 10 segundos sem detectar veículo
       
     } catch (error) {
       console.error('❌ Erro ao controlar Arduino:', error);

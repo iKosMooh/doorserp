@@ -135,7 +135,7 @@ export function CondominiumProvider({ children }: { children: ReactNode }) {
 
       initializeCondominiums();
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const value: CondominiumContextType = {
     selectedCondominium,

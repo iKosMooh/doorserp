@@ -26,6 +26,37 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Validar formato do UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    if (!uuidRegex.test(condominiumId)) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'ID do condomínio deve ser um UUID válido',
+          received: condominiumId
+        },
+        { status: 400 }
+      )
+    }
+
+    // Verificar se o condomínio existe
+    const condominium = await prisma.condominium.findFirst({
+      where: {
+        id: condominiumId,
+        isActive: true
+      }
+    })
+
+    if (!condominium) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Condomínio não encontrado ou inativo' 
+        },
+        { status: 404 }
+      )
+    }
+
     // Verificar se já existe um Arduino com o mesmo código ou porta para este condomínio
     const existingArduino = await prisma.arduinoConfiguration.findFirst({
       where: {

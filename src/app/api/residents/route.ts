@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { promises as fs } from 'fs'
 import path from 'path'
+import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 
 export async function GET(request: NextRequest) {
@@ -181,6 +182,10 @@ export async function POST(request: NextRequest) {
 
     // Criar usuário e morador em uma transação
     const result = await prisma.$transaction(async (tx) => {
+      // Gerar hash da senha padrão
+      const defaultPassword = 'resident123'
+      const hashedPassword = await bcrypt.hash(defaultPassword, 12)
+      
       // Criar usuário
       const user = await tx.user.create({
         data: {
@@ -188,9 +193,11 @@ export async function POST(request: NextRequest) {
           email,
           phone: phone || null,
           document: document || null,
+          password: hashedPassword,
           faceRecognitionEnabled,
           faceRecognitionFolder: faceRecognitionFolder,
-          faceModelsCount: images.length
+          faceModelsCount: images.length,
+          mustChangePassword: true // Força a troca de senha no primeiro login
         }
       })
 
@@ -208,7 +215,7 @@ export async function POST(request: NextRequest) {
           condominiumId,
           relationshipType: relationshipType as 'OWNER' | 'TENANT' | 'FAMILY_MEMBER' | 'AUTHORIZED',
           emergencyContact: emergencyContact || null,
-          vehiclePlates: vehiclePlates.length > 0 ? vehiclePlates : undefined,
+          vehiclePlates: vehiclePlates.length > 0 ? JSON.stringify(vehiclePlates) : null,
           isActive: true,
           moveInDate: new Date()
         },
