@@ -104,7 +104,7 @@ export default function EmployeesPage() {
   if (loading) {
     return (
       <MainLayout>
-        <div className="flex items-center justify-center h-64">
+        <div className="flex items-center justify-center h-64 text-black">
           <div className="text-lg">Carregando funcionários...</div>
         </div>
       </MainLayout>
@@ -113,7 +113,7 @@ export default function EmployeesPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 text-black">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Funcionários</h1>

@@ -985,7 +985,7 @@ export default function FaceRecognition() {
             </div>
           )}
           
-          <div className="flex flex-wrap gap-4 mb-6">
+          <div className="flex flex-wrap gap-4 mb-6 text-black">
             <select 
               value={selectedCamera} 
               onChange={(e) => setSelectedCamera(e.target.value)}
@@ -1022,7 +1022,7 @@ export default function FaceRecognition() {
             </button>
           </div>
           
-          <div className="flex flex-col items-center space-y-6">
+          <div className="flex flex-col items-center space-y-6 text-black">
             <div className="relative video-wrapper">
               <video 
                 ref={videoRef}
