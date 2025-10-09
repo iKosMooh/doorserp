@@ -1118,6 +1118,10 @@ export default function CondominiumRecognitionPage() {
                         setUnauthorizedMessage('')
                         setPauseTimeRemaining(0)
                         isDetectingRef.current = false
+                        // Limpar último QR Code para permitir nova leitura
+                        if (method === 'QR_CODE') {
+                            lastQrCodeRef.current = null
+                        }
                     }
                 }, 1000)
 
@@ -1164,6 +1168,10 @@ export default function CondominiumRecognitionPage() {
                         setPauseTimeRemaining(0)
                         setCommandSent(false)
                         isDetectingRef.current = false
+                        // Limpar último QR Code para permitir nova leitura
+                        if (method === 'QR_CODE') {
+                            lastQrCodeRef.current = null
+                        }
                     }
                 }, 1000)
 
