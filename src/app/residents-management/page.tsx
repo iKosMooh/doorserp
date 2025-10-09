@@ -232,6 +232,8 @@ export default function ResidentManagementPage() {
   };
 
   const isGuestActive = (guest: Guest) => {
+    if (!guest.isActive) return false; // Verifica se o convidado está ativo
+    
     const now = new Date();
     const validFrom = new Date(guest.validFrom);
     const validUntil = new Date(guest.validUntil);

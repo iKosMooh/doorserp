@@ -15,6 +15,7 @@ import {
     Pause,
     RefreshCw
 } from "lucide-react"
+import jsQR from 'jsqr'
 
 // Declaração global para face-api.js
 declare global {
@@ -100,6 +101,11 @@ export default function CondominiumRecognitionPage() {
     const lastRecognitionRef = useRef<{ name: string; timestamp: number } | null>(null)
     const isSequentialLoadingRef = useRef(false)
     const isManuallyPausedRef = useRef(false) // Ref adicional para controle mais rigoroso
+
+    // Estados para QR Code
+    const [qrScanEnabled, setQrScanEnabled] = useState(true) // QR Code sempre ativo junto com facial
+    const qrScanIntervalRef = useRef<NodeJS.Timeout | null>(null)
+    const lastQrCodeRef = useRef<{ code: string; timestamp: number } | null>(null)
 
     // Cache utilities
     const getCacheKey = useCallback((key: string) => `condominium_recognition_${selectedCondominium?.id}_${key}`, [selectedCondominium?.id])
@@ -886,6 +892,370 @@ export default function CondominiumRecognitionPage() {
             return false
         }
     }, [selectedCondominium, residents])
+
+    // ==================== FUNÇÃO UNIFICADA DE VALIDAÇÃO ====================
+    
+    // Função unificada que processa tanto reconhecimento facial quanto QR Code
+    const validateAndProcessAccess = useCallback(async (params: {
+        personId: string
+        personName?: string
+        confidence: number
+        method: 'FACIAL_RECOGNITION' | 'QR_CODE'
+    }) => {
+        const { personId, personName, confidence, method } = params
+        
+        if (!selectedCondominium) {
+            console.log(`❌ [${method}] Nenhum condomínio selecionado`)
+            return
+        }
+
+        console.log(`🔍 [${method}] ==================== VALIDAÇÃO DE ACESSO ====================`)
+        console.log(`🔍 [${method}] Person ID: ${personId}, Name: ${personName || 'N/A'}, Confidence: ${confidence}`)
+
+        try {
+            // BUSCAR PESSOA DIRETAMENTE NAS APIS POR ID (não no cache)
+            let displayName = personName || 'Desconhecido'
+            let personType: 'RESIDENT' | 'EMPLOYEE' | 'GUEST' = 'RESIDENT'
+            let personUnit = ''
+            let isAuthorized = false
+            let unauthorizedReason = ''
+            let personFound = false
+            
+            console.log(`🔄 [${method}] Buscando pessoa por ID nas APIs do banco de dados...`)
+            
+            // 1. TENTAR BUSCAR COMO MORADOR
+            console.log(`👤 [${method}] Verificando se é MORADOR...`)
+            try {
+                const response = await fetch(`/api/residents?condominiumId=${selectedCondominium.id}`)
+                const data = await response.json()
+
+                if (data.success && Array.isArray(data.data)) {
+                    const currentResident = data.data.find((r: any) => r.id === personId)
+
+                    if (currentResident) {
+                        personFound = true
+                        personType = 'RESIDENT'
+                        displayName = currentResident.user?.name || displayName
+                        personUnit = currentResident.unit?.number || ''
+                        
+                        console.log(`✅ [${method}] MORADOR encontrado: ${displayName} - Unidade ${personUnit}`)
+
+                        if (!currentResident.isActive) {
+                            isAuthorized = false
+                            unauthorizedReason = 'Não autorizado: Morador inativo, fale na portaria.'
+                        } else if (currentResident.user && currentResident.user.faceRecognitionEnabled === false) {
+                            isAuthorized = false
+                            unauthorizedReason = 'Não autorizado: Reconhecimento facial desabilitado, fale na portaria.'
+                        } else {
+                            isAuthorized = true
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error(`❌ [${method}] Erro ao buscar morador:`, error)
+            }
+            
+            // 2. SE NÃO ENCONTROU, TENTAR BUSCAR COMO FUNCIONÁRIO
+            if (!personFound) {
+                console.log(`👷 [${method}] Verificando se é FUNCIONÁRIO...`)
+                try {
+                    const response = await fetch(`/api/employees?condominiumId=${selectedCondominium.id}`)
+                    const data = await response.json()
+
+                    const employees = Array.isArray(data) ? data : data.employees || []
+                    const currentEmployee = employees.find((e: any) => e.id === personId)
+
+                    if (currentEmployee) {
+                        personFound = true
+                        personType = 'EMPLOYEE'
+                        displayName = currentEmployee.user?.name || currentEmployee.name || displayName
+                        personUnit = currentEmployee.position || 'Funcionário'
+                        
+                        console.log(`✅ [${method}] FUNCIONÁRIO encontrado: ${displayName} - ${personUnit}`)
+
+                        if (!currentEmployee.isActive) {
+                            isAuthorized = false
+                            unauthorizedReason = 'Não autorizado: Funcionário inativo, fale na portaria.'
+                        } else if (currentEmployee.user && currentEmployee.user.faceRecognitionEnabled === false) {
+                            isAuthorized = false
+                            unauthorizedReason = 'Não autorizado: Reconhecimento facial desabilitado, fale na portaria.'
+                        } else {
+                            isAuthorized = true
+                        }
+                    }
+                } catch (error) {
+                    console.error(`❌ [${method}] Erro ao buscar funcionário:`, error)
+                }
+            }
+            
+            // 3. SE NÃO ENCONTROU, TENTAR BUSCAR COMO CONVIDADO
+            if (!personFound) {
+                console.log(`🎫 [${method}] Verificando se é CONVIDADO...`)
+                try {
+                    const response = await fetch(`/api/guests/${personId}`)
+                    
+                    // IMPORTANTE: Verificar se a resposta foi bem-sucedida antes de processar
+                    if (!response.ok) {
+                        console.log(`⚠️ [${method}] Convidado não encontrado (HTTP ${response.status})`)
+                        // Não definir personFound = true, continuar para "não encontrado"
+                    } else {
+                        const currentGuest = await response.json()
+
+                        if (currentGuest && currentGuest.id === personId) {
+                            personFound = true
+                            personType = 'GUEST'
+                            displayName = currentGuest.name || displayName
+                            personUnit = `Convidado de ${currentGuest.invitedByResident?.unit?.block || ''}${currentGuest.invitedByResident?.unit?.number || ''}`
+                            
+                            console.log(`✅ [${method}] CONVIDADO encontrado: ${displayName} - ${personUnit}`)
+
+                            if (!currentGuest.isActive) {
+                                isAuthorized = false
+                                unauthorizedReason = 'Não autorizado: Convite inativo/expirado/esgotado, fale com o morador ou na portaria.'
+                            } else {
+                                const now = new Date()
+                                const validFrom = new Date(currentGuest.validFrom)
+                                const validUntil = currentGuest.validUntil ? new Date(currentGuest.validUntil) : null
+
+                                if (now < validFrom) {
+                                    isAuthorized = false
+                                    unauthorizedReason = 'Não autorizado: Convite inativo/expirado/esgotado, fale com o morador ou na portaria.'
+                                } else if (validUntil && now > validUntil) {
+                                    isAuthorized = false
+                                    unauthorizedReason = 'Não autorizado: Convite inativo/expirado/esgotado, fale com o morador ou na portaria.'
+                                } else if (currentGuest.currentEntries >= currentGuest.maxEntries) {
+                                    isAuthorized = false
+                                    unauthorizedReason = 'Não autorizado: Convite inativo/expirado/esgotado, fale com o morador ou na portaria.'
+                                } else {
+                                    isAuthorized = true
+                                }
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error(`❌ [${method}] Erro ao buscar convidado:`, error)
+                    // Em caso de erro, NÃO definir personFound = true
+                }
+            }
+            
+            // 4. SE NÃO ENCONTROU EM NENHUMA API
+            if (!personFound) {
+                console.log(`❌ [${method}] Pessoa não encontrada em nenhuma API (ID: ${personId})`)
+                
+                // NÃO definir lastDetection com nome - apenas usar a mensagem de erro
+                setLastDetection(null)
+                setDetectionStatus('unauthorized')
+                setUnauthorizedMessage(`Não autorizado: ${method === 'QR_CODE' ? 'QR Code' : 'Pessoa'} não registrado no sistema.`)
+                setIsPaused(true)
+                
+                // Countdown 3 segundos
+                let timeLeft = 3
+                setPauseTimeRemaining(timeLeft)
+                const countdown = setInterval(() => {
+                    timeLeft--
+                    setPauseTimeRemaining(timeLeft)
+                    if (timeLeft <= 0) {
+                        clearInterval(countdown)
+                        setIsPaused(false)
+                        setDetectionStatus('idle')
+                        setLastDetection(null)
+                        setUnauthorizedMessage('')
+                        setPauseTimeRemaining(0)
+                        // Limpar último QR Code para permitir nova leitura
+                        if (method === 'QR_CODE') {
+                            lastQrCodeRef.current = null
+                        }
+                    }
+                }, 1000)
+                pauseTimeoutRef.current = countdown as any
+                return
+            }
+
+            // PROCESSAR RESULTADO
+            if (!isAuthorized) {
+                // ACESSO NEGADO
+                console.log(`❌ [${method}] ACESSO NEGADO: ${displayName}`)
+                
+                setLastDetection({
+                    name: displayName,
+                    confidence,
+                    type: personType,
+                    unit: personUnit,
+                    id: personId,
+                    isUnauthorized: true,
+                    status: 'DENIED',
+                    reason: unauthorizedReason
+                })
+                setDetectionStatus('unauthorized')
+                setUnauthorizedMessage(unauthorizedReason)
+                
+                setIsPaused(true)
+                isDetectingRef.current = false
+
+                await saveAccessLog({
+                    name: displayName,
+                    confidence,
+                    type: personType,
+                    unit: personUnit,
+                    id: personId,
+                    status: 'DENIED',
+                    reason: unauthorizedReason
+                })
+
+                // Countdown 3 segundos
+                let timeLeft = 3
+                setPauseTimeRemaining(timeLeft)
+
+                const countdown = setInterval(() => {
+                    timeLeft--
+                    setPauseTimeRemaining(timeLeft)
+
+                    if (timeLeft <= 0) {
+                        clearInterval(countdown)
+                        setIsPaused(false)
+                        setDetectionStatus('idle')
+                        setLastDetection(null)
+                        setUnauthorizedMessage('')
+                        setPauseTimeRemaining(0)
+                        isDetectingRef.current = false
+                    }
+                }, 1000)
+
+                pauseTimeoutRef.current = countdown as any
+                
+            } else {
+                // ACESSO APROVADO
+                console.log(`✅ [${method}] ACESSO APROVADO: ${displayName}`)
+                
+                const detection: DetectionResult = {
+                    name: displayName,
+                    confidence,
+                    type: personType,
+                    unit: personUnit,
+                    id: personId,
+                    status: 'APPROVED'
+                }
+
+                setLastDetection(detection)
+                setDetectionStatus('recognized')
+
+                setIsPaused(true)
+                isDetectingRef.current = false
+
+                await saveAccessLog(detection)
+
+                // Enviar comando FACE_RECOGNIZED
+                console.log(`🔌 [${method}] Enviando comando FACE_RECOGNIZED para: ${displayName}`)
+                await sendArduinoCommand('FACE_RECOGNIZED')
+
+                // Countdown 20 segundos
+                let timeLeft = 20
+                setPauseTimeRemaining(timeLeft)
+
+                const countdown = setInterval(() => {
+                    timeLeft--
+                    setPauseTimeRemaining(timeLeft)
+
+                    if (timeLeft <= 0) {
+                        clearInterval(countdown)
+                        setIsPaused(false)
+                        setDetectionStatus('idle')
+                        setLastDetection(null)
+                        setPauseTimeRemaining(0)
+                        setCommandSent(false)
+                        isDetectingRef.current = false
+                    }
+                }, 1000)
+
+                pauseTimeoutRef.current = countdown as any
+            }
+            
+        } catch (error) {
+            console.error(`❌ [${method}] Erro ao validar acesso:`, error)
+        }
+    }, [selectedCondominium, saveAccessLog, sendArduinoCommand])
+
+    // ==================== FUNÇÕES AUXILIARES DE QR CODE ====================
+    
+    // Escanear QR Code do vídeo
+    const scanQRCode = useCallback(() => {
+        if (!videoRef.current || !cameraStarted || isPaused || isManuallyPaused) {
+            return null
+        }
+
+        try {
+            const video = videoRef.current
+            const canvas = document.createElement('canvas')
+            const context = canvas.getContext('2d', { willReadFrequently: true })
+
+            if (!context) return null
+
+            canvas.width = video.videoWidth
+            canvas.height = video.videoHeight
+            context.drawImage(video, 0, 0, canvas.width, canvas.height)
+
+            const imageData = context.getImageData(0, 0, canvas.width, canvas.height)
+            const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                inversionAttempts: 'dontInvert',
+            })
+
+            if (code && code.data) {
+                console.log('📷 [QR] QR Code detectado:', code.data)
+                return code.data
+            }
+
+            return null
+        } catch (error) {
+            console.error('❌ [QR] Erro ao escanear QR Code:', error)
+            return null
+        }
+    }, [cameraStarted, isPaused, isManuallyPaused])
+
+    // Validar e processar QR Code (usa função unificada)
+    const validateAndProcessQRCode = useCallback(async (qrData: string) => {
+        try {
+            // PROTEÇÃO ANTI-LOOP: Ignorar se for o mesmo QR Code nos últimos 5 segundos
+            const now = Date.now()
+            if (lastQrCodeRef.current && 
+                lastQrCodeRef.current.code === qrData && 
+                now - lastQrCodeRef.current.timestamp < 5000) {
+                console.log('⏭️ [QR] QR Code já processado recentemente, ignorando')
+                return
+            }
+
+            // Registrar este QR Code como processado
+            lastQrCodeRef.current = { code: qrData, timestamp: now }
+            
+            // Extrair ID do QR code (formato esperado: id ou JSON com {id: "..."})
+            let personId: string | null = null
+
+            try {
+                const parsed = JSON.parse(qrData)
+                personId = parsed.id
+                console.log('✅ [QR] QR Code formato JSON - ID extraído:', personId)
+            } catch {
+                personId = qrData.trim()
+                console.log('✅ [QR] QR Code formato simples - ID:', personId)
+            }
+
+            if (!personId) {
+                console.log('❌ [QR] QR Code inválido: ID não encontrado')
+                return
+            }
+
+            // Chamar função unificada
+            await validateAndProcessAccess({
+                personId,
+                personName: undefined, // Nome será buscado do cache na função unificada
+                confidence: 1.0, // QR Code sempre tem confiança 100%
+                method: 'QR_CODE'
+            })
+        } catch (error) {
+            console.error('❌ [QR] Erro ao processar QR Code:', error)
+        }
+    }, [validateAndProcessAccess])
+
+    // ==================== FIM DAS FUNÇÕES DE QR CODE ====================
 
     // Detecção facial
     const detectFaces = useCallback(async () => {
@@ -1926,6 +2296,39 @@ export default function CondominiumRecognitionPage() {
         }
     }, [isManuallyPaused, stopDetection])
 
+    // ==================== EFFECT DE QR CODE ====================
+    // Escanear QR Code a cada 2 segundos (junto com reconhecimento facial)
+    useEffect(() => {
+        if (!cameraStarted || isPaused || isManuallyPaused || !qrScanEnabled) {
+            return
+        }
+
+        console.log('📷 [QR] Iniciando scanner de QR Code (intervalo: 2s)')
+
+        const qrScanInterval = setInterval(async () => {
+            if (isPaused || isManuallyPaused) {
+                return
+            }
+
+            const qrData = scanQRCode()
+            if (qrData) {
+                console.log('📷 [QR] QR Code detectado, validando...')
+                await validateAndProcessQRCode(qrData)
+            }
+        }, 2000)
+
+        qrScanIntervalRef.current = qrScanInterval
+
+        return () => {
+            console.log('📷 [QR] Parando scanner de QR Code')
+            if (qrScanIntervalRef.current) {
+                clearInterval(qrScanIntervalRef.current)
+                qrScanIntervalRef.current = null
+            }
+        }
+    }, [cameraStarted, isPaused, isManuallyPaused, qrScanEnabled, validateAndProcessQRCode, scanQRCode])
+    // ==================== FIM DO EFFECT DE QR CODE ====================
+
     // Debug dos estados de detecção
     useEffect(() => {
         console.log('🎯 Estado de detecção mudou:', {
@@ -2184,8 +2587,12 @@ export default function CondominiumRecognitionPage() {
                                         <>
                                             <div className="h-3 w-3 bg-red-500 rounded-full animate-pulse" />
                                             <div className="text-sm flex flex-col">
-                                                <span className="font-bold text-red-300">ACESSO NEGADO</span>
-                                                <span>{lastDetection?.type === 'RESIDENT' ? 'Morador' : lastDetection?.type === 'EMPLOYEE' ? 'Funcionário' : 'Convidado'}: {lastDetection?.name?.replace(' (NÃO AUTORIZADO)', '') || 'Não identificado'}</span>
+                                                <span className="font-bold text-red-300">NÃO AUTORIZADO</span>
+                                                {lastDetection ? (
+                                                    <span>{lastDetection.type === 'RESIDENT' ? 'Morador' : lastDetection.type === 'EMPLOYEE' ? 'Funcionário' : 'Convidado'}: {lastDetection.name}</span>
+                                                ) : (
+                                                    <span>{unauthorizedMessage}</span>
+                                                )}
                                                 {isPaused && <span className="text-red-300">{pauseTimeRemaining}s restantes</span>}
                                             </div>
                                         </>
@@ -2287,6 +2694,19 @@ export default function CondominiumRecognitionPage() {
                                     �
                                 </Button>
                             </div>
+
+                            {/* Indicador de QR Code Ativo */}
+                            {qrScanEnabled && cameraStarted && !isPaused && !isManuallyPaused && (
+                                <div className="bg-blue-600/90 backdrop-blur-sm rounded-lg px-3 py-2 border border-blue-400/50 pointer-events-none animate-pulse">
+                                    <div className="flex items-center gap-2 text-white text-sm font-medium">
+                                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M3 4a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm2 2V5h1v1H5zM3 13a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1v-3zm2 2v-1h1v1H5zM13 3a1 1 0 00-1 1v3a1 1 0 001 1h3a1 1 0 001-1V4a1 1 0 00-1-1h-3zm1 2v1h1V5h-1z" clipRule="evenodd" />
+                                            <path d="M11 4a1 1 0 10-2 0v1a1 1 0 002 0V4zM10 7a1 1 0 011 1v1h2a1 1 0 110 2h-3a1 1 0 01-1-1V8a1 1 0 011-1zM16 9a1 1 0 100 2 1 1 0 000-2zM9 13a1 1 0 011-1h1a1 1 0 110 2v2a1 1 0 11-2 0v-3zM7 11a1 1 0 100-2H4a1 1 0 100 2h3zM17 13a1 1 0 01-1 1h-2a1 1 0 110-2h2a1 1 0 011 1zM16 17a1 1 0 100-2h-3a1 1 0 100 2h3z" />
+                                        </svg>
+                                        <span>QR Code Ativo</span>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Painel de configurações */}
                             {showCameraSettings && (
@@ -2632,7 +3052,7 @@ export default function CondominiumRecognitionPage() {
                                                     {pauseTimeRemaining}
                                                 </div>
                                             </div>
-                                            <h2 className="text-4xl font-bold mb-4 text-green-400">✅ RECONHECIDO</h2>
+                                            <h2 className="text-4xl font-bold mb-4 text-green-400">✅ ACESSO AUTORIZADO</h2>
                                             <p className="text-2xl text-white mb-2">
                                                 {lastDetection?.name}
                                             </p>
