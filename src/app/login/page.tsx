@@ -1,16 +1,49 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function LoginPage() {
+    const { user, isLoading: authLoading, login } = useAuth()
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState('')
     const router = useRouter()
+
+    // Verificar se o usuário já está logado
+    useEffect(() => {
+        if (!authLoading && user) {
+            // Se o usuário já está logado, redirecionar para o dashboard
+            console.log('Usuário já está logado, redirecionando para dashboard')
+            router.push('/dashboard')
+        }
+    }, [user, authLoading, router])
+
+    // Mostrar loading enquanto verifica a autenticação
+    if (authLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <div className="text-center">
+                    <div className="text-lg text-gray-600">Verificando autenticação...</div>
+                </div>
+            </div>
+        )
+    }
+
+    // Se o usuário já está logado, não mostrar a página de login
+    if (user) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <div className="text-center">
+                    <div className="text-lg text-gray-600">Redirecionando...</div>
+                </div>
+            </div>
+        )
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -18,30 +51,19 @@ export default function LoginPage() {
         setError('')
 
         try {
-            const response = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    login: email,
-                    password,
-                }),
-            })
-
-            const data = await response.json()
-
-            if (data.success) {
-                // Verificar se precisa mudar senha
-                if (data.user.mustChangePassword) {
-                    router.push('/change-password')
-                } else {
+            const success = await login(email, password)
+            
+            if (success) {
+                console.log('Login realizado com sucesso, redirecionando...')
+                // Aguardar um pouco para garantir que o contexto foi atualizado
+                setTimeout(() => {
                     router.push('/dashboard')
-                }
+                }, 100)
             } else {
-                setError(data.message || 'Erro ao fazer login')
+                setError('Email ou senha incorretos')
             }
-        } catch {
+        } catch (error) {
+            console.error('Erro no login:', error)
             setError('Erro de conexão. Tente novamente.')
         } finally {
             setIsLoading(false)

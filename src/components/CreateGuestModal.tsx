@@ -1,13 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { CameraIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
+
+interface Unit {
+  id: string;
+  block: string;
+  number: string;
+  floor?: string;
+}
 
 interface Resident {
   id: string;
   user: {
+    id: string;
     name: string;
   };
   unit: {
@@ -19,22 +28,39 @@ interface Resident {
 interface CreateGuestModalProps {
   isOpen: boolean;
   onClose: () => void;
-  resident: Resident;
+  resident?: Resident; // For backward compatibility
+  unit?: Unit; // New prop for unit-based creation
+  residents?: Resident[]; // Residents in the unit
 }
 
-export default function CreateGuestModal({ isOpen, onClose, resident }: CreateGuestModalProps) {
+export default function CreateGuestModal({ isOpen, onClose, resident, unit, residents = [] }: CreateGuestModalProps) {
+  // Determine the unit and available residents
+  const currentUnit = unit || resident?.unit;
+  const availableResidents = residents.length > 0 ? residents : (resident ? [resident] : []);
+  const defaultResidentId = resident?.id || (availableResidents.length > 0 ? availableResidents[0].id : '');
+
   const [formData, setFormData] = useState({
     name: '',
     document: '',
     phone: '',
-    photo: '',
     validFrom: '',
     validUntil: '',
     maxEntries: 10,
-    observations: ''
+    observations: '',
+    invitedBy: defaultResidentId
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // Estados para reconhecimento facial
+  const [faceImages, setFaceImages] = useState<string[]>([]);
+  const [showCamera, setShowCamera] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
+  const [selectedCameraId, setSelectedCameraId] = useState<string>('');
+  const [isMobile, setIsMobile] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Configurar datas padrão quando o modal abre
   useEffect(() => {
@@ -50,8 +76,41 @@ export default function CreateGuestModal({ isOpen, onClose, resident }: CreateGu
         validFrom: formatDateTimeLocal(now),
         validUntil: formatDateTimeLocal(maxDate)
       }));
+
+      // Detectar se é mobile e enumerar câmeras
+      detectDeviceAndCameras();
     }
   }, [isOpen]);
+
+  // Detectar tipo de dispositivo e câmeras disponíveis
+  const detectDeviceAndCameras = async () => {
+    // Detectar se é mobile
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    setIsMobile(isMobileDevice);
+
+    try {
+      // Solicitar permissão para câmera
+      await navigator.mediaDevices.getUserMedia({ video: true });
+      
+      // Enumerar dispositivos de mídia
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(device => device.kind === 'videoinput');
+      
+      setAvailableCameras(videoDevices);
+      
+      // Selecionar câmera padrão (frontal para mobile, primeira disponível para desktop)
+      if (videoDevices.length > 0) {
+        const defaultCamera = isMobileDevice 
+          ? videoDevices.find(device => device.label.toLowerCase().includes('front')) || videoDevices[0]
+          : videoDevices[0];
+        
+        setSelectedCameraId(defaultCamera.deviceId);
+      }
+    } catch (error) {
+      console.error('Erro ao detectar câmeras:', error);
+      setError('Erro ao acessar câmeras. Verifique as permissões.');
+    }
+  };
 
   const formatDateTimeLocal = (date: Date) => {
     const year = date.getFullYear();
@@ -62,6 +121,115 @@ export default function CreateGuestModal({ isOpen, onClose, resident }: CreateGu
     
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
+
+  // Função para iniciar a câmera
+  const startCamera = async () => {
+    try {
+      const constraints: MediaStreamConstraints = {
+        video: {
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          facingMode: isMobile ? 'user' : undefined,
+          deviceId: selectedCameraId ? { exact: selectedCameraId } : undefined
+        }
+      };
+
+      const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+      
+      setStream(mediaStream);
+      setShowCamera(true);
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+      }
+    } catch (error) {
+      console.error('Erro ao acessar câmera:', error);
+      setError('Erro ao acessar câmera. Verifique as permissões.');
+    }
+  };
+
+  // Função para trocar câmera
+  const switchCamera = async (deviceId: string) => {
+    setSelectedCameraId(deviceId);
+    
+    if (showCamera) {
+      // Parar câmera atual
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      
+      // Iniciar nova câmera
+      try {
+        const constraints: MediaStreamConstraints = {
+          video: {
+            width: { ideal: 640 },
+            height: { ideal: 480 },
+            facingMode: isMobile ? 'user' : undefined,
+            deviceId: { exact: deviceId }
+          }
+        };
+
+        const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+        
+        setStream(mediaStream);
+        
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
+        }
+      } catch (error) {
+        console.error('Erro ao trocar câmera:', error);
+        setError('Erro ao trocar câmera.');
+      }
+    }
+  };
+
+  // Função para parar a câmera
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    setShowCamera(false);
+  };
+
+  // Função para capturar foto
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d');
+      
+      if (context) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0);
+        
+        const imageData = canvas.toDataURL('image/jpeg', 0.8);
+        
+        if (faceImages.length < 2) {
+          setFaceImages(prev => [...prev, imageData]);
+          
+          if (faceImages.length >= 1) {
+            stopCamera();
+          }
+        }
+      }
+    }
+  };
+
+  // Função para remover foto
+  const removePhoto = (index: number) => {
+    setFaceImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Limpar stream quando modal fechar
+  useEffect(() => {
+    if (!isOpen) {
+      stopCamera();
+      setFaceImages([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -131,7 +299,8 @@ export default function CreateGuestModal({ isOpen, onClose, resident }: CreateGu
         },
         body: JSON.stringify({
           ...formData,
-          residentId: resident.id
+          residentId: formData.invitedBy,
+          faceImages: faceImages // Incluir as fotos capturadas
         }),
       });
 
@@ -155,15 +324,17 @@ export default function CreateGuestModal({ isOpen, onClose, resident }: CreateGu
   };
 
   const handleClose = () => {
+    stopCamera();
+    setFaceImages([]);
     setFormData({
       name: '',
       document: '',
       phone: '',
-      photo: '',
       validFrom: '',
       validUntil: '',
       maxEntries: 10,
-      observations: ''
+      observations: '',
+      invitedBy: defaultResidentId
     });
     setError('');
     onClose();
@@ -172,12 +343,36 @@ export default function CreateGuestModal({ isOpen, onClose, resident }: CreateGu
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Novo Convidado">
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Informações do Morador */}
+        {/* Informações da Unidade/Morador */}
         <Card className="p-4 bg-blue-50">
           <div className="text-sm text-blue-800">
             <div className="font-medium">Convidado para:</div>
-            <div>{resident.user.name}</div>
-            <div>Unidade: {resident.unit.block}{resident.unit.number}</div>
+            {currentUnit && (
+              <div>Unidade: {currentUnit.block}{currentUnit.number}</div>
+            )}
+            {availableResidents.length > 1 ? (
+              <div>
+                <label className="block text-sm font-medium text-blue-800 mt-2 mb-1">
+                  Convidado por:
+                </label>
+                <select
+                  value={formData.invitedBy}
+                  onChange={(e) => setFormData(prev => ({ ...prev, invitedBy: e.target.value }))}
+                  className="w-full p-2 border border-blue-300 rounded-md text-blue-900"
+                  required
+                >
+                  {availableResidents.map((res) => (
+                    <option key={res.id} value={res.id}>
+                      {res.user.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : availableResidents.length === 1 ? (
+              <div>{availableResidents[0].user.name}</div>
+            ) : (
+              <div className="text-red-600">Nenhum morador disponível</div>
+            )}
           </div>
         </Card>
 
@@ -231,21 +426,6 @@ export default function CreateGuestModal({ isOpen, onClose, resident }: CreateGu
               onChange={handleInputChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="(00) 00000-0000"
-            />
-          </div>
-
-          {/* URL da Foto */}
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              URL da Foto (opcional)
-            </label>
-            <input
-              type="url"
-              name="photo"
-              value={formData.photo}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="https://exemplo.com/foto.jpg"
             />
           </div>
 
@@ -315,7 +495,160 @@ export default function CreateGuestModal({ isOpen, onClose, resident }: CreateGu
               placeholder="Informações adicionais sobre o convidado..."
             />
           </div>
+
+          {/* Reconhecimento Facial */}
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <EyeIcon className="w-4 h-4 inline mr-1" />
+              Reconhecimento Facial (Opcional)
+            </label>
+            
+            <div className="space-y-4">
+              {/* Fotos capturadas */}
+              {faceImages.length > 0 && (
+                <div className="grid grid-cols-2 gap-4">
+                  {faceImages.map((image, index) => (
+                    <div key={index} className="relative">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={image}
+                        alt={`Foto ${index + 1}`}
+                        className="w-full h-32 object-cover rounded-md border"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(index)}
+                        className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                      </button>
+                      <span className="absolute bottom-1 left-1 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                        Foto {index + 1}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Seleção de Câmera */}
+              {availableCameras.length > 1 && !showCamera && (
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Câmera {isMobile ? '(Detectado: Mobile)' : '(Detectado: Desktop)'}
+                  </label>
+                  <select
+                    value={selectedCameraId}
+                    onChange={(e) => setSelectedCameraId(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    {availableCameras.map((camera, index) => (
+                      <option key={camera.deviceId} value={camera.deviceId}>
+                        {camera.label || `Câmera ${index + 1}`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Câmera com Preview */}
+              {showCamera && (
+                <div className="space-y-4">
+                  <div className="relative">
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="w-full max-w-md mx-auto rounded-md border-2 border-blue-300 shadow-lg"
+                    />
+                    
+                    {/* Overlay com instruções */}
+                    <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                      Preview da Câmera
+                    </div>
+                    
+                    {/* Indicador de fotos capturadas */}
+                    <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded">
+                      {faceImages.length}/2 fotos
+                    </div>
+                  </div>
+
+                  {/* Seletor de câmera durante preview */}
+                  {availableCameras.length > 1 && (
+                    <div className="flex items-center justify-center space-x-2">
+                      <label className="text-sm font-medium text-gray-700">Trocar câmera:</label>
+                      <select
+                        value={selectedCameraId}
+                        onChange={(e) => switchCamera(e.target.value)}
+                        className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        {availableCameras.map((camera, index) => (
+                          <option key={camera.deviceId} value={camera.deviceId}>
+                            {camera.label || `Câmera ${index + 1}`}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  <div className="flex justify-center space-x-3">
+                    <Button
+                      type="button"
+                      onClick={capturePhoto}
+                      disabled={faceImages.length >= 2}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <CameraIcon className="w-4 h-4 mr-2" />
+                      Capturar Foto
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={stopCamera}
+                      variant="outline"
+                    >
+                      Parar Câmera
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Botões de controle */}
+              {!showCamera && faceImages.length < 2 && (
+                <Button
+                  type="button"
+                  onClick={startCamera}
+                  disabled={availableCameras.length === 0}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <CameraIcon className="w-4 h-4 mr-2" />
+                  {faceImages.length === 0 ? 'Iniciar Câmera para Reconhecimento' : 'Adicionar Segunda Foto'}
+                </Button>
+              )}
+
+              <div className="text-xs text-gray-500 space-y-1">
+                {faceImages.length === 0 && (
+                  <p>📷 Você pode adicionar até 2 fotos para habilitar o reconhecimento facial do convidado.</p>
+                )}
+                {faceImages.length === 1 && (
+                  <p>📷 Você pode adicionar mais 1 foto para melhorar o reconhecimento.</p>
+                )}
+                {faceImages.length === 2 && (
+                  <p>✅ Reconhecimento facial configurado com 2 fotos.</p>
+                )}
+                {availableCameras.length === 0 && (
+                  <p>⚠️ Nenhuma câmera detectada. Verifique as permissões.</p>
+                )}
+                {availableCameras.length > 1 && (
+                  <p>📱 {availableCameras.length} câmeras disponíveis{isMobile ? ' (mobile detectado)' : ' (desktop detectado)'}.</p>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
+
+        {/* Canvas oculto para captura */}
+        <canvas ref={canvasRef} style={{ display: 'none' }} />
 
         {/* Aviso sobre o período */}
         <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">

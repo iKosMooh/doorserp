@@ -5,6 +5,7 @@ import { MainLayout } from "@/components/main-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Users, DollarSign, LogIn, Building } from "lucide-react"
+import { useRequireAuth } from "@/hooks/useRequireAuth"
 
 interface DashboardStats {
   totalResidents: number
@@ -22,6 +23,7 @@ interface DashboardStats {
 }
 
 export default function DashboardPage() {
+  const { user, isLoading: authLoading } = useRequireAuth()
   const [stats, setStats] = useState<DashboardStats>({
     totalResidents: 0,
     totalEmployees: 0,
@@ -33,55 +35,66 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Simular carregamento de dados do banco
-    setTimeout(() => {
-      setStats({
-        totalResidents: 127,
-        totalEmployees: 8,
-        totalUnits: 156,
-        monthlyIncome: 52300.00,
-        monthlyExpenses: 18450.00,
-        recentAccess: [
-          {
-            id: "1",
-            timestamp: "2025-01-15 08:30:15",
-            personName: "João Silva",
-            accessType: "RESIDENT",
-            status: "APPROVED"
-          },
-          {
-            id: "2", 
-            timestamp: "2025-01-15 08:25:42",
-            personName: "Maria Santos",
-            accessType: "RESIDENT",
-            status: "APPROVED"
-          },
-          {
-            id: "3",
-            timestamp: "2025-01-15 08:20:11",
-            personName: "José Porteiro",
-            accessType: "EMPLOYEE",
-            status: "APPROVED"
-          },
-          {
-            id: "4",
-            timestamp: "2025-01-15 07:45:33",
-            personName: "Ana Costa",
-            accessType: "GUEST",
-            status: "APPROVED"
-          },
-          {
-            id: "5",
-            timestamp: "2025-01-15 07:30:18",
-            personName: "Carlos Visitante",
-            accessType: "GUEST",
-            status: "REJECTED"
-          }
-        ]
-      })
-      setLoading(false)
-    }, 1000)
-  }, [])
+    if (!authLoading && user) {
+      // Simular carregamento de dados do banco
+      setTimeout(() => {
+        setStats({
+          totalResidents: 127,
+          totalEmployees: 8,
+          totalUnits: 156,
+          monthlyIncome: 52300.00,
+          monthlyExpenses: 18450.00,
+          recentAccess: [
+            {
+              id: "1",
+              timestamp: "2025-01-15 08:30:15",
+              personName: "João Silva",
+              accessType: "RESIDENT",
+              status: "APPROVED"
+            },
+            {
+              id: "2", 
+              timestamp: "2025-01-15 08:25:42",
+              personName: "Maria Santos",
+              accessType: "RESIDENT",
+              status: "APPROVED"
+            },
+            {
+              id: "3",
+              timestamp: "2025-01-15 08:20:11",
+              personName: "José Porteiro",
+              accessType: "EMPLOYEE",
+              status: "APPROVED"
+            },
+            {
+              id: "4",
+              timestamp: "2025-01-15 07:45:33",
+              personName: "Ana Costa",
+              accessType: "GUEST",
+              status: "APPROVED"
+            },
+            {
+              id: "5",
+              timestamp: "2025-01-15 07:30:18",
+              personName: "Carlos Visitante",
+              accessType: "GUEST",
+              status: "REJECTED"
+            }
+          ]
+        })
+        setLoading(false)
+      }, 1000)
+    }
+  }, [authLoading, user])
+
+  // Show loading while checking authentication
+  if (authLoading || !user) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-lg">Verificando autenticação...</div>
+      </div>
+    )
+  }
 
   if (loading) {
     return (

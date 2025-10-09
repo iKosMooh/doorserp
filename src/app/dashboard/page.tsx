@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Users, LogIn, Building, UserCheck, UserPlus, TrendingUp, TrendingDown, Activity } from "lucide-react"
 import { useCondominium } from "@/contexts/CondominiumContext"
+import { useRequireAuth } from "@/hooks/useRequireAuth"
 
 interface DashboardStats {
   totalResidents: number
@@ -40,6 +41,7 @@ interface DashboardData {
 }
 
 export default function Dashboard() {
+  const { user, isLoading: authLoading } = useRequireAuth()
   const { selectedCondominium, loading: condominiumLoading } = useCondominium()
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -72,10 +74,19 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
-    if (selectedCondominium?.id) {
+    if (!authLoading && user && selectedCondominium?.id) {
       fetchDashboardData(selectedCondominium.id)
     }
-  }, [selectedCondominium])
+  }, [authLoading, user, selectedCondominium])
+
+  // Show loading while checking authentication
+  if (authLoading || !user) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-lg">Verificando autenticação...</div>
+      </div>
+    )
+  }
 
   if (condominiumLoading) {
     return (

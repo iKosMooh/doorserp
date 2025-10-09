@@ -90,7 +90,7 @@ export async function PUT(
       unitId: formData.get('unitId') as string,
       relationshipType: formData.get('relationshipType') as 'OWNER' | 'TENANT' | 'FAMILY_MEMBER' | 'AUTHORIZED',
       emergencyContact: formData.get('emergencyContact') as string || null,
-      vehiclePlates: JSON.parse(formData.get('vehiclePlates') as string || '[]'),
+      vehiclePlates: formData.get('vehiclePlates') as string || null,
       isActive: formData.get('isActive') === 'true'
     }
 

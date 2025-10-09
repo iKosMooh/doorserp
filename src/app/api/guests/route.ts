@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
+import { writeFile, mkdir } from 'fs/promises';
+import { join } from 'path';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
 
@@ -190,7 +192,8 @@ export async function POST(request: NextRequest) {
       validUntil,
       maxEntries = 10,
       observations,
-      residentId
+      residentId,
+      faceImages = [] // Array de imagens base64 para reconhecimento facial
     } = body;
 
     // Validações básicas
@@ -289,6 +292,56 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Processar fotos para reconhecimento facial (se fornecidas)
+    let faceRecognitionFolder: string | null = null;
+    let faceRecognitionEnabled = false;
+
+    if (faceImages && Array.isArray(faceImages) && faceImages.length > 0) {
+      // Limitar a 2 fotos
+      const processedImages = faceImages.slice(0, 2);
+      
+      try {
+        // Gerar nome da pasta baseado no nome do convidado e timestamp
+        const sanitizedName = name.replace(/[^a-zA-Z0-9]/g, '_');
+        const timestamp = Date.now();
+        faceRecognitionFolder = `${sanitizedName}_guest_${timestamp}`;
+        
+        // Criar diretório para as fotos
+        const labelsPath = join(process.cwd(), 'public', 'assets', 'lib', 'face-api', 'labels', faceRecognitionFolder);
+        await mkdir(labelsPath, { recursive: true });
+        
+        // Salvar cada imagem
+        let savedImages = 0;
+        for (let i = 0; i < processedImages.length; i++) {
+          const imageData = processedImages[i];
+          
+          // Verificar se é base64 válido
+          if (typeof imageData === 'string' && imageData.startsWith('data:image/')) {
+            // Extrair dados base64
+            const base64Data = imageData.split(',')[1];
+            const buffer = Buffer.from(base64Data, 'base64');
+            
+            // Salvar arquivo
+            const filename = `${i + 1}.jpg`;
+            const filepath = join(labelsPath, filename);
+            await writeFile(filepath, buffer);
+            
+            savedImages++;
+          }
+        }
+        
+        if (savedImages > 0) {
+          faceRecognitionEnabled = true;
+          console.log(`Salvas ${savedImages} fotos para o convidado ${name} em ${faceRecognitionFolder}`);
+        }
+      } catch (error) {
+        console.error('Erro ao salvar fotos do convidado:', error);
+        // Não falhar a criação do convidado por erro nas fotos
+        faceRecognitionFolder = null;
+        faceRecognitionEnabled = false;
+      }
+    }
+
     // Criar convidado
     const guest = await prisma.guest.create({
       data: {
@@ -304,7 +357,9 @@ export async function POST(request: NextRequest) {
         notes: observations,
         isActive: true,
         condominiumId: resident.condominiumId,
-        invitedByResidentId: residentId
+        invitedByResidentId: residentId,
+        faceRecognitionEnabled: faceRecognitionEnabled,
+        faceRecognitionFolder: faceRecognitionFolder
       },
       include: {
         invitedByResident: {
@@ -334,6 +389,7 @@ export async function POST(request: NextRequest) {
         accessType: 'GUEST',
         accessMethod: 'MANUAL',
         entryExit: 'ENTRY',
+        status: 'PENDING', // Log de criação não é acesso - status PENDING
         userId: user.id
       }
     });
@@ -440,6 +496,7 @@ export async function PUT(request: NextRequest) {
         accessType: 'GUEST',
         accessMethod: 'MANUAL',
         entryExit: 'ENTRY',
+        status: 'PENDING', // Log de alteração não é acesso - status PENDING
         userId: user.id
       }
     });

@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { useCondominium } from "@/contexts/CondominiumContext"
+import CreateGuestModal from "@/components/CreateGuestModal"
 import { 
   UserPlus, 
   Clock, 
@@ -51,6 +52,16 @@ export default function GuestsPage() {
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [filter, setFilter] = useState<"all" | "active" | "expired">("all")
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [currentUser, setCurrentUser] = useState<{
+    id: string;
+    name: string;
+    residents?: Array<{
+      id: string;
+      user: { name: string };
+      unit: { block: string; number: string };
+    }>;
+  } | null>(null)
 
   const fetchGuests = async (condominiumId: string) => {
     try {
@@ -66,9 +77,9 @@ export default function GuestsPage() {
       const result = await response.json()
       
       if (result.success) {
-        setGuests(result.data)
+        setGuests(result.guests || [])
       } else {
-        throw new Error(result.error || 'Erro desconhecido')
+        throw new Error(result.message || 'Erro desconhecido')
       }
     } catch (err) {
       console.error('Erro ao buscar convidados:', err)
@@ -78,10 +89,30 @@ export default function GuestsPage() {
     }
   }
 
+  const fetchCurrentUser = async () => {
+    try {
+      const response = await fetch('/api/auth/me')
+      if (response.ok) {
+        const userData = await response.json()
+        setCurrentUser(userData.user)
+      }
+    } catch (error) {
+      console.error('Erro ao buscar usuário atual:', error)
+    }
+  }
+
+  const handleCloseModal = () => {
+    setIsCreateModalOpen(false)
+    if (selectedCondominium?.id) {
+      fetchGuests(selectedCondominium.id) // Recarregar lista após criar
+    }
+  }
+
   useEffect(() => {
     if (selectedCondominium?.id) {
       fetchGuests(selectedCondominium.id)
     }
+    fetchCurrentUser()
   }, [selectedCondominium])
 
   const isGuestActive = (guest: Guest) => {
@@ -90,7 +121,7 @@ export default function GuestsPage() {
     return new Date(guest.validUntil) > new Date()
   }
 
-  const filteredGuests = guests.filter(guest => {
+  const filteredGuests = guests?.filter(guest => {
     // Filtro por busca
     const matchesSearch = searchTerm === "" || 
       guest.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -104,7 +135,7 @@ export default function GuestsPage() {
       (filter === "expired" && !isGuestActive(guest))
 
     return matchesSearch && matchesFilter
-  })
+  }) || []
 
   const getStatusBadge = (guest: Guest) => {
     if (!guest.isActive) {
@@ -178,7 +209,10 @@ export default function GuestsPage() {
               Gerencie visitantes e convidados de {selectedCondominium.name}
             </p>
           </div>
-          <Button className="bg-green-600 hover:bg-green-700">
+          <Button 
+            className="bg-green-600 hover:bg-green-700"
+            onClick={() => setIsCreateModalOpen(true)}
+          >
             <Plus className="w-4 h-4 mr-2" />
             Novo Convidado
           </Button>
@@ -192,7 +226,7 @@ export default function GuestsPage() {
               <UserPlus className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{guests.length}</div>
+              <div className="text-2xl font-bold">{guests?.length || 0}</div>
             </CardContent>
           </Card>
 
@@ -203,7 +237,7 @@ export default function GuestsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                {guests.filter(isGuestActive).length}
+                {guests?.filter(isGuestActive).length || 0}
               </div>
             </CardContent>
           </Card>
@@ -215,7 +249,7 @@ export default function GuestsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600">
-                {guests.filter(guest => !isGuestActive(guest)).length}
+                {guests?.filter(guest => !isGuestActive(guest)).length || 0}
               </div>
             </CardContent>
           </Card>
@@ -227,7 +261,7 @@ export default function GuestsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-600">
-                {guests.filter(guest => guest.vehiclePlate).length}
+                {guests?.filter(guest => guest.vehiclePlate).length || 0}
               </div>
             </CardContent>
           </Card>
@@ -399,6 +433,15 @@ export default function GuestsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Modal de Criação de Convidado */}
+      {isCreateModalOpen && currentUser?.residents?.[0] && (
+        <CreateGuestModal
+          isOpen={isCreateModalOpen}
+          onClose={handleCloseModal}
+          resident={currentUser.residents[0]}
+        />
+      )}
     </MainLayout>
   )
 }

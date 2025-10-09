@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+﻿import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
 export async function GET(request: NextRequest) {
@@ -29,19 +29,24 @@ export async function GET(request: NextRequest) {
       take: limit
     })
 
-    const formattedLogs = logs.map((log) => ({
-      id: log.id,
-      timestamp: log.timestamp.toISOString(),
-      personName: extractPersonNameFromNotes(log.notes) || "Usuário Desconhecido",
-      personType: log.accessType as "RESIDENT" | "EMPLOYEE" | "GUEST",
-      accessType: log.entryExit === "EXIT" ? "EXIT" : "ENTRY" as "ENTRY" | "EXIT",
-      method: extractMethodFromNotes(log.notes) || "FACIAL_RECOGNITION" as "FACIAL_RECOGNITION" | "KEY_CARD" | "MANUAL",
-      location: log.location || "Portaria Principal",
-      status: mapStatus(log.status) as "APPROVED" | "DENIED" | "FORCED",
-      notes: log.notes,
-      unitNumber: extractUnitFromLocation(log.location),
-      building: extractBuildingFromLocation(log.location)
-    }))
+    const formattedLogs = logs.map((log) => {
+      const personName = extractPersonNameFromNotes(log.notes) || "Usuário Desconhecido"
+      const status = mapStatus(log.status)
+      
+      return {
+        id: log.id,
+        timestamp: log.timestamp.toISOString(),
+        personName,
+        personType: log.accessType as "RESIDENT" | "EMPLOYEE" | "GUEST",
+        accessType: log.entryExit === "EXIT" ? "EXIT" : "ENTRY" as "ENTRY" | "EXIT",
+        method: extractMethodFromNotes(log.notes) || "FACIAL_RECOGNITION" as "FACIAL_RECOGNITION" | "KEY_CARD" | "MANUAL",
+        location: log.location || "Portaria Principal",
+        status: status as "APPROVED" | "DENIED" | "FORCED",
+        notes: log.notes,
+        unitNumber: extractUnitFromLocation(log.location),
+        building: extractBuildingFromLocation(log.location)
+      }
+    })
 
     return NextResponse.json(formattedLogs)
   } catch (error) {
@@ -53,7 +58,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Funções auxiliares
 function extractPersonNameFromNotes(notes: string | null): string | null {
   if (!notes) return null
   const match = notes.match(/Reconhecimento facial: ([^(]+)/)
@@ -84,7 +88,7 @@ function mapStatus(status: string): string {
     case "APPROVED": return "APPROVED"
     case "REJECTED": return "DENIED"
     case "PENDING": return "DENIED"
-    default: return "APPROVED"
+    default: return "DENIED"
   }
 }
 
@@ -92,22 +96,19 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     
-    // Suporte para dois tipos de entrada: facial recognition e sistema regular
     if (body.personName && body.confidence !== undefined) {
-      // Este é um log do reconhecimento facial
       const { 
         condominiumId,
         personName,
         accessType, 
         unitNumber,
         building,
-        status = 'APPROVED',
+        status = 'DENIED',
         method = 'FACIAL_RECOGNITION',
         confidence,
         timestamp
       } = body
 
-      // Validações básicas
       if (!personName || !accessType || !condominiumId) {
         return NextResponse.json(
           { error: "Nome da pessoa, tipo de acesso e condomínio são obrigatórios" },
@@ -115,7 +116,22 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      // Mapear tipos de acesso
+      if (personName === 'Usuário Desconhecido' || 
+          personName === 'Pessoa não identificada' ||
+          personName.includes('Desconhecido') || 
+          personName.includes('unknown') ||
+          personName.includes('não identificada') ||
+          !personName.trim()) {
+        console.warn(`🚫 BLOQUEADO: Tentativa de criar log para usuário não identificado: "${personName}"`)
+        return NextResponse.json(
+          { 
+            success: false, 
+            message: "Logs para usuários não identificados não são permitidos por segurança" 
+          },
+          { status: 403 }
+        )
+      }
+
       const accessTypeMap: { [key: string]: string } = {
         'RESIDENT': 'RESIDENT',
         'EMPLOYEE': 'EMPLOYEE', 
@@ -124,7 +140,6 @@ export async function POST(request: NextRequest) {
 
       const mappedAccessType = accessTypeMap[accessType] || 'GUEST'
 
-      // Mapear status
       const statusMap: { [key: string]: string } = {
         'APPROVED': 'APPROVED',
         'DENIED': 'REJECTED',
@@ -132,15 +147,20 @@ export async function POST(request: NextRequest) {
         'PENDING': 'PENDING'
       }
 
-      const mappedStatus = statusMap[status] || 'APPROVED'
+      const mappedStatus = statusMap[status] || 'REJECTED'
+      
+      let finalStatus = mappedStatus
+      if (personName.includes('Desconhecido') || personName.includes('não identificada') || personName.includes('unknown') || !personName.trim()) {
+        console.error('🚨 ERRO CRÍTICO DE SEGURANÇA: Tentativa de aprovar acesso para usuário não identificado!')
+        finalStatus = 'REJECTED'
+      }
 
-      // Criar log de acesso para reconhecimento facial (sem userId obrigatório)
       const accessLog = await prisma.accessLog.create({
         data: {
           condominiumId,
           accessType: mappedAccessType as "RESIDENT" | "EMPLOYEE" | "GUEST",
           accessMethod: "FACIAL_RECOGNITION",
-          status: mappedStatus as "APPROVED" | "REJECTED" | "PENDING",
+          status: finalStatus as "APPROVED" | "REJECTED" | "PENDING",
           entryExit: "ENTRY",
           location: unitNumber && building ? `Prédio ${building} - Unidade ${unitNumber}` : 'Portaria Principal',
           notes: `Reconhecimento facial: ${personName} (${(confidence * 100).toFixed(1)}% confiança) - Método: ${method}`,
@@ -148,23 +168,15 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      console.log('✅ Log de reconhecimento facial salvo:', {
-        id: accessLog.id,
-        person: personName,
-        confidence: `${(confidence * 100).toFixed(1)}%`,
-        location: accessLog.location
-      })
-
       return NextResponse.json({
         success: true,
         message: "Log de acesso por reconhecimento facial registrado",
         log: {
           ...accessLog,
-          personName, // Adicionar o nome da pessoa para referência
+          personName,
         }
       })
     } else {
-      // Sistema regular (código original)
       const { 
         condominiumId,
         userId,
@@ -175,7 +187,6 @@ export async function POST(request: NextRequest) {
         notes
       } = body
 
-      // Validações básicas para sistema regular
       if (!accessType || !status || !condominiumId) {
         return NextResponse.json(
           { error: "Tipo de acesso, status e condomínio são obrigatórios" },
@@ -185,7 +196,6 @@ export async function POST(request: NextRequest) {
 
       let user = null
       if (userId) {
-        // Verificar se o usuário existe apenas se userId foi fornecido
         user = await prisma.user.findUnique({
           where: { id: userId }
         })
@@ -198,7 +208,6 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Criar log de acesso
       const accessLog = await prisma.accessLog.create({
         data: {
           condominiumId,
@@ -228,3 +237,44 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const cleanupType = searchParams.get('cleanup')
+    
+    if (cleanupType === 'unknown-users') {
+      const result = await prisma.accessLog.deleteMany({
+        where: {
+          OR: [
+            { notes: { contains: 'Usuário Desconhecido' } },
+            { notes: { contains: 'Pessoa não identificada' } },
+            { notes: { contains: 'unknown' } },
+            { notes: { contains: 'Desconhecido' } },
+            { notes: null }
+          ]
+        }
+      })
+      
+      console.log(`🧹 Removidos ${result.count} logs de usuários não identificados`)
+      
+      return NextResponse.json({
+        success: true,
+        message: `${result.count} logs de usuários não identificados foram removidos`,
+        count: result.count
+      })
+    }
+    
+    return NextResponse.json(
+      { error: "Tipo de limpeza não especificado ou inválido" },
+      { status: 400 }
+    )
+  } catch (error) {
+    console.error("Erro ao limpar logs:", error)
+    return NextResponse.json(
+      { error: "Erro interno do servidor" },
+      { status: 500 }
+    )
+  }
+}
+

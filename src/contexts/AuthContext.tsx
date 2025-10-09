@@ -48,10 +48,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     if (data.user.condominiums.length === 1) {
                         setSelectedCondominium(data.user.condominiums[0].id)
                     }
+                } else {
+                    // Resposta sem sucesso, limpar usuário
+                    setUser(null)
+                    setSelectedCondominium(null)
                 }
+            } else {
+                // Resposta não OK (401, 403, etc.), limpar usuário
+                setUser(null)
+                setSelectedCondominium(null)
             }
         } catch (error) {
             console.error('Erro ao verificar autenticação:', error)
+            // Em caso de erro, limpar usuário
+            setUser(null)
+            setSelectedCondominium(null)
         } finally {
             setIsLoading(false)
         }
@@ -69,15 +80,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             const data = await response.json()
 
-            if (data.success) {
+            if (data.success && data.user) {
+                console.log('Login bem-sucedido, atualizando usuário:', data.user)
                 setUser(data.user)
                 // Se o usuário tem apenas um condomínio, selecionar automaticamente
                 if (data.user.condominiums.length === 1) {
                     setSelectedCondominium(data.user.condominiums[0].id)
                 }
                 return true
+            } else {
+                console.log('Login falhou:', data.message)
+                return false
             }
-            return false
         } catch (error) {
             console.error('Erro no login:', error)
             return false

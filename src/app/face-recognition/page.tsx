@@ -181,7 +181,10 @@ export default function FaceRecognition() {
           accessType: data.accessType,
           unitNumber: data.unitNumber,
           building: data.building,
-          status: 'APPROVED',
+          status: data.personName && data.personName !== 'Usuário Desconhecido' && 
+                  !data.personName.includes('Desconhecido') && 
+                  !data.personName.includes('unknown') && 
+                  data.confidence > 0.5 ? 'APPROVED' : 'DENIED', // VERIFICAÇÃO DE SEGURANÇA
           method: 'FACIAL_RECOGNITION',
           confidence: data.confidence,
           timestamp: new Date().toISOString()

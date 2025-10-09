@@ -1,14 +1,33 @@
 'use client'
 
 import Head from "next/head"
-import Image from "next/image"
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/contexts/AuthContext"
 
 export default function HomePage() {
+  const { user, isLoading } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!isLoading && user) {
+      // Se o usuário está logado, redirecionar para o dashboard
+      router.push('/dashboard')
+    }
+  }, [user, isLoading, router])
+
+  // Se está carregando ou usuário logado, mostrar loading
+  if (isLoading || user) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-lg">Carregando...</div>
+      </div>
+    )
+  }
   return (
     <>
       <Head>
         <title>DoorsERP - Sistema Moderno de Portaria</title>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
       </Head>
       <div className="bg-white font-['Inter',sans-serif]">
         {/* Header */}
@@ -32,8 +51,8 @@ export default function HomePage() {
                 <a href="/face-recognition" className="px-4 py-2 text-green-600 hover:text-green-700 transition-colors">
                   Testar Demo
                 </a>
-                <a href="/home" className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors">
-                  Começar Agora
+                <a href="/login" className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors">
+                  Fazer Login
                 </a>
               </div>
             </div>
@@ -58,8 +77,8 @@ export default function HomePage() {
                   Simplifique a gestão do seu condomínio com tecnologia de ponta, segurança e eficiência em um único sistema integrado.
                 </p>
                 <div className="flex flex-wrap gap-6">
-                  <a href="/home" className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-xl font-semibold flex items-center transition-colors">
-                    Começar Agora
+                  <a href="/login" className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-xl font-semibold flex items-center transition-colors">
+                    Fazer Login
                     <svg className="w-5 h-5 ml-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
                     </svg>
@@ -217,8 +236,8 @@ export default function HomePage() {
               a gestão do seu condomínio.
             </p>
             <div className="flex flex-col sm:flex-row gap-6 justify-center">
-              <a href="/home" className="bg-white text-green-600 font-semibold py-4 px-10 rounded-xl hover:bg-gray-50 transition-all duration-300 hover:shadow-xl inline-flex items-center justify-center">
-                Acessar Dashboard
+              <a href="/login" className="bg-white text-green-600 font-semibold py-4 px-10 rounded-xl hover:bg-gray-50 transition-all duration-300 hover:shadow-xl inline-flex items-center justify-center">
+                Fazer Login
                 <svg className="ml-3 w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
                 </svg>

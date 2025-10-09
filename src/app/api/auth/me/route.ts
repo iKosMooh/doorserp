@@ -34,6 +34,13 @@ export async function GET(request: NextRequest) {
                     include: {
                         condominium: true
                     }
+                },
+                residents: {
+                    where: { isActive: true },
+                    include: {
+                        unit: true,
+                        condominium: true
+                    }
                 }
             }
         })
@@ -57,6 +64,14 @@ export async function GET(request: NextRequest) {
                 id: access.condominium.id,
                 name: access.condominium.name,
                 accessLevel: access.accessLevel
+            })),
+            residents: user.residents.map(resident => ({
+                id: resident.id,
+                user: { name: user.name },
+                unit: {
+                    block: resident.unit.block,
+                    number: resident.unit.number
+                }
             }))
         }
 

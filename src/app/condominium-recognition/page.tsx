@@ -12,6 +12,7 @@ import {
     AlertCircle,
     Play,
     Square,
+    Pause,
     RefreshCw
 } from "lucide-react"
 
@@ -28,6 +29,13 @@ interface CachedResident {
     unit: string
     faceRecognitionFolder: string
     type: 'RESIDENT' | 'EMPLOYEE' | 'GUEST'
+    guestData?: {
+        validFrom: string
+        validUntil?: string
+        currentEntries: number
+        maxEntries: number
+        invitedBy?: string
+    }
 }
 
 interface DetectionResult {
@@ -35,6 +43,10 @@ interface DetectionResult {
     confidence: number
     type: 'RESIDENT' | 'EMPLOYEE' | 'GUEST'
     unit?: string
+    id?: string
+    isUnauthorized?: boolean
+    status?: 'APPROVED' | 'DENIED'
+    reason?: string
 }
 
 interface ResidentData {
@@ -70,11 +82,14 @@ export default function CondominiumRecognitionPage() {
     const [arduinoStatus, setArduinoStatus] = useState<{connected: boolean, port?: string, error?: string}>({connected: false})    // Estados da câmera
     const [cameraStarted, setCameraStarted] = useState(false)
     const [cameraStream, setCameraStream] = useState<MediaStream | null>(null)
-    const [detectionStatus, setDetectionStatus] = useState<'idle' | 'detecting' | 'recognized' | 'paused'>('idle')
+    const [detectionStatus, setDetectionStatus] = useState<'idle' | 'detecting' | 'recognized' | 'paused' | 'unauthorized'>('idle')
     const [lastDetection, setLastDetection] = useState<DetectionResult | null>(null)
     const [commandSent, setCommandSent] = useState(false)
     const [isPaused, setIsPaused] = useState(false)
     const [pauseTimeRemaining, setPauseTimeRemaining] = useState(0)
+    const [isManuallyPaused, setIsManuallyPaused] = useState(false) // Estado para pausa manual
+    const [unauthorizedMessage, setUnauthorizedMessage] = useState<string>('')
+    const [lastUnknownFaceTime, setLastUnknownFaceTime] = useState<number>(0)
 
     // Refs
     const videoRef = useRef<HTMLVideoElement>(null)
@@ -84,6 +99,7 @@ export default function CondominiumRecognitionPage() {
     const pauseTimeoutRef = useRef<NodeJS.Timeout | null>(null)
     const lastRecognitionRef = useRef<{ name: string; timestamp: number } | null>(null)
     const isSequentialLoadingRef = useRef(false)
+    const isManuallyPausedRef = useRef(false) // Ref adicional para controle mais rigoroso
 
     // Cache utilities
     const getCacheKey = useCallback((key: string) => `condominium_recognition_${selectedCondominium?.id}_${key}`, [selectedCondominium?.id])
@@ -328,51 +344,234 @@ export default function CondominiumRecognitionPage() {
         }
     }, [getFromCache])
 
-    // Carregar moradores
-    const loadResidents = useCallback(async (): Promise<CachedResident[]> => {
-        if (!selectedCondominium) return []
+    // Carregar pessoas autorizadas (moradores, funcionários e convidados)
+    const loadAuthorizedPersons = useCallback(async (): Promise<CachedResident[]> => {
+        console.log('🔍 loadAuthorizedPersons chamado com selectedCondominium:', selectedCondominium)
+        
+        if (!selectedCondominium) {
+            console.log('❌ Nenhum condomínio selecionado')
+            return []
+        }
 
-        const cached = getFromCache('residents')
-        if (cached) {
+        console.log('🔍 Verificando cache...')
+        const cached = getFromCache('authorizedPersons')
+        console.log('🔍 Cache raw:', cached)
+        console.log('🔍 Cache length:', cached?.length)
+        console.log('🔍 Cache type:', typeof cached)
+        
+        if (cached && cached.length > 0) {
+            console.log(`📋 Usando dados do cache: ${cached.length} pessoas`)
             setResidents(cached)
             return cached
+        } else if (cached !== null) {
+            console.log('⚠️ Cache encontrado mas vazio ou inválido, removendo cache')
+            clearCache('authorizedPersons')
         }
+
+        console.log('🔄 Cache não encontrado ou inválido, buscando dados das APIs...')
 
         try {
-            const response = await fetch(`/api/residents?condominiumId=${selectedCondominium.id}`)
-            const data = await response.json()
+            const authorizedPersons: CachedResident[] = []
 
-            // console.log('🔍 Resposta da API residents:', data)
+            console.log(`🔍 Carregando pessoas autorizadas para: ${selectedCondominium.name} (ID: ${selectedCondominium.id})`)
 
-            // A API pode retornar data.residents ou data.data
-            const residentsArray = data.residents || data.data || []
-
-            if (data.success && Array.isArray(residentsArray)) {
-                const residentsData: CachedResident[] = residentsArray
-                    .filter((r: ResidentData) => r.user?.faceRecognitionEnabled && r.user?.faceRecognitionFolder)
-                    .map((r: ResidentData) => ({
-                        id: r.id,
-                        name: r.user.name,
-                        unit: r.unit.number,
-                        faceRecognitionFolder: r.user.faceRecognitionFolder,
-                        type: r.type
-                    }))
-
-                setResidents(residentsData)
-                saveToCache('residents', residentsData)
-
-                // console.log(`👥 ${residentsData.length} moradores carregados`)
-                return residentsData
-            } else {
-                console.log('⚠️ Dados de residents inválidos:', data)
-                console.log('⚠️ Array de residents:', residentsArray)
+            // 1. Carregar moradores
+            try {
+                console.log(`📡 Buscando moradores da API...`)
+                const residentsResponse = await fetch(`/api/residents?condominiumId=${selectedCondominium.id}`)
+                
+                if (!residentsResponse.ok) {
+                    throw new Error(`HTTP ${residentsResponse.status}: ${residentsResponse.statusText}`)
+                }
+                
+                const residentsData = await residentsResponse.json()
+                
+                console.log(`� Resposta da API residents:`, residentsData)
+                
+                if (residentsData.success && Array.isArray(residentsData.data)) {
+                    console.log(`✅ ${residentsData.data.length} moradores retornados da API`)
+                    
+                    const residents = residentsData.data
+                        .filter((r: ResidentData) => {
+                            const hasRecognition = r.user?.faceRecognitionEnabled && r.user?.faceRecognitionFolder
+                            if (!hasRecognition) {
+                                console.log(`⚠️ Morador ${r.user?.name} não tem reconhecimento facial: enabled=${r.user?.faceRecognitionEnabled}, folder=${r.user?.faceRecognitionFolder}`)
+                            }
+                            return hasRecognition
+                        })
+                        .map((r: ResidentData) => ({
+                            id: r.id,
+                            name: r.user.name,
+                            unit: r.unit.number,
+                            faceRecognitionFolder: r.user.faceRecognitionFolder,
+                            type: 'RESIDENT' as const
+                        }))
+                    
+                    authorizedPersons.push(...residents)
+                    console.log(`👥 ${residents.length} moradores com reconhecimento facial carregados`)
+                } else {
+                    console.log(`❌ Resposta inválida da API de moradores:`, residentsData)
+                }
+            } catch (residentsError) {
+                console.error('❌ Erro ao carregar moradores:', residentsError)
             }
-        } catch (error) {
-            console.error('❌ Erro ao carregar moradores:', error)
-        }
 
-        return []
-    }, [selectedCondominium, getFromCache, saveToCache])
+            // 2. Carregar funcionários
+            try {
+                console.log(`📡 Buscando funcionários da API...`)
+                const employeesResponse = await fetch(`/api/employees?condominiumId=${selectedCondominium.id}`)
+                
+                if (!employeesResponse.ok) {
+                    throw new Error(`HTTP ${employeesResponse.status}: ${employeesResponse.statusText}`)
+                }
+                
+                const employeesData = await employeesResponse.json()
+                
+                console.log(`📡 Resposta da API employees:`, employeesData)
+                
+                if (Array.isArray(employeesData)) {
+                    console.log(`✅ ${employeesData.length} funcionários retornados da API`)
+                    
+                    const employees = employeesData
+                        .filter((e: any) => {
+                            // Verificar se tem dados de usuário com reconhecimento facial
+                            const hasRecognition = e.user?.faceRecognitionEnabled && e.user?.faceRecognitionFolder && (e.isActive !== false)
+                            if (!hasRecognition) {
+                                console.log(`⚠️ Funcionário ${e.user?.name || e.name} não disponível: enabled=${e.user?.faceRecognitionEnabled}, folder=${e.user?.faceRecognitionFolder}, active=${e.isActive}`)
+                            }
+                            return hasRecognition
+                        })
+                        .map((e: any) => ({
+                            id: e.id,
+                            name: e.user?.name || e.name,
+                            unit: e.position || 'Funcionário',
+                            faceRecognitionFolder: e.user.faceRecognitionFolder,
+                            type: 'EMPLOYEE' as const
+                        }))
+                    
+                    authorizedPersons.push(...employees)
+                    console.log(`👷 ${employees.length} funcionários com reconhecimento facial carregados`)
+                } else if (employeesData.success && Array.isArray(employeesData.employees)) {
+                    console.log(`✅ ${employeesData.employees.length} funcionários retornados da API (formato success)`)
+                    
+                    const employees = employeesData.employees
+                        .filter((e: any) => {
+                            const hasRecognition = e.user?.faceRecognitionEnabled && e.user?.faceRecognitionFolder && e.isActive
+                            if (!hasRecognition) {
+                                console.log(`⚠️ Funcionário ${e.user?.name} não disponível: enabled=${e.user?.faceRecognitionEnabled}, folder=${e.user?.faceRecognitionFolder}, active=${e.isActive}`)
+                            }
+                            return hasRecognition
+                        })
+                        .map((e: any) => ({
+                            id: e.id,
+                            name: e.user.name,
+                            unit: e.position || 'Funcionário',
+                            faceRecognitionFolder: e.user.faceRecognitionFolder,
+                            type: 'EMPLOYEE' as const
+                        }))
+                    
+                    authorizedPersons.push(...employees)
+                    console.log(`👷 ${employees.length} funcionários com reconhecimento facial carregados`)
+                } else {
+                    console.log(`❌ Falha ao carregar funcionários:`, employeesData)
+                }
+            } catch (employeesError) {
+                console.error('❌ Erro ao carregar funcionários:', employeesError)
+            }
+
+            // 3. Carregar todos os convidados (incluindo expirados para reconhecimento)
+            try {
+                console.log(`📡 Buscando convidados da API...`)
+                const guestsResponse = await fetch(`/api/guests?condominiumId=${selectedCondominium.id}&activeOnly=false`)
+                
+                if (!guestsResponse.ok) {
+                    throw new Error(`HTTP ${guestsResponse.status}: ${guestsResponse.statusText}`)
+                }
+                
+                const guestsData = await guestsResponse.json()
+                
+                console.log(`📡 Resposta da API guests:`, guestsData)
+                
+                if (guestsData.success && Array.isArray(guestsData.guests)) {
+                    console.log(`✅ ${guestsData.guests.length} convidados retornados da API`)
+                    
+                    // Carregar TODOS os convidados com reconhecimento facial (incluindo expirados)
+                    // A verificação de validade será feita durante o reconhecimento
+                    const allGuests = guestsData.guests
+                        .filter((g: any) => {
+                            console.log(`🔍 Avaliando convidado ${g.name}:`, {
+                                faceRecognitionEnabled: g.faceRecognitionEnabled,
+                                faceRecognitionFolder: g.faceRecognitionFolder,
+                                isActive: g.isActive,
+                                validFrom: g.validFrom,
+                                validUntil: g.validUntil,
+                                currentEntries: g.currentEntries,
+                                maxEntries: g.maxEntries
+                            })
+                            
+                            // Verificar se tem reconhecimento facial habilitado
+                            if (!g.faceRecognitionEnabled || !g.faceRecognitionFolder) {
+                                console.log(`⚠️ Convidado ${g.name} não tem reconhecimento facial: enabled=${g.faceRecognitionEnabled}, folder=${g.faceRecognitionFolder}`)
+                                return false
+                            }
+                            
+                            // Verificar se está ativo (manter apenas esta verificação)
+                            if (!g.isActive) {
+                                console.log(`⚠️ Convidado ${g.name} não está ativo`)
+                                return false
+                            }
+                            
+                            // NÃO filtrar por período de validade nem entradas aqui
+                            // Isso será verificado durante o reconhecimento para dar mensagens específicas
+                            
+                            console.log(`✅ Convidado ${g.name} carregado para reconhecimento`)
+                            return true
+                        })
+                        .map((g: any) => ({
+                            id: g.id,
+                            name: g.name,
+                            unit: `Convidado de ${g.invitedByResident?.unit?.block || ''}${g.invitedByResident?.unit?.number || ''}`,
+                            faceRecognitionFolder: g.faceRecognitionFolder,
+                            type: 'GUEST' as const,
+                            guestData: {
+                                validFrom: g.validFrom,
+                                validUntil: g.validUntil,
+                                currentEntries: g.currentEntries,
+                                maxEntries: g.maxEntries,
+                                invitedBy: g.invitedByResident?.user?.name
+                            }
+                        }))
+                    
+                    authorizedPersons.push(...allGuests)
+                    console.log(`🎫 ${allGuests.length} convidados carregados (incluindo expirados para reconhecimento)`)
+                } else {
+                    console.log(`❌ Resposta inválida da API de convidados:`, guestsData)
+                }
+            } catch (guestsError) {
+                console.error('❌ Erro ao carregar convidados:', guestsError)
+            }
+
+            console.log(`📊 Resumo do carregamento:`)
+            console.log(`   - Moradores: ${authorizedPersons.filter(p => p.type === 'RESIDENT').length}`)
+            console.log(`   - Funcionários: ${authorizedPersons.filter(p => p.type === 'EMPLOYEE').length}`)
+            console.log(`   - Convidados: ${authorizedPersons.filter(p => p.type === 'GUEST').length}`)
+
+            setResidents(authorizedPersons)
+            
+            if (authorizedPersons.length > 0) {
+                saveToCache('authorizedPersons', authorizedPersons)
+                console.log(`💾 Dados salvos no cache`)
+            }
+
+            console.log(`✅ Total: ${authorizedPersons.length} pessoas autorizadas carregadas`)
+            return authorizedPersons
+
+        } catch (error) {
+            console.error('❌ Erro crítico ao carregar pessoas autorizadas:', error)
+            setResidents([])
+            return []
+        }
+    }, [selectedCondominium, getFromCache, saveToCache, clearCache])
 
     // Carregar labels para reconhecimento com cache inteligente
     const loadLabels = useCallback(async () => {
@@ -381,33 +580,41 @@ export default function CondominiumRecognitionPage() {
         try {
             const faceapi = window.faceapi as any
 
-            // console.log('🏷️ Carregando labels para reconhecimento...')
+            console.log('🏷️ Carregando labels para reconhecimento (moradores + funcionários + convidados)...')
 
-            const residentsData = await loadResidents()
+            const authorizedPersonsData = await loadAuthorizedPersons()
             const newLabels: unknown[] = []
+            const usersWithoutImages: string[] = []
 
-            for (const resident of residentsData) {
+            console.log(`👥 Processando ${authorizedPersonsData.length} pessoas autorizadas:`)
+            console.log(`   - ${authorizedPersonsData.filter(p => p.type === 'RESIDENT').length} moradores`)
+            console.log(`   - ${authorizedPersonsData.filter(p => p.type === 'EMPLOYEE').length} funcionários`)
+            console.log(`   - ${authorizedPersonsData.filter(p => p.type === 'GUEST').length} convidados`)
+
+            for (const person of authorizedPersonsData) {
                 try {
-                    //console.log(`📂 Processando ${resident.name} (${resident.faceRecognitionFolder})`)
+                    console.log(`📂 Processando ${person.name} (${person.type}) - ${person.faceRecognitionFolder}`)
 
                     // Verificar se já temos os descritores em cache
-                    const cacheKey = `descriptors_${resident.faceRecognitionFolder}`
+                    const cacheKey = `descriptors_${person.faceRecognitionFolder}`
                     const cachedDescriptors = getFromCache(cacheKey, 24 * 60 * 60 * 1000) // Cache por 24 horas
 
                     let descriptors: Float32Array[] = []
 
                     if (cachedDescriptors && cachedDescriptors.length > 0) {
                         // Usar descritores do cache
-                        //console.log(`📋 Usando descritores em cache para ${resident.name} (${cachedDescriptors.length} descritores)`)
+                        console.log(`📋 Usando descritores em cache para ${person.name} (${cachedDescriptors.length} descritores)`)
                         descriptors = cachedDescriptors.map((desc: number[]) => new Float32Array(desc))
                     } else {
                         // Processar imagens e criar novos descritores
-                        //console.log(`🔄 Processando imagens para ${resident.name}...`)
+                        console.log(`🔄 Processando imagens para ${person.name}...`)
 
-                        const response = await fetch(`/api/face-recognition/images?folder=${resident.faceRecognitionFolder}`)
+                        const response = await fetch(`/api/face-recognition/images?folder=${person.faceRecognitionFolder}`)
                         const data = await response.json()
 
                         if (data.success && data.images?.length > 0) {
+                            console.log(`📸 ${data.images.length} imagens encontradas para ${person.name}`)
+                            
                             for (const imageData of data.images) {
                                 try {
                                     const imageResponse = await fetch(imageData.url)
@@ -427,14 +634,16 @@ export default function CondominiumRecognitionPage() {
 
                                         if (detection) {
                                             descriptors.push(detection.descriptor)
-                                            // console.log(`✅ Face processada: ${imageData.name}`)
+                                            console.log(`✅ Face processada: ${imageData.name}`)
+                                        } else {
+                                            console.log(`⚠️ Nenhuma face detectada em: ${imageData.name}`)
                                         }
 
                                         // Limpar objeto URL para evitar vazamentos de memória
                                         URL.revokeObjectURL(img.src)
                                     }
                                 } catch (error) {
-                                    console.log(`⚠️ Erro ao processar imagem de ${resident.name}:`, error)
+                                    console.log(`⚠️ Erro ao processar imagem de ${person.name}:`, error)
                                 }
                             }
 
@@ -442,35 +651,54 @@ export default function CondominiumRecognitionPage() {
                             if (descriptors.length > 0) {
                                 const descriptorsArray = descriptors.map(desc => Array.from(desc))
                                 saveToCache(cacheKey, descriptorsArray)
-                                // console.log(`💾 Descritores salvos em cache para ${resident.name}`)
+                                console.log(`💾 Descritores salvos em cache para ${person.name}`)
                             }
+                        } else {
+                            // Adicionar à lista de usuários sem imagens
+                            usersWithoutImages.push(`${person.name} (${person.type === 'RESIDENT' ? 'Morador' : person.type === 'EMPLOYEE' ? 'Funcionário' : 'Convidado'})`)
+                            console.log(`⚠️ Nenhuma imagem válida encontrada para ${person.name}`)
                         }
                     }
 
                     // Criar label se temos descritores
                     if (descriptors.length > 0) {
                         const labeledDescriptor = new (faceapi as any).LabeledFaceDescriptors(
-                            `${resident.name}|${resident.type}|${resident.unit}`,
+                            `${person.name}|${person.type}|${person.unit}|${person.id}`,
                             descriptors
                         )
                         newLabels.push(labeledDescriptor)
-                        //console.log(`✅ Label criado para ${resident.name} com ${descriptors.length} descritores`)
+                        console.log(`✅ Label criado para ${person.name} (${person.type}) com ${descriptors.length} descritores`)
                     } else {
-                        console.log(`⚠️ Nenhum descritor válido encontrado para ${resident.name}`)
+                        console.log(`⚠️ Nenhum descritor válido encontrado para ${person.name}`)
                     }
 
                 } catch (error) {
-                    console.log(`❌ Erro ao processar ${resident.name}:`, error)
+                    console.log(`❌ Erro ao processar ${person.name}:`, error)
                 }
             }
 
             setLabels(newLabels)
-            // console.log(`🏷️ ${newLabels.length} labels carregados para reconhecimento`)
+            console.log(`🏷️ ${newLabels.length} labels carregados para reconhecimento:`)
+            console.log(`   - ${newLabels.filter((label: any) => label.label.includes('|RESIDENT|')).length} moradores`)
+            console.log(`   - ${newLabels.filter((label: any) => label.label.includes('|EMPLOYEE|')).length} funcionários`)
+            console.log(`   - ${newLabels.filter((label: any) => label.label.includes('|GUEST|')).length} convidados`)
+
+            // Exibir erro específico se houver usuários sem imagens
+            if (usersWithoutImages.length > 0) {
+                const errorMessage = `❌ ERRO: ${usersWithoutImages.length} usuário(s) sem imagens para reconhecimento facial:\n${usersWithoutImages.map(user => `   • ${user}`).join('\n')}\n\n📋 Para resolver:\n   1. Acesse a página de Reconhecimento Facial\n   2. Faça upload de pelo menos 3 fotos do rosto\n   3. Ou adicione fotos manualmente na pasta correspondente`
+                
+                console.error(errorMessage)
+                
+                // Também mostrar um alerta visual se não há nenhum label carregado
+                if (newLabels.length === 0) {
+                    alert(`SISTEMA DE RECONHECIMENTO FACIAL INATIVO\n\n${errorMessage}`)
+                }
+            }
 
         } catch (error) {
             console.error('❌ Erro ao carregar labels:', error)
         }
-    }, [faceApiLoaded, selectedCondominium, loadResidents, getFromCache, saveToCache])
+    }, [faceApiLoaded, selectedCondominium, loadAuthorizedPersons, getFromCache, saveToCache])
 
     // Enviar comando Arduino
     const sendArduinoCommand = useCallback(async (command: string): Promise<boolean> => {
@@ -568,8 +796,37 @@ export default function CondominiumRecognitionPage() {
         }
 
         try {
-            console.log(`💾 Salvando log de acesso para: ${detection.name}`)
+            console.log(`💾 Salvando log de acesso para: ${detection.name} (${detection.type})`)
+            
+            // VERIFICAÇÃO CRÍTICA DE SEGURANÇA: NUNCA salvar log para pessoa não identificada
+            if (!detection.name || 
+                detection.name === 'Pessoa não identificada' || 
+                detection.name === 'Usuário Desconhecido' ||
+                detection.name.includes('Desconhecido') || 
+                detection.name.includes('unknown') ||
+                detection.name.includes('não identificada') ||
+                detection.name.trim() === '' ||
+                detection.confidence <= 0.1) {
+                console.warn('� BLOQUEADO: Tentativa de salvar log para pessoa não identificada - log não será criado')
+                console.warn('� Detection data:', detection)
+                return false // Retorna false sem criar log
+            }
+            
+            // SEGUNDA VERIFICAÇÃO: Se não tem status definido
+            if (!detection.status) {
+                if (detection.confidence < 0.5 || !detection.name || detection.name === 'unknown') {
+                    console.warn('⚠️ Status não definido para pessoa não reconhecida - definindo como DENIED')
+                    detection.status = 'DENIED'
+                    detection.reason = 'Reconhecimento insuficiente'
+                } else {
+                    console.log('✅ Status não definido para pessoa reconhecida válida - definindo como APPROVED')
+                    detection.status = 'APPROVED'
+                }
+            }
 
+            // Buscar dados completos da pessoa reconhecida
+            const recognizedPerson = residents.find(r => r.name === detection.name)
+            
             const response = await fetch('/api/access-logs', {
                 method: 'POST',
                 headers: {
@@ -577,14 +834,16 @@ export default function CondominiumRecognitionPage() {
                 },
                 body: JSON.stringify({
                     condominiumId: selectedCondominium.id,
-                    personName: detection.name,
+                    personName: detection.name.replace(' (NÃO AUTORIZADO)', ''), // Remove o sufixo se existir
                     accessType: detection.type,
                     unitNumber: detection.unit,
                     building: 'A', // Você pode ajustar conforme necessário
-                    status: 'APPROVED',
+                    status: detection.status || 'DENIED', // MUDANÇA CRÍTICA: Se status não definido, é NEGADO por segurança
                     method: 'FACIAL_RECOGNITION',
                     confidence: detection.confidence,
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
+                    guestData: recognizedPerson?.guestData || null,
+                    deniedReason: detection.reason || null
                 }),
             })
 
@@ -592,6 +851,31 @@ export default function CondominiumRecognitionPage() {
 
             if (data.success) {
                 console.log(`✅ Log de acesso salvo com sucesso:`, data.log)
+                
+                // Se for convidado AUTORIZADO, atualizar contador de entradas
+                if (detection.type === 'GUEST' && recognizedPerson?.guestData && detection.status === 'APPROVED') {
+                    console.log(`🎫 Atualizando contador de entradas para convidado autorizado ${detection.name}`)
+                    try {
+                        const entryResponse = await fetch(`/api/guests/${recognizedPerson.id}/entry`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: 'increment' })
+                        })
+                        
+                        if (entryResponse.ok) {
+                            const entryData = await entryResponse.json()
+                            console.log(`✅ Contador de entradas atualizado para ${detection.name}:`, entryData.guest)
+                        } else {
+                            const errorData = await entryResponse.json()
+                            console.error(`❌ Erro ao atualizar contador de entradas (${entryResponse.status}):`, errorData.message)
+                        }
+                    } catch (entryError) {
+                        console.error(`❌ Erro ao atualizar contador de entradas:`, entryError)
+                    }
+                } else if (detection.type === 'GUEST' && detection.status === 'DENIED') {
+                    console.log(`🚫 Convidado ${detection.name} foi negado (${detection.reason}) - não incrementando contador`)
+                }
+                
                 return true
             } else {
                 console.log(`❌ Erro ao salvar log de acesso: ${data.error}`)
@@ -601,14 +885,32 @@ export default function CondominiumRecognitionPage() {
             console.error('❌ Erro ao salvar log de acesso:', error)
             return false
         }
-    }, [selectedCondominium])
+    }, [selectedCondominium, residents])
 
     // Detecção facial
     const detectFaces = useCallback(async () => {
-        // Não detectar se estiver pausado
-        if (isPaused) {
-            console.log('⏸️ Detecção pausada')
+        // Verificação DUPLA de pausa: state e ref para máxima segurança
+        if (isPaused || isManuallyPaused || isManuallyPausedRef.current) {
+            console.log('⏸️ Detecção pausada', { 
+                isPaused, 
+                isManuallyPaused, 
+                isManuallyPausedRef: isManuallyPausedRef.current 
+            })
             return
+        }
+
+        // VERIFICAÇÃO CRÍTICA: Limpar qualquer estado residual de pessoa não identificada
+        // antes de iniciar nova detecção para evitar salvar logs indesejados
+        if (lastDetection && (
+            !lastDetection.name || 
+            lastDetection.name === 'Pessoa não identificada' ||
+            lastDetection.name === 'Usuário Desconhecido' ||
+            lastDetection.name.includes('Desconhecido') ||
+            lastDetection.name.includes('não identificada')
+        )) {
+            console.log('🧹 Limpando estado residual de pessoa não identificada antes de nova detecção')
+            setLastDetection(null)
+            lastRecognitionRef.current = null
         }
 
         if (!videoRef.current || !canvasRef.current || !faceApiLoaded || labels.length === 0 || !cameraStarted || !cameraStream) {
@@ -674,12 +976,12 @@ export default function CondominiumRecognitionPage() {
                     // console.log(`🔍 Match encontrado: ${match.label} (confiança: ${(confidence * 100).toFixed(1)}%)`)
 
                     if (confidence > 0.5 && confidence > highestConfidence) { // Reduzido de 0.7 para 0.5 temporariamente
-                        const [name, type, unit] = match.label.split('|')
+                        const [name, type, unit, id] = match.label.split('|')
                         // console.log(`✅ Match válido: ${name} (confiança: ${(confidence * 100).toFixed(1)}%)`)
-                        // console.log(`🔍 Detalhes do split: name="${name}", type="${type}", unit="${unit}"`)
+                        // console.log(`🔍 Detalhes do split: name="${name}", type="${type}", unit="${unit}", id="${id}"`)
                         // console.log(`🔍 Verificação name !== 'unknown': ${name !== 'unknown'}`)
                         if (name !== 'unknown') {
-                            bestMatch = { name, type: type as 'RESIDENT' | 'EMPLOYEE' | 'GUEST', unit, confidence }
+                            bestMatch = { name, type: type as 'RESIDENT' | 'EMPLOYEE' | 'GUEST', unit, confidence, id }
                             highestConfidence = confidence
                             // console.log(`🎯 Melhor match atualizado: ${name}`)
                         } else {
@@ -703,13 +1005,404 @@ export default function CondominiumRecognitionPage() {
                         return
                     }
 
-                    // Registrar novo reconhecimento
+                    console.log(`✅ Rosto reconhecido: ${bestMatch.type === 'RESIDENT' ? 'Morador' : bestMatch.type === 'EMPLOYEE' ? 'Funcionário' : 'Convidado'} - ${bestMatch.name} (${(bestMatch.confidence * 100).toFixed(1)}%)`)
+                    console.log(`🔄 Verificando autorização em TEMPO REAL no banco de dados...`)
+
+                    // VERIFICAÇÃO EM TEMPO REAL NO BANCO DE DADOS - Aplicada para TODOS os tipos
+                    // Isso garante que dados atualizados (reativações, desativações, etc) sejam considerados
+                    
+                    if (bestMatch.type === 'RESIDENT' && selectedCondominium) {
+                        // Verificar status atual do MORADOR no banco
+                        console.log(`🔄 Verificando status do morador ${bestMatch.name} (ID: ${bestMatch.id})...`)
+                        
+                        try {
+                            const residentResponse = await fetch(`/api/residents?condominiumId=${selectedCondominium.id}`)
+                            if (residentResponse.ok) {
+                                const residentsData = await residentResponse.json()
+                                
+                                if (residentsData.success && Array.isArray(residentsData.data)) {
+                                    const currentResident = residentsData.data.find((r: ResidentData) => r.id === bestMatch.id)
+                                    
+                                    if (currentResident) {
+                                        // Verificar se reconhecimento facial ainda está habilitado
+                                        if (!currentResident.user?.faceRecognitionEnabled) {
+                                            console.log(`❌ Morador ${bestMatch.name} teve reconhecimento facial DESABILITADO`)
+                                            
+                                            setLastDetection({ 
+                                                ...bestMatch, 
+                                                name: `${bestMatch.name} (NÃO AUTORIZADO)`,
+                                                isUnauthorized: true,
+                                                reason: 'Reconhecimento facial desabilitado'
+                                            })
+                                            setDetectionStatus('unauthorized')
+                                            setUnauthorizedMessage('Não autorizado: Reconhecimento facial desabilitado, fale na portaria.')
+                                            setIsPaused(true)
+                                            isDetectingRef.current = false
+                                            if (detectionTimeoutRef.current) {
+                                                clearTimeout(detectionTimeoutRef.current)
+                                                detectionTimeoutRef.current = null
+                                            }
+                                            
+                                            await saveAccessLog({
+                                                ...bestMatch,
+                                                status: 'DENIED',
+                                                reason: 'Reconhecimento facial desabilitado'
+                                            })
+                                            
+                                            return // Parar aqui, não prosseguir com acesso
+                                        }
+                                        
+                                        console.log(`✅ Morador ${bestMatch.name} verificado e AUTORIZADO em tempo real`)
+                                    } else {
+                                        console.warn(`⚠️ Morador ${bestMatch.name} não encontrado no banco - pode ter sido removido`)
+                                        // Continuar com dados do cache por segurança
+                                    }
+                                } else {
+                                    console.warn(`⚠️ Erro ao buscar dados atualizados do morador`)
+                                }
+                            }
+                        } catch (error) {
+                            console.error(`❌ Erro ao verificar status do morador:`, error)
+                            // Em caso de erro, continuar com dados do cache
+                        }
+                    } else if (bestMatch.type === 'EMPLOYEE' && selectedCondominium) {
+                        // Verificar status atual do FUNCIONÁRIO no banco
+                        console.log(`🔄 Verificando status do funcionário ${bestMatch.name} (ID: ${bestMatch.id})...`)
+                        
+                        try {
+                            const employeesResponse = await fetch(`/api/employees?condominiumId=${selectedCondominium.id}`)
+                            if (employeesResponse.ok) {
+                                const employeesData = await employeesResponse.json()
+                                const employees = Array.isArray(employeesData) ? employeesData : (employeesData.employees || [])
+                                
+                                const currentEmployee = employees.find((e: any) => e.id === bestMatch.id)
+                                
+                                if (currentEmployee) {
+                                    // Verificar se funcionário ainda está ativo e com reconhecimento habilitado
+                                    if (!currentEmployee.isActive || (currentEmployee.isActive === false)) {
+                                        console.log(`❌ Funcionário ${bestMatch.name} está INATIVO`)
+                                        
+                                        setLastDetection({ 
+                                            ...bestMatch, 
+                                            name: `${bestMatch.name} (NÃO AUTORIZADO)`,
+                                            isUnauthorized: true,
+                                            reason: 'Funcionário inativo'
+                                        })
+                                        setDetectionStatus('unauthorized')
+                                        setUnauthorizedMessage('Não autorizado: Funcionário inativo, fale na portaria.')
+                                        setIsPaused(true)
+                                        isDetectingRef.current = false
+                                        if (detectionTimeoutRef.current) {
+                                            clearTimeout(detectionTimeoutRef.current)
+                                            detectionTimeoutRef.current = null
+                                        }
+                                        
+                                        await saveAccessLog({
+                                            ...bestMatch,
+                                            status: 'DENIED',
+                                            reason: 'Funcionário inativo'
+                                        })
+                                        
+                                        return // Parar aqui
+                                    }
+                                    
+                                    if (!currentEmployee.user?.faceRecognitionEnabled) {
+                                        console.log(`❌ Funcionário ${bestMatch.name} teve reconhecimento facial DESABILITADO`)
+                                        
+                                        setLastDetection({ 
+                                            ...bestMatch, 
+                                            name: `${bestMatch.name} (NÃO AUTORIZADO)`,
+                                            isUnauthorized: true,
+                                            reason: 'Reconhecimento facial desabilitado'
+                                        })
+                                        setDetectionStatus('unauthorized')
+                                        setUnauthorizedMessage('Não autorizado: Reconhecimento facial desabilitado, fale na portaria.')
+                                        setIsPaused(true)
+                                        isDetectingRef.current = false
+                                        if (detectionTimeoutRef.current) {
+                                            clearTimeout(detectionTimeoutRef.current)
+                                            detectionTimeoutRef.current = null
+                                        }
+                                        
+                                        await saveAccessLog({
+                                            ...bestMatch,
+                                            status: 'DENIED',
+                                            reason: 'Reconhecimento facial desabilitado'
+                                        })
+                                        
+                                        return // Parar aqui
+                                    }
+                                    
+                                    console.log(`✅ Funcionário ${bestMatch.name} verificado e AUTORIZADO em tempo real`)
+                                } else {
+                                    console.warn(`⚠️ Funcionário ${bestMatch.name} não encontrado no banco - pode ter sido removido`)
+                                }
+                            }
+                        } catch (error) {
+                            console.error(`❌ Erro ao verificar status do funcionário:`, error)
+                            // Em caso de erro, continuar com dados do cache
+                        }
+                    } else if (bestMatch.type === 'GUEST') {
+                        // VERIFICAÇÃO EXISTENTE PARA CONVIDADOS - já implementada
+                        console.log(`🔄 Verificando status atual do convidado ${bestMatch.name} no banco de dados...`)
+                        
+                        try {
+                            const guestResponse = await fetch(`/api/guests/${bestMatch.id}`)
+                            if (guestResponse.ok) {
+                                const guestData = await guestResponse.json()
+                                console.log(`📡 Dados atualizados do convidado ${bestMatch.name}:`, guestData)
+                                
+                                if (guestData.success && guestData.guest) {
+                                    const currentGuest = guestData.guest
+                                    const currentTime = new Date()
+                                    const validFrom = new Date(currentGuest.validFrom)
+                                    const validUntil = currentGuest.validUntil ? new Date(currentGuest.validUntil) : null
+                                    
+                                    // Verificar se ainda está no período válido
+                                    const isInValidPeriod = currentTime >= validFrom && (validUntil ? currentTime <= validUntil : true)
+                                    
+                                    // Verificar se ainda tem entradas disponíveis
+                                    const hasEntriesAvailable = currentGuest.currentEntries < currentGuest.maxEntries
+                                    
+                                    console.log(`🔍 Verificações em tempo real para ${bestMatch.name}:`)
+                                    console.log(`   - Período válido: ${isInValidPeriod ? '✅' : '❌'} (${validFrom.toLocaleDateString()} - ${validUntil ? validUntil.toLocaleDateString() : 'sem expiração'})`)
+                                    console.log(`   - Entradas disponíveis: ${hasEntriesAvailable ? '✅' : '❌'} (${currentGuest.currentEntries}/${currentGuest.maxEntries})`)
+                                    console.log(`   - Status ativo: ${currentGuest.isActive ? '✅' : '❌'}`)
+                                    
+                                    if (!currentGuest.isActive || !isInValidPeriod || !hasEntriesAvailable) {
+                                        console.log(`❌ Convidado ${bestMatch.name} reconhecido mas NÃO AUTORIZADO`)
+                                        
+                                        // Definir mensagem específica baseada no motivo da negação
+                                        let deniedReason = ''
+                                        let unauthorizedMsg = ''
+                                        
+                                        if (!currentGuest.isActive) {
+                                            deniedReason = 'Convite inativo'
+                                            unauthorizedMsg = 'Não autorizado: Convite inativo, fale com o morador ou na portaria.'
+                                        } else if (!isInValidPeriod) {
+                                            deniedReason = 'Período expirado'
+                                            unauthorizedMsg = 'Não autorizado: Convite expirado, fale com o morador ou na portaria.'
+                                        } else if (!hasEntriesAvailable) {
+                                            deniedReason = 'Limite de entradas esgotado'
+                                            unauthorizedMsg = 'Não autorizado: Limite de entradas esgotado, fale com o morador ou na portaria.'
+                                        }
+                                        
+                                        // Mostrar status de não autorizado
+                                        console.log(`🚨 Definindo status unauthorized para convidado: ${bestMatch.name}`)
+                                        console.log(`🚨 Mensagem: ${unauthorizedMsg}`)
+                                        
+                                        setLastDetection({ 
+                                            ...bestMatch, 
+                                            name: `${bestMatch.name} (NÃO AUTORIZADO)`,
+                                            isUnauthorized: true,
+                                            reason: deniedReason
+                                        })
+                                        setDetectionStatus('unauthorized')
+                                        setUnauthorizedMessage(unauthorizedMsg)
+                                        
+                                        console.log(`🚨 Estado atualizado - detectionStatus: unauthorized, unauthorizedMessage: ${unauthorizedMsg}`)
+                                        
+                                        // Pausar detecção por 3 segundos (mesmo comportamento do autorizado)
+                                        setIsPaused(true)
+                                        
+                                        // Parar o loop de detecção imediatamente
+                                        isDetectingRef.current = false
+                                        if (detectionTimeoutRef.current) {
+                                            clearTimeout(detectionTimeoutRef.current)
+                                            detectionTimeoutRef.current = null
+                                        }
+                                        
+                                        // Salvar log como negado
+                                        await saveAccessLog({
+                                            ...bestMatch,
+                                            status: 'DENIED',
+                                            reason: deniedReason
+                                        })
+                                        
+                                        // Countdown para mostrar tempo restante
+                                        let timeLeft = 3
+                                        setPauseTimeRemaining(timeLeft)
+
+                                        const countdown = setInterval(() => {
+                                            // Verificar se foi pausado manualmente - se sim, para o countdown
+                                            if (isManuallyPaused || isManuallyPausedRef.current) {
+                                                clearInterval(countdown)
+                                                console.log('🛑 Countdown cancelado - sistema pausado manualmente')
+                                                return
+                                            }
+                                            
+                                            timeLeft--
+                                            setPauseTimeRemaining(timeLeft)
+
+                                            if (timeLeft <= 0) {
+                                                clearInterval(countdown)
+                                                // Só redefinir estados se não foi pausado manualmente
+                                                if (!isManuallyPaused && !isManuallyPausedRef.current) {
+                                                    setIsPaused(false)
+                                                    setDetectionStatus('idle')
+                                                    setPauseTimeRemaining(0)
+                                                    setUnauthorizedMessage('')
+                                                    setLastDetection(null)
+                                                    console.log('✅ Detecção reativada após acesso negado')
+
+                                                    // Reiniciar o loop de detecção após a pausa
+                                                    setTimeout(() => {
+                                                        if (!isDetectingRef.current && !isPaused && !isManuallyPaused && !isManuallyPausedRef.current) {
+                                                            isDetectingRef.current = true
+                                                            const detect = async () => {
+                                                                if (!isDetectingRef.current || isPaused || isManuallyPaused || isManuallyPausedRef.current) return
+                                                                await detectFaces()
+                                                                if (isDetectingRef.current && !isPaused && !isManuallyPaused && !isManuallyPausedRef.current) {
+                                                                    detectionTimeoutRef.current = setTimeout(detect, 1500)
+                                                                }
+                                                            }
+                                                            detect()
+                                                        }
+                                                    }, 300)
+                                                }
+                                            }
+                                        }, 1000)
+                                        
+                                        // Limpar cache para forçar recarga na próxima inicialização
+                                        console.log('🧹 Limpando cache após acesso negado para garantir dados atualizados')
+                                        clearCache('authorizedPersons')
+                                        
+                                        return // Sair da função se não autorizado
+                                    }
+                                    
+                                    // Se chegou aqui, o convidado está autorizado
+                                    console.log(`✅ Convidado ${bestMatch.name} AUTORIZADO com dados atualizados`)
+                                }
+                            } else {
+                                console.log(`⚠️ Erro ao buscar dados atualizados do convidado ${bestMatch.name}, usando dados do cache`)
+                            }
+                        } catch (apiError) {
+                            console.error(`❌ Erro na API ao verificar convidado ${bestMatch.name}:`, apiError)
+                            console.log(`⚠️ Continuando com dados do cache para ${bestMatch.name}`)
+                        }
+                        
+                        // FALLBACK: Se a verificação em tempo real falhou, usar dados do cache (comportamento antigo)
+                        const recognizedGuest = residents.find(r => r.name === bestMatch.name)
+                        if (recognizedGuest?.guestData) {
+                            const currentTime = new Date()
+                            const validFrom = new Date(recognizedGuest.guestData.validFrom)
+                            const validUntil = recognizedGuest.guestData.validUntil ? new Date(recognizedGuest.guestData.validUntil) : null
+                            
+                            // Verificar se ainda está no período válido
+                            const isInValidPeriod = currentTime >= validFrom && (validUntil ? currentTime <= validUntil : true)
+                            
+                            // Verificar se ainda tem entradas disponíveis
+                            const hasEntriesAvailable = recognizedGuest.guestData.currentEntries < recognizedGuest.guestData.maxEntries
+                            
+                            if (!isInValidPeriod || !hasEntriesAvailable) {
+                                console.log(`❌ Convidado ${bestMatch.name} reconhecido mas NÃO AUTORIZADO:`)
+                                console.log(`   - Período válido: ${isInValidPeriod ? '✅' : '❌'} (${validFrom.toLocaleDateString()} - ${validUntil ? validUntil.toLocaleDateString() : 'sem expiração'})`)
+                                console.log(`   - Entradas disponíveis: ${hasEntriesAvailable ? '✅' : '❌'} (${recognizedGuest.guestData.currentEntries}/${recognizedGuest.guestData.maxEntries})`)
+                                
+                                // Definir mensagem específica baseada no motivo da negação
+                                let deniedReason = ''
+                                let unauthorizedMsg = ''
+                                
+                                if (!isInValidPeriod) {
+                                    deniedReason = 'Período expirado'
+                                    unauthorizedMsg = 'Não autorizado: Convite expirado, fale com o morador ou na portaria.'
+                                } else if (!hasEntriesAvailable) {
+                                    deniedReason = 'Limite de entradas esgotado'
+                                    unauthorizedMsg = 'Não autorizado: Limite de entradas esgotado, fale com o morador ou na portaria.'
+                                }
+                                
+                                // Mostrar status de não autorizado
+                                console.log(`🚨 Definindo status unauthorized para convidado: ${bestMatch.name}`)
+                                console.log(`🚨 Mensagem: ${unauthorizedMsg}`)
+                                
+                                setLastDetection({ 
+                                    ...bestMatch, 
+                                    name: `${bestMatch.name} (NÃO AUTORIZADO)`,
+                                    isUnauthorized: true,
+                                    reason: deniedReason
+                                })
+                                setDetectionStatus('unauthorized')
+                                setUnauthorizedMessage(unauthorizedMsg)
+                                
+                                console.log(`🚨 Estado atualizado - detectionStatus: unauthorized, unauthorizedMessage: ${unauthorizedMsg}`)
+                                
+                                // Pausar detecção por 3 segundos (mesmo comportamento do autorizado)
+                                setIsPaused(true)
+                                
+                                // Parar o loop de detecção imediatamente
+                                isDetectingRef.current = false
+                                if (detectionTimeoutRef.current) {
+                                    clearTimeout(detectionTimeoutRef.current)
+                                    detectionTimeoutRef.current = null
+                                }
+                                
+                                // Salvar log como negado
+                                await saveAccessLog({
+                                    ...bestMatch,
+                                    status: 'DENIED',
+                                    reason: deniedReason
+                                })
+                                
+                                // Countdown para mostrar tempo restante
+                                let timeLeft = 3
+                                setPauseTimeRemaining(timeLeft)
+
+                                const countdown = setInterval(() => {
+                                    // Verificar se foi pausado manualmente - se sim, para o countdown
+                                    if (isManuallyPaused || isManuallyPausedRef.current) {
+                                        clearInterval(countdown)
+                                        console.log('🛑 Countdown cancelado - sistema pausado manualmente')
+                                        return
+                                    }
+                                    
+                                    timeLeft--
+                                    setPauseTimeRemaining(timeLeft)
+
+                                    if (timeLeft <= 0) {
+                                        clearInterval(countdown)
+                                        // Só redefinir estados se não foi pausado manualmente
+                                        if (!isManuallyPaused && !isManuallyPausedRef.current) {
+                                            setIsPaused(false)
+                                            setDetectionStatus('idle')
+                                            setPauseTimeRemaining(0)
+                                            setUnauthorizedMessage('')
+                                            setLastDetection(null)
+                                            console.log('✅ Detecção reativada após acesso negado de convidado')
+
+                                            // Reiniciar o loop de detecção após a pausa
+                                            setTimeout(() => {
+                                                if (!isDetectingRef.current && !isPaused && !isManuallyPaused && !isManuallyPausedRef.current) {
+                                                    isDetectingRef.current = true
+                                                    const detect = async () => {
+                                                        if (!isDetectingRef.current || isPaused || isManuallyPaused || isManuallyPausedRef.current) return
+                                                        await detectFaces()
+                                                        if (isDetectingRef.current && !isPaused && !isManuallyPaused && !isManuallyPausedRef.current) {
+                                                            detectionTimeoutRef.current = setTimeout(detect, 1500)
+                                                        }
+                                                    }
+                                                    detect()
+                                                }
+                                            }, 1000)
+                                        } else {
+                                            console.log('🛑 Sistema pausado manualmente - não reativando countdown')
+                                        }
+                                    }
+                                }, 1000)
+
+                                // Salvar referência do timeout
+                                pauseTimeoutRef.current = countdown as any
+                                
+                                // Não abrir o portão
+                                return
+                            }
+                        }
+                    }
+
+                    // Registrar novo reconhecimento autorizado
                     lastRecognitionRef.current = { name: bestMatch.name, timestamp: now }
 
                     setLastDetection(bestMatch)
                     setDetectionStatus('recognized')
-
-                    console.log(`🎯 Reconhecido: ${bestMatch.name} (${(bestMatch.confidence * 100).toFixed(1)}%)`)
 
                     // Pausar detecção por 20 segundos
                     setIsPaused(true)
@@ -724,13 +1417,22 @@ export default function CondominiumRecognitionPage() {
 
                     // Salvar no banco de dados
                     console.log(`💾 Salvando log de acesso para: ${bestMatch.name}`)
-                    const logSaved = await saveAccessLog(bestMatch)
+                    const logSaved = await saveAccessLog({
+                        ...bestMatch,
+                        status: 'APPROVED'
+                    })
                     console.log(`💾 Log de acesso ${logSaved ? 'salvo' : 'falhou'}`)
 
-                    // Enviar comando para Arduino (comando correto)
-                    console.log(`🔌 Enviando comando FACE_RECOGNIZED para abrir portão para: ${bestMatch.name}`)
-                    const commandSent = await sendArduinoCommand('FACE_RECOGNIZED') // Comando correto para abrir a cancela
-                    console.log(`🔌 Comando FACE_RECOGNIZED ${commandSent ? 'enviado com sucesso' : 'falhou'}`)
+                    // VERIFICAÇÃO CRÍTICA DE SEGURANÇA: Só enviar comando de abertura se pessoa foi realmente reconhecida e autorizada
+                    if (bestMatch && bestMatch.name && bestMatch.name !== 'unknown' && !bestMatch.name.includes('Desconhecido') && !bestMatch.name.includes('não identificada')) {
+                        // Enviar comando para Arduino (comando correto)
+                        console.log(`🔌 Enviando comando FACE_RECOGNIZED para abrir portão para: ${bestMatch.name}`)
+                        const commandSent = await sendArduinoCommand('FACE_RECOGNIZED') // Comando correto para abrir a cancela
+                        console.log(`🔌 Comando FACE_RECOGNIZED ${commandSent ? 'enviado com sucesso' : 'falhou'}`)
+                    } else {
+                        console.error('🚨 ERRO CRÍTICO DE SEGURANÇA: Tentativa de abrir portão sem reconhecimento válido!')
+                        console.error('🚨 bestMatch:', bestMatch)
+                    }
                     
                     // O Arduino fecha automaticamente após 10s sem detectar veículo, não precisa enviar comando de fechamento
 
@@ -739,34 +1441,47 @@ export default function CondominiumRecognitionPage() {
                     setPauseTimeRemaining(timeLeft)
 
                     const countdown = setInterval(() => {
+                        // Verificar se foi pausado manualmente - se sim, para o countdown
+                        if (isManuallyPaused || isManuallyPausedRef.current) {
+                            clearInterval(countdown)
+                            console.log('🛑 Countdown cancelado - sistema pausado manualmente')
+                            return
+                        }
+                        
                         timeLeft--
                         setPauseTimeRemaining(timeLeft)
 
                         if (timeLeft <= 0) {
                             clearInterval(countdown)
-                            setIsPaused(false)
-                            setDetectionStatus('idle')
-                            setPauseTimeRemaining(0)
-                            console.log('✅ Detecção reativada após pausa')
+                            // Só redefinir estados se não foi pausado manualmente
+                            if (!isManuallyPaused && !isManuallyPausedRef.current) {
+                                setIsPaused(false)
+                                setDetectionStatus('idle')
+                                setPauseTimeRemaining(0)
+                                setUnauthorizedMessage('') // Limpar mensagem quando pausa termina
+                                console.log('✅ Detecção reativada após pausa')
 
-                            // Reiniciar o loop de detecção após a pausa
-                            setTimeout(() => {
-                                if (!isPaused && !isDetectingRef.current) {
-                                    isDetectingRef.current = true
-                                    // Chama detectFaces diretamente para reiniciar o loop
-                                    const restartDetection = async () => {
-                                        const detect = async () => {
-                                            if (!isDetectingRef.current) return
-                                            await detectFaces()
-                                            if (isDetectingRef.current) {
-                                                detectionTimeoutRef.current = setTimeout(detect, 1500)
+                                // Reiniciar o loop de detecção após a pausa
+                                setTimeout(() => {
+                                    if (!isPaused && !isManuallyPaused && !isManuallyPausedRef.current && !isDetectingRef.current) {
+                                        isDetectingRef.current = true
+                                        // Chama detectFaces diretamente para reiniciar o loop
+                                        const restartDetection = async () => {
+                                            const detect = async () => {
+                                                if (!isDetectingRef.current || isPaused || isManuallyPaused || isManuallyPausedRef.current) return
+                                                await detectFaces()
+                                                if (isDetectingRef.current && !isPaused && !isManuallyPaused && !isManuallyPausedRef.current) {
+                                                    detectionTimeoutRef.current = setTimeout(detect, 1500)
+                                                }
                                             }
+                                            detect()
                                         }
-                                        detect()
+                                        restartDetection()
                                     }
-                                    restartDetection()
-                                }
-                            }, 1000) // Aguardar 1 segundo antes de reiniciar
+                                }, 1000) // Aguardar 1 segundo antes de reiniciar
+                            } else {
+                                console.log('🛑 Sistema pausado manualmente - não reativando countdown')
+                            }
                         }
                     }, 1000)
 
@@ -774,18 +1489,104 @@ export default function CondominiumRecognitionPage() {
                     pauseTimeoutRef.current = countdown as any
 
                 } else {
-                    // Rosto detectado mas não reconhecido - manter status 'detecting' (laranja)
-                    setDetectionStatus('detecting')
+                    // Rosto detectado mas NÃO reconhecido
+                    // ⚠️ IMPORTANTE: NUNCA salvar log para pessoa não identificada!
+                    // Este bloco apenas mostra feedback visual, sem criar registros no banco
+                    const now = Date.now()
+                    console.log(`🔍 Rosto detectado mas não reconhecido. Último aviso: ${lastUnknownFaceTime}, Agora: ${now}, Diferença: ${now - lastUnknownFaceTime}ms`)
+                    
+                    if (now - lastUnknownFaceTime > 5000) { // 5 segundos desde a última mensagem
+                        console.log('❌ Rosto detectado mas não reconhecido - ACESSO NEGADO (sem criar log)')
+                        setUnauthorizedMessage('Não autorizado: não cadastrado ou reconhecido')
+                        setDetectionStatus('unauthorized')
+                        setLastUnknownFaceTime(now)
+                        
+                        // Criar um lastDetection temporário APENAS PARA EXIBIÇÃO NA INTERFACE
+                        // Este objeto NÃO será salvo no banco de dados
+                        setLastDetection({
+                            name: 'Pessoa não identificada',
+                            confidence: 0,
+                            type: 'GUEST',
+                            unit: '',
+                            isUnauthorized: true,
+                            status: 'DENIED',
+                            reason: 'Não cadastrado'
+                        })
+                        
+                        // ⚠️ CRÍTICO: NÃO chamar saveAccessLog() aqui!
+                        // Pessoas não identificadas não devem gerar logs no sistema
+                        
+                        // Pausar detecção por 3 segundos (mesmo comportamento do autorizado)
+                        setIsPaused(true)
+                        
+                        // Parar o loop de detecção imediatamente
+                        isDetectingRef.current = false
+                        if (detectionTimeoutRef.current) {
+                            clearTimeout(detectionTimeoutRef.current)
+                            detectionTimeoutRef.current = null
+                        }
+                        
+                        // Countdown para mostrar tempo restante
+                        let timeLeft = 3
+                        setPauseTimeRemaining(timeLeft)
+
+                        const countdown = setInterval(() => {
+                            // Verificar se foi pausado manualmente - se sim, para o countdown
+                            if (isManuallyPaused || isManuallyPausedRef.current) {
+                                clearInterval(countdown)
+                                console.log('🛑 Countdown cancelado - sistema pausado manualmente')
+                                return
+                            }
+                            
+                            timeLeft--
+                            setPauseTimeRemaining(timeLeft)
+
+                            if (timeLeft <= 0) {
+                                clearInterval(countdown)
+                                // Só redefinir estados se não foi pausado manualmente
+                                if (!isManuallyPaused && !isManuallyPausedRef.current) {
+                                    setIsPaused(false)
+                                    setDetectionStatus('idle')
+                                    setPauseTimeRemaining(0)
+                                    setUnauthorizedMessage('')
+                                    setLastDetection(null)
+                                    console.log('✅ Detecção reativada após acesso negado')
+
+                                    // Reiniciar o loop de detecção após a pausa
+                                    setTimeout(() => {
+                                        if (!isDetectingRef.current && !isPaused && !isManuallyPaused && !isManuallyPausedRef.current) {
+                                            isDetectingRef.current = true
+                                            const detect = async () => {
+                                                if (!isDetectingRef.current || isPaused || isManuallyPaused || isManuallyPausedRef.current) return
+                                                await detectFaces()
+                                                if (isDetectingRef.current && !isPaused && !isManuallyPaused && !isManuallyPausedRef.current) {
+                                                    detectionTimeoutRef.current = setTimeout(detect, 1500)
+                                                }
+                                            }
+                                            detect()
+                                        }
+                                    }, 1000)
+                                } else {
+                                    console.log('🛑 Sistema pausado manualmente - não reativando countdown')
+                                }
+                            }
+                        }, 1000)                        // Salvar referência do timeout
+                        pauseTimeoutRef.current = countdown as any
+                    } else {
+                        // Manter status 'detecting' (laranja) se ainda não passou o tempo
+                        setDetectionStatus('detecting')
+                    }
                 }
             } else {
                 // Nenhum rosto detectado - status aguardando (cinza)
                 setDetectionStatus('idle')
+                setUnauthorizedMessage('') // Limpar mensagem quando não há rosto detectado
             }
         } catch (error) {
             console.error('❌ Erro na detecção:', error)
             setDetectionStatus('idle')
         }
-    }, [faceApiLoaded, labels, cameraStarted, cameraStream, isPaused, saveAccessLog, sendArduinoCommand])
+    }, [faceApiLoaded, labels, cameraStarted, cameraStream, isPaused, isManuallyPaused, saveAccessLog, sendArduinoCommand, residents, lastUnknownFaceTime, clearCache, lastDetection, selectedCondominium])
 
     // Loop de detecção
     const startDetection = useCallback(() => {
@@ -794,18 +1595,94 @@ export default function CondominiumRecognitionPage() {
         isDetectingRef.current = true
 
         const detect = async () => {
-            if (!isDetectingRef.current) return
+            // Verificar se ainda deve detectar (incluindo pausas)
+            if (!isDetectingRef.current || isPaused || isManuallyPaused) {
+                console.log('🛑 Parando loop de detecção:', { 
+                    isDetecting: isDetectingRef.current, 
+                    isPaused, 
+                    isManuallyPaused 
+                })
+                isDetectingRef.current = false
+                if (detectionTimeoutRef.current) {
+                    clearTimeout(detectionTimeoutRef.current)
+                    detectionTimeoutRef.current = null
+                }
+                return
+            }
 
             await detectFaces()
 
-            if (isDetectingRef.current) {
+            // Verificar novamente antes de agendar próxima detecção
+            if (isDetectingRef.current && !isPaused && !isManuallyPaused) {
                 // Aumentar intervalo para 1.5 segundos para reduzir processamento
                 detectionTimeoutRef.current = setTimeout(detect, 1500)
+            } else {
+                console.log('🛑 Não agendando próxima detecção - sistema pausado')
+                isDetectingRef.current = false
             }
         }
 
         detect()
-    }, [detectFaces])
+    }, [detectFaces, isPaused, isManuallyPaused])
+
+    // Parar detecção
+    const stopDetection = useCallback(() => {
+        console.log('🛑 Parando detecção completamente')
+        isDetectingRef.current = false
+        
+        if (detectionTimeoutRef.current) {
+            clearTimeout(detectionTimeoutRef.current)
+            detectionTimeoutRef.current = null
+        }
+        
+        if (pauseTimeoutRef.current) {
+            clearTimeout(pauseTimeoutRef.current)
+            pauseTimeoutRef.current = null
+        }
+        
+        setDetectionStatus('idle')
+    }, [])
+
+    // Limpar todos os estados ao despausar
+    const clearAllStates = useCallback(() => {
+        console.log('🧹 Limpando todos os estados de detecção')
+        
+        // IMPORTANTE: Limpar lastDetection primeiro para evitar que estados residuais sejam salvos
+        setLastDetection(null)
+        lastRecognitionRef.current = null
+        setLastUnknownFaceTime(0)
+        
+        // Limpar estados de detecção
+        setUnauthorizedMessage('')
+        setDetectionStatus('idle')
+        
+        // Limpar estados de pausa
+        setIsPaused(false)
+        setPauseTimeRemaining(0)
+        setCommandSent(false)
+        
+        // Limpar timeouts - IMPORTANTE: fazer isso ANTES de resetar os outros estados
+        // para evitar que timeouts antigos redefinam os estados limpos
+        if (detectionTimeoutRef.current) {
+            clearTimeout(detectionTimeoutRef.current)
+            detectionTimeoutRef.current = null
+        }
+        
+        if (pauseTimeoutRef.current) {
+            clearTimeout(pauseTimeoutRef.current)
+            pauseTimeoutRef.current = null
+        }
+        
+        // Limpar todos os intervalos que podem estar rodando countdowns
+        // Não temos refs para eles, mas eles vão verificar as condições e parar
+        
+        // Reset refs
+        isDetectingRef.current = false
+        lastRecognitionRef.current = null
+        isManuallyPausedRef.current = false // Reset ref também
+        
+        console.log('✅ Estados limpos - sistema pronto para reiniciar')
+    }, [])
 
     // Iniciar câmera
     const startCamera = useCallback(async () => {
@@ -967,6 +1844,23 @@ export default function CondominiumRecognitionPage() {
                     // Aguardar apenas um momento para estabilização
                     await new Promise(resolve => setTimeout(resolve, 300))
 
+                    // Se nenhuma pessoa foi carregada, limpar cache e tentar novamente
+                    if (residents.length === 0 && labels.length === 0) {
+                        console.log('🔄 Nenhuma pessoa carregada, limpando cache e tentando novamente...')
+                        clearCache('authorizedPersons')
+                        clearCache() // Limpar todo o cache
+                        
+                        // Tentar carregar novamente após limpar cache
+                        setTimeout(async () => {
+                            try {
+                                await loadLabels()
+                                console.log('🔄 Segundo carregamento concluído')
+                            } catch (retryError) {
+                                console.error('❌ Erro no segundo carregamento:', retryError)
+                            }
+                        }, 1000)
+                    }
+
                     // Considerar sistema pronto independente dos resultados
                     setSystemReady(true)
                     isSequentialLoadingRef.current = false
@@ -986,7 +1880,7 @@ export default function CondominiumRecognitionPage() {
         }
 
         loadInitialData()
-    }, [selectedCondominium, faceApiLoaded, loadCameras, loadLabels, loadAvailablePorts, checkArduinoStatus, cameras.length, labels.length, availablePorts.length])
+    }, [selectedCondominium, faceApiLoaded, loadCameras, loadLabels, loadAvailablePorts, checkArduinoStatus, cameras.length, labels.length, availablePorts.length, residents.length, clearCache])
 
     // Reset flags quando condomínio mudar
     useEffect(() => {
@@ -1003,6 +1897,7 @@ export default function CondominiumRecognitionPage() {
                 faceApiLoaded && 
                 cameraStream && 
                 !isPaused && 
+                !isManuallyPaused && 
                 !isDetectingRef.current
 
             if (shouldStart) {
@@ -1018,7 +1913,30 @@ export default function CondominiumRecognitionPage() {
         return () => {
             clearTimeout(timer)
         }
-    }, [cameraStarted, faceApiLoaded, cameraStream, isPaused, labels.length, startDetection])
+    }, [cameraStarted, faceApiLoaded, cameraStream, isPaused, isManuallyPaused, labels.length, startDetection])
+
+    // Monitorar pausa manual e forçar parada quando necessário
+    useEffect(() => {
+        // Sincronizar ref com state
+        isManuallyPausedRef.current = isManuallyPaused
+        
+        if (isManuallyPaused) {
+            console.log('🛑 Pausa manual ativada - forçando parada completa')
+            stopDetection()
+        }
+    }, [isManuallyPaused, stopDetection])
+
+    // Debug dos estados de detecção
+    useEffect(() => {
+        console.log('🎯 Estado de detecção mudou:', {
+            detectionStatus,
+            lastDetection: lastDetection?.name,
+            unauthorizedMessage,
+            hasLastDetection: !!lastDetection,
+            hasUnauthorizedMessage: !!unauthorizedMessage,
+            shouldShowUnauthorized: detectionStatus === 'unauthorized' && (lastDetection || unauthorizedMessage)
+        })
+    }, [detectionStatus, lastDetection, unauthorizedMessage])
 
     // Inicializar sistema
     useEffect(() => {
@@ -1132,7 +2050,12 @@ export default function CondominiumRecognitionPage() {
                 <div>
                     <h1 className="text-xl font-bold text-white">Reconhecimento Facial</h1>
                     <p className="text-xs text-gray-300">
-                        {selectedCondominium.name} • {residents.length} moradores • {labels.length} labels
+                        {selectedCondominium.name} • {residents.length} pessoas autorizadas 
+                        {residents.length > 0 && (
+                            <>
+                                {` (${residents.filter(r => r.type === 'RESIDENT').length} moradores, ${residents.filter(r => r.type === 'EMPLOYEE').length} funcionários, ${residents.filter(r => r.type === 'GUEST').length} convidados)`}
+                            </>
+                        )} • {labels.length} labels
                         {isPaused && (
                             <span className="text-yellow-400 ml-2">
                                 • ⏸️ Pausado ({pauseTimeRemaining}s)
@@ -1180,7 +2103,7 @@ export default function CondominiumRecognitionPage() {
                                     </div>
                                 ) : labels.length === 0 ? (
                                     <div>
-                                        <p className="text-lg mb-2">🏷️ Processando reconhecimento...</p>
+                                        <p className="text-lg mb-2">🏷️ Processando pessoas autorizadas...</p>
                                         <div className="w-48 h-2 bg-gray-700 rounded-full mx-auto">
                                             <div className="h-2 bg-yellow-500 rounded-full animate-pulse w-3/4"></div>
                                         </div>
@@ -1220,19 +2143,19 @@ export default function CondominiumRecognitionPage() {
                                     <>
                                         <div className="h-3 w-3 bg-blue-500 rounded-full animate-pulse" />
                                         <span className="text-sm">
-                                            Carregando: {cameras.length} câmeras, {labels.length} residents
+                                            Carregando: {cameras.length} câmeras, {labels.length} pessoas
                                         </span>
                                     </>
                                 ) : labels.length === 0 ? (
                                     <>
                                         <div className="h-3 w-3 bg-red-500 rounded-full animate-pulse" />
-                                        <span className="text-sm">Falha: 0 residents carregados</span>
+                                        <span className="text-sm">Falha: 0 pessoas carregadas</span>
                                     </>
                                 ) : (
                                     <>
                                         <div className="h-3 w-3 bg-green-500 rounded-full" />
                                         <span className="text-sm">
-                                            Sistema pronto: {cameras.length} câmeras, {labels.length} residents
+                                            Sistema pronto: {cameras.length} câmeras, {labels.length} pessoas
                                         </span>
                                     </>
                                 )}
@@ -1250,10 +2173,21 @@ export default function CondominiumRecognitionPage() {
                                     {detectionStatus === 'recognized' && lastDetection && (
                                         <>
                                             <div className="h-3 w-3 bg-green-500 rounded-full" />
-                                            <span className="text-sm">
-                                                {lastDetection.name} ({(lastDetection.confidence * 100).toFixed(0)}%)
-                                                {isPaused && ` - ${pauseTimeRemaining}s`}
-                                            </span>
+                                            <div className="text-sm flex flex-col">
+                                                <span className="font-bold text-green-300">AUTORIZADO</span>
+                                                <span>{lastDetection.type === 'RESIDENT' ? 'Morador' : lastDetection.type === 'EMPLOYEE' ? 'Funcionário' : 'Convidado'}: {lastDetection.name}</span>
+                                                {isPaused && <span className="text-yellow-300">{pauseTimeRemaining}s restantes</span>}
+                                            </div>
+                                        </>
+                                    )}
+                                    {detectionStatus === 'unauthorized' && (lastDetection || unauthorizedMessage) && (
+                                        <>
+                                            <div className="h-3 w-3 bg-red-500 rounded-full animate-pulse" />
+                                            <div className="text-sm flex flex-col">
+                                                <span className="font-bold text-red-300">ACESSO NEGADO</span>
+                                                <span>{lastDetection?.type === 'RESIDENT' ? 'Morador' : lastDetection?.type === 'EMPLOYEE' ? 'Funcionário' : 'Convidado'}: {lastDetection?.name?.replace(' (NÃO AUTORIZADO)', '') || 'Não identificado'}</span>
+                                                {isPaused && <span className="text-red-300">{pauseTimeRemaining}s restantes</span>}
+                                            </div>
                                         </>
                                     )}
                                     {detectionStatus === 'paused' && (
@@ -1264,10 +2198,19 @@ export default function CondominiumRecognitionPage() {
                                             </span>
                                         </>
                                     )}
-                                    {detectionStatus === 'idle' && !isPaused && (
+                                    {detectionStatus === 'idle' && !isPaused && !isManuallyPaused && (
                                         <>
                                             <div className="h-3 w-3 bg-gray-500 rounded-full" />
                                             <span className="text-sm">Aguardando...</span>
+                                        </>
+                                    )}
+                                    {isManuallyPaused && (
+                                        <>
+                                            <div className="h-3 w-3 bg-yellow-500 rounded-full animate-pulse" />
+                                            <div className="text-sm flex items-center gap-1">
+                                                <Pause className="h-3 w-3" />
+                                                <span>Pausado Manualmente</span>
+                                            </div>
                                         </>
                                     )}
                                 </div>
@@ -1297,16 +2240,51 @@ export default function CondominiumRecognitionPage() {
                                 </Button>
 
                                 <Button
+                                    variant={isManuallyPaused ? "default" : "secondary"}
+                                    size="sm"
+                                    onClick={() => {
+                                        const newPausedState = !isManuallyPaused
+                                        setIsManuallyPaused(newPausedState)
+                                        // Atualizar ref IMEDIATAMENTE para máxima segurança
+                                        isManuallyPausedRef.current = newPausedState
+                                        
+                                        if (newPausedState) {
+                                            // Pausar o reconhecimento
+                                            console.log('🛑 Reconhecimento pausado manualmente')
+                                            stopDetection()
+                                            setDetectionStatus('paused')
+                                        } else {
+                                            // Continuar o reconhecimento
+                                            console.log('▶️ Reconhecimento retomado manualmente')
+                                            // Limpar TODOS os estados antes de continuar
+                                            clearAllStates()
+                                            // Reiniciar detecção se as condições estiverem OK
+                                            if (cameraStarted && faceApiLoaded && cameraStream) {
+                                                startDetection()
+                                            }
+                                        }
+                                    }}
+                                    className={`${isManuallyPaused 
+                                        ? 'bg-green-600/80 hover:bg-green-600 text-white border-green-500/50' 
+                                        : 'bg-red-600/80 hover:bg-red-600 text-white border-red-500/50'
+                                    } backdrop-blur-sm`}
+                                    title={isManuallyPaused ? "Continuar Reconhecimento" : "Pausar Reconhecimento"}
+                                >
+                                    {isManuallyPaused ? <Play className="h-4 w-4" /> : <Square className="h-4 w-4" />}
+                                </Button>
+
+                                <Button
                                     variant="secondary"
                                     size="sm"
                                     onClick={() => {
-                                        forceReprocessImages()
+                                        console.log('🔄 Forçando recarregamento de pessoas autorizadas...')
+                                        clearCache('authorizedPersons')
                                         loadLabels()
                                     }}
                                     className="bg-black/70 backdrop-blur-sm border-white/20 text-orange-300 hover:bg-black/80"
-                                    title="Reprocessar Imagens (limpar cache)"
+                                    title="Limpar cache e recarregar pessoas autorizadas"
                                 >
-                                    🔄
+                                    �
                                 </Button>
                             </div>
 
@@ -1586,14 +2564,32 @@ export default function CondominiumRecognitionPage() {
                                     {detectionStatus === 'recognized' && lastDetection && (
                                         <div className="text-center">
                                             <div className="text-lg font-semibold text-green-300">
-                                                {lastDetection.name}
+                                                ✅ AUTORIZADO
                                             </div>
+                                            <div className="text-base font-medium text-green-200 mt-1">
+                                                {lastDetection.type === 'RESIDENT' ? 'Morador' : lastDetection.type === 'EMPLOYEE' ? 'Funcionário' : 'Convidado'}: {lastDetection.name}
+                                            </div>
+                                        </div>
+                                    )}
+                                    {detectionStatus === 'unauthorized' && (lastDetection || unauthorizedMessage) && (
+                                        <div className="text-center">
+                                            <div className="text-lg font-semibold text-red-300">
+                                                ❌ ACESSO NEGADO
+                                            </div>
+                                            <div className="text-base font-medium text-red-200 mt-1">
+                                                {lastDetection?.type === 'RESIDENT' ? 'Morador' : lastDetection?.type === 'EMPLOYEE' ? 'Funcionário' : 'Convidado'}: {lastDetection?.name?.replace(' (NÃO AUTORIZADO)', '') || 'Não identificado'}
+                                            </div>
+                                            {unauthorizedMessage && (
+                                                <div className="text-sm text-red-400 mt-2 max-w-md mx-auto">
+                                                    {unauthorizedMessage}
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                     {detectionStatus === 'paused' && lastDetection && (
                                         <div className="text-center">
                                             <div className="text-lg font-semibold text-yellow-300">
-                                                🎯 Reconhecido: {lastDetection.name}
+                                                ✅ AUTORIZADO: {lastDetection.type === 'RESIDENT' ? 'Morador' : lastDetection.type === 'EMPLOYEE' ? 'Funcionário' : 'Convidado'} - {lastDetection.name}
                                             </div>
                                             <div className="text-base font-medium text-red-300">
                                                 ⏸️ Detecção pausada por {pauseTimeRemaining} segundos
@@ -1611,21 +2607,43 @@ export default function CondominiumRecognitionPage() {
                         {isPaused && (
                             <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50">
                                 <div className="text-center text-white">
-                                    <div className="bg-green-600/90 rounded-full p-8 mb-6 mx-auto w-32 h-32 flex items-center justify-center animate-pulse">
-                                        <div className="text-4xl font-bold">
-                                            {pauseTimeRemaining}
-                                        </div>
-                                    </div>
-                                    <h2 className="text-4xl font-bold mb-4 text-green-400">✅ RECONHECIDO</h2>
-                                    <p className="text-2xl text-white mb-2">
-                                        {lastDetection?.name}
-                                    </p>
-                                    <p className="text-xl text-yellow-400 animate-pulse">
-                                        ⏸️ Sistema pausado
-                                    </p>
-                                    <p className="text-lg text-gray-300">
-                                        Reativando em {pauseTimeRemaining} segundos
-                                    </p>
+                                    {unauthorizedMessage ? (
+                                        <>
+                                            <div className="bg-red-600/90 rounded-full p-8 mb-6 mx-auto w-32 h-32 flex items-center justify-center animate-pulse">
+                                                <div className="text-5xl font-bold text-white">
+                                                    ✕
+                                                </div>
+                                            </div>
+                                            <h2 className="text-4xl font-bold mb-4 text-red-400">❌ ACESSO NEGADO</h2>
+                                            <p className="text-2xl text-white mb-2">
+                                                {unauthorizedMessage}
+                                            </p>
+                                            <p className="text-xl text-yellow-400 animate-pulse">
+                                                ⏸️ Sistema pausado
+                                            </p>
+                                            <p className="text-lg text-gray-300">
+                                                Reativando em {pauseTimeRemaining} segundos
+                                            </p>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="bg-green-600/90 rounded-full p-8 mb-6 mx-auto w-32 h-32 flex items-center justify-center animate-pulse">
+                                                <div className="text-4xl font-bold">
+                                                    {pauseTimeRemaining}
+                                                </div>
+                                            </div>
+                                            <h2 className="text-4xl font-bold mb-4 text-green-400">✅ RECONHECIDO</h2>
+                                            <p className="text-2xl text-white mb-2">
+                                                {lastDetection?.name}
+                                            </p>
+                                            <p className="text-xl text-yellow-400 animate-pulse">
+                                                ⏸️ Sistema pausado
+                                            </p>
+                                            <p className="text-lg text-gray-300">
+                                                Reativando em {pauseTimeRemaining} segundos
+                                            </p>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         )}

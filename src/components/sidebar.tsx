@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -161,47 +161,15 @@ const residentMenuItems = [
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [userInfo, setUserInfo] = useState<{
-    isAdmin?: boolean;
-    isSuperAdmin?: boolean;
-    name?: string;
-  } | null>(null);
   const pathname = usePathname();
   const router = useRouter();
-  const { logout } = useAuth();
-
-  // Fetch user info to determine menu items - apenas uma vez
-  useEffect(() => {
-    let isMounted = true;
-    
-    const fetchUserInfo = async () => {
-      try {
-        const response = await fetch('/api/auth/me');
-        if (response.ok && isMounted) {
-          const data = await response.json();
-          setUserInfo(data.user);
-        }
-      } catch (error) {
-        if (isMounted) {
-          console.error('Erro ao obter informações do usuário:', error);
-        }
-      }
-    };
-
-    if (!userInfo) {
-      fetchUserInfo();
-    }
-
-    return () => {
-      isMounted = false;
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const { user, logout, isLoading } = useAuth();
 
   // Determine which menu items to show based on user role
   const getMenuItems = () => {
-    if (!userInfo) return adminMenuItems; // Default fallback
+    if (!user) return []; // Não mostrar nenhum menu até carregar o usuário
     
-    if (userInfo.isAdmin || userInfo.isSuperAdmin) {
+    if (user.isAdmin) {
       return adminMenuItems;
     } else {
       return residentMenuItems;
@@ -266,34 +234,50 @@ export function Sidebar() {
         </Link>
 
         <div className="border-t border-gray-200 pt-4 mt-4">
-          {menuItems.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center space-x-3 p-3 rounded-xl transition-all duration-200 group relative",
-                  isActive
-                    ? "bg-gradient-to-r from-green-500 to-orange-500 text-white shadow-lg shadow-green-200/50"
-                    : "text-gray-700 hover:text-green-600 hover:bg-green-50",
-                  collapsed ? "justify-center" : ""
-                )}
-                title={collapsed ? item.title : ""}
-              >
-                <item.icon className={cn(
-                  "w-5 h-5 flex-shrink-0",
-                  isActive ? "text-white" : item.color
-                )} />
-                {!collapsed && (
-                  <span className="font-medium">{item.title}</span>
-                )}
-                {isActive && (
-                  <div className="absolute right-2 w-2 h-2 bg-white rounded-full" />
-                )}
-              </Link>
-            );
-          })}
+          {!user ? (
+            // Estado de carregamento
+            <div className="space-y-2">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div
+                  key={i}
+                  className={cn(
+                    "animate-pulse bg-gray-200 rounded-xl",
+                    collapsed ? "h-12 w-12 mx-auto" : "h-12 w-full"
+                  )}
+                />
+              ))}
+            </div>
+          ) : (
+            // Menu carregado baseado no usuário
+            menuItems.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center space-x-3 p-3 rounded-xl transition-all duration-200 group relative",
+                    isActive
+                      ? "bg-gradient-to-r from-green-500 to-orange-500 text-white shadow-lg shadow-green-200/50"
+                      : "text-gray-700 hover:text-green-600 hover:bg-green-50",
+                    collapsed ? "justify-center" : ""
+                  )}
+                  title={collapsed ? item.title : ""}
+                >
+                  <item.icon className={cn(
+                    "w-5 h-5 flex-shrink-0",
+                    isActive ? "text-white" : item.color
+                  )} />
+                  {!collapsed && (
+                    <span className="font-medium">{item.title}</span>
+                  )}
+                  {isActive && (
+                    <div className="absolute right-2 w-2 h-2 bg-white rounded-full" />
+                  )}
+                </Link>
+              );
+            })
+          )}
         </div>
       </nav>
 
