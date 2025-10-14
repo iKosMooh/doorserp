@@ -11,8 +11,12 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!isLoading && user) {
-      // Se o usuário está logado, redirecionar para o dashboard
-      router.push('/dashboard')
+      // Redirecionar baseado no tipo de usuário
+      if (user.isAdmin) {
+        router.push('/dashboard')
+      } else {
+        router.push('/resident-dashboard')
+      }
     }
   }, [user, isLoading, router])
 

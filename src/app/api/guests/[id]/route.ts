@@ -88,6 +88,35 @@ export async function GET(
       );
     }
 
+    // ============ VALIDAÇÕES DE STATUS ============
+    const now = new Date();
+    const validFromDate = new Date(guest.validFrom);
+    const validUntilDate = guest.validUntil ? new Date(guest.validUntil) : null;
+    
+    // Verificar se já está na data de início
+    const isValidDate = validFromDate <= now;
+    
+    // Verificar se está expirado
+    const isExpired = validUntilDate ? validUntilDate < now : false;
+    
+    // Verificar se ainda tem entradas disponíveis
+    const hasEntriesAvailable = guest.currentEntries < guest.maxEntries;
+    
+    // Convidado está autorizado se: está ativo, dentro do período válido, e tem entradas disponíveis
+    const isAuthorized = guest.isActive && isValidDate && !isExpired && hasEntriesAvailable;
+    
+    // Determinar razão de negação (se houver)
+    let denialReason = '';
+    if (!guest.isActive) {
+      denialReason = 'Convite desativado pelo morador';
+    } else if (!isValidDate) {
+      denialReason = `Convite ainda não válido (válido a partir de ${validFromDate.toLocaleString('pt-BR')})`;
+    } else if (isExpired) {
+      denialReason = `Convite expirado em ${validUntilDate?.toLocaleString('pt-BR')}`;
+    } else if (!hasEntriesAvailable) {
+      denialReason = `Número máximo de entradas atingido (${guest.currentEntries}/${guest.maxEntries})`;
+    }
+
     return NextResponse.json({
       success: true,
       guest: {
@@ -105,7 +134,13 @@ export async function GET(
         faceRecognitionEnabled: guest.faceRecognitionEnabled,
         faceRecognitionFolder: guest.faceRecognitionFolder,
         invitedBy: guest.invitedByResident.user.name,
-        unit: `${guest.invitedByResident.unit.block}${guest.invitedByResident.unit.number}`
+        unit: `${guest.invitedByResident.unit.block}${guest.invitedByResident.unit.number}`,
+        // ========== DADOS DE VALIDAÇÃO ==========
+        isAuthorized,
+        isValidDate,
+        isExpired,
+        hasEntriesAvailable,
+        denialReason
       }
     });
 

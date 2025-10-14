@@ -5,7 +5,7 @@ import { MainLayout } from "@/components/main-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Search, Edit, Trash2, Phone, Mail, UserCheck, Clock, Shield } from "lucide-react"
+import { Plus, Search, Edit, Trash2, Phone, Mail, UserCheck, Clock, Users, Briefcase, DollarSign } from "lucide-react"
 
 interface Employee {
   id: string
@@ -113,87 +113,87 @@ export default function EmployeesPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6 text-black">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 sm:space-y-6 text-black">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Funcionários</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Funcionários</h1>
+            <p className="text-sm sm:text-base text-muted-foreground mt-1">
               Gerencie os funcionários do condomínio
             </p>
           </div>
-          <Button onClick={handleAddNew} className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
+          <Button onClick={handleAddNew} className="w-full sm:w-auto flex items-center justify-center gap-2 min-h-[44px] px-6">
+            <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
             Novo Funcionário
           </Button>
         </div>
 
         {/* Estatísticas */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total de Funcionários
+              <CardTitle className="text-xs sm:text-sm font-medium">
+                Total
               </CardTitle>
-              <UserCheck className="h-4 w-4 text-muted-foreground" />
+              <Users className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{employees.length}</div>
+              <div className="text-xl sm:text-2xl font-bold">{employees.length}</div>
               <p className="text-xs text-muted-foreground">
-                Todos os funcionários
+                Funcionários
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Funcionários Ativos
+              <CardTitle className="text-xs sm:text-sm font-medium">
+                Ativos
               </CardTitle>
-              <UserCheck className="h-4 w-4 text-muted-foreground" />
+              <UserCheck className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-xl sm:text-2xl font-bold text-green-600">
                 {employees.filter(e => e.status === "ACTIVE").length}
               </div>
               <p className="text-xs text-muted-foreground">
-                Status ativo
+                Trabalhando
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-xs sm:text-sm font-medium">
                 Departamentos
               </CardTitle>
-              <Shield className="h-4 w-4 text-muted-foreground" />
+              <Briefcase className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-xl sm:text-2xl font-bold text-blue-600">
                 {new Set(employees.map(e => e.department)).size}
               </div>
               <p className="text-xs text-muted-foreground">
-                Diferentes departamentos
+                Setores
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Folha de Pagamento
+              <CardTitle className="text-xs sm:text-sm font-medium">
+                Folha
               </CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
+              <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-purple-600">
                 R$ {employees
                   .filter(e => e.status === "ACTIVE")
                   .reduce((total, e) => total + e.salary, 0)
                   .toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </div>
               <p className="text-xs text-muted-foreground">
-                Salários mensais
+                Mensal
               </p>
             </CardContent>
           </Card>
@@ -202,20 +202,20 @@ export default function EmployeesPage() {
         {/* Busca e filtros */}
         <Card>
           <CardHeader>
-            <CardTitle>Pesquisar Funcionários</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-lg sm:text-xl">Pesquisar Funcionários</CardTitle>
+            <CardDescription className="text-sm sm:text-base">
               Busque por nome, email, cargo, departamento ou documento
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center space-x-2">
-              <Search className="h-4 w-4 text-muted-foreground" />
+              <Search className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground flex-shrink-0" />
               <input
                 type="text"
                 placeholder="Digite para pesquisar..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-3 py-2.5 sm:py-2 text-base sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
               />
             </div>
           </CardContent>
@@ -224,13 +224,26 @@ export default function EmployeesPage() {
         {/* Lista de funcionários */}
         <Card>
           <CardHeader>
-            <CardTitle>Lista de Funcionários</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-lg sm:text-xl">Lista de Funcionários</CardTitle>
+            <CardDescription className="text-sm sm:text-base">
               {filteredEmployees.length} funcionário(s) encontrado(s)
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
+            {filteredEmployees.length === 0 ? (
+              <div className="text-center py-12">
+                <Users className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-4" />
+                <div className="text-sm sm:text-base text-gray-500">
+                  {searchTerm 
+                    ? "Nenhum funcionário encontrado" 
+                    : "Nenhum funcionário cadastrado"}
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Desktop/Tablet: Tabela */}
+                <div className="hidden md:block overflow-x-auto -mx-6 px-6">
+                  <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome</TableHead>
@@ -312,6 +325,88 @@ export default function EmployeesPage() {
                 ))}
               </TableBody>
             </Table>
+          </div>
+
+          {/* Mobile: Cards */}
+          <div className="md:hidden space-y-4">
+            {filteredEmployees.map((employee) => {
+              const statusColor = employee.status === 'ACTIVE' 
+                ? 'border-l-green-500' 
+                : employee.status === 'VACATION'
+                ? 'border-l-blue-500'
+                : employee.status === 'SICK_LEAVE'
+                ? 'border-l-yellow-500'
+                : 'border-l-red-500'
+              
+              return (
+                <Card key={employee.id} className={`border-l-4 ${statusColor}`}>
+                  <CardContent className="p-4 space-y-3">
+                    {/* Cabeçalho com nome e status */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-semibold text-base">{employee.name}</div>
+                        <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
+                          <Mail className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">{employee.email}</span>
+                        </div>
+                      </div>
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${getStatusColor(employee.status)}`}>
+                        {getStatusLabel(employee.status)}
+                      </span>
+                    </div>
+
+                    {/* Informações em grid */}
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="col-span-2">
+                        <div className="font-medium text-gray-900">{employee.position}</div>
+                        <div className="text-xs text-gray-500">{employee.department}</div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                        <span>{getShiftLabel(employee.shift)}</span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <Phone className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                        <span className="truncate">{employee.phone}</span>
+                      </div>
+
+                      <div className="col-span-2 text-sm font-medium text-green-600">
+                        R$ {employee.salary.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </div>
+
+                      <div className="col-span-2 text-xs text-gray-500">
+                        Admissão: {new Date(employee.hireDate).toLocaleDateString('pt-BR')}
+                      </div>
+                    </div>
+
+                    {/* Ações */}
+                    <div className="flex gap-2 pt-2 border-t">
+                      <Button
+                        variant="outline"
+                        onClick={() => handleEdit(employee.id)}
+                        className="flex-1 min-h-[44px]"
+                      >
+                        <Edit className="h-4 w-4 mr-1.5" />
+                        Editar
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => handleDelete(employee.id)}
+                        className="flex-1 text-red-600 hover:text-red-700 min-h-[44px]"
+                      >
+                        <Trash2 className="h-4 w-4 mr-1.5" />
+                        Excluir
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+        </>
+            )}
           </CardContent>
         </Card>
       </div>

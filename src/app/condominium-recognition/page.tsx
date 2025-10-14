@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React, { useState, useRef, useEffect, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { useCondominium } from "@/contexts/CondominiumContext"
 import { Button } from "@/components/ui/button"
 import {
@@ -64,6 +65,7 @@ interface ResidentData {
 }
 
 export default function CondominiumRecognitionPage() {
+    const router = useRouter()
     const { selectedCondominium } = useCondominium()
 
     // Estados principais
@@ -83,7 +85,7 @@ export default function CondominiumRecognitionPage() {
     const [arduinoStatus, setArduinoStatus] = useState<{connected: boolean, port?: string, error?: string}>({connected: false})    // Estados da câmera
     const [cameraStarted, setCameraStarted] = useState(false)
     const [cameraStream, setCameraStream] = useState<MediaStream | null>(null)
-    const [detectionStatus, setDetectionStatus] = useState<'idle' | 'detecting' | 'recognized' | 'paused' | 'unauthorized'>('idle')
+    const [detectionStatus, setDetectionStatus] = useState<'idle' | 'detecting' | 'recognized' | 'paused' | 'unauthorized' | 'processing'>('idle')
     const [lastDetection, setLastDetection] = useState<DetectionResult | null>(null)
     const [commandSent, setCommandSent] = useState(false)
     const [isPaused, setIsPaused] = useState(false)
@@ -91,6 +93,7 @@ export default function CondominiumRecognitionPage() {
     const [isManuallyPaused, setIsManuallyPaused] = useState(false) // Estado para pausa manual
     const [unauthorizedMessage, setUnauthorizedMessage] = useState<string>('')
     const [lastUnknownFaceTime, setLastUnknownFaceTime] = useState<number>(0)
+    const [isProcessingAccess, setIsProcessingAccess] = useState(false) // Novo estado para loading
 
     // Refs
     const videoRef = useRef<HTMLVideoElement>(null)
@@ -103,7 +106,7 @@ export default function CondominiumRecognitionPage() {
     const isManuallyPausedRef = useRef(false) // Ref adicional para controle mais rigoroso
 
     // Estados para QR Code
-    const [qrScanEnabled, setQrScanEnabled] = useState(true) // QR Code sempre ativo junto com facial
+    const [qrScanEnabled] = useState(true) // QR Code sempre ativo junto com facial
     const qrScanIntervalRef = useRef<NodeJS.Timeout | null>(null)
     const lastQrCodeRef = useRef<{ code: string; timestamp: number } | null>(null)
 
@@ -386,6 +389,14 @@ export default function CondominiumRecognitionPage() {
                 console.log(`📡 Buscando moradores da API...`)
                 const residentsResponse = await fetch(`/api/residents?condominiumId=${selectedCondominium.id}`)
                 
+                // Verificar erro de autenticação PRIMEIRO
+                if (residentsResponse.status === 401) {
+                    console.log('⚠️ Sessão expirada - redirecionando para login...')
+                    alert('Sessão expirada. Você será redirecionado para o login.')
+                    router.push('/login')
+                    return []
+                }
+                
                 if (!residentsResponse.ok) {
                     throw new Error(`HTTP ${residentsResponse.status}: ${residentsResponse.statusText}`)
                 }
@@ -426,6 +437,14 @@ export default function CondominiumRecognitionPage() {
             try {
                 console.log(`📡 Buscando funcionários da API...`)
                 const employeesResponse = await fetch(`/api/employees?condominiumId=${selectedCondominium.id}`)
+                
+                // Verificar erro de autenticação
+                if (employeesResponse.status === 401) {
+                    console.log('⚠️ Sessão expirada - redirecionando para login...')
+                    alert('Sessão expirada. Você será redirecionado para o login.')
+                    router.push('/login')
+                    return []
+                }
                 
                 if (!employeesResponse.ok) {
                     throw new Error(`HTTP ${employeesResponse.status}: ${employeesResponse.statusText}`)
@@ -489,6 +508,14 @@ export default function CondominiumRecognitionPage() {
             try {
                 console.log(`📡 Buscando convidados da API...`)
                 const guestsResponse = await fetch(`/api/guests?condominiumId=${selectedCondominium.id}&activeOnly=false`)
+                
+                // Verificar erro de autenticação
+                if (guestsResponse.status === 401) {
+                    console.log('⚠️ Sessão expirada - redirecionando para login...')
+                    alert('Sessão expirada. Você será redirecionado para o login.')
+                    router.push('/login')
+                    return []
+                }
                 
                 if (!guestsResponse.ok) {
                     throw new Error(`HTTP ${guestsResponse.status}: ${guestsResponse.statusText}`)
@@ -577,7 +604,7 @@ export default function CondominiumRecognitionPage() {
             setResidents([])
             return []
         }
-    }, [selectedCondominium, getFromCache, saveToCache, clearCache])
+    }, [selectedCondominium, getFromCache, saveToCache, clearCache, router])
 
     // Carregar labels para reconhecimento com cache inteligente
     const loadLabels = useCallback(async () => {
@@ -912,6 +939,13 @@ export default function CondominiumRecognitionPage() {
         console.log(`🔍 [${method}] ==================== VALIDAÇÃO DE ACESSO ====================`)
         console.log(`🔍 [${method}] Person ID: ${personId}, Name: ${personName || 'N/A'}, Confidence: ${confidence}`)
 
+        // ⏸️ PAUSAR IMEDIATAMENTE PARA EVITAR CONFLITOS
+        console.log(`⏸️ [${method}] PAUSANDO detecção para processar acesso...`)
+        setIsPaused(true)
+        setIsProcessingAccess(true)
+        setDetectionStatus('processing')
+        isDetectingRef.current = false
+
         try {
             // BUSCAR PESSOA DIRETAMENTE NAS APIS POR ID (não no cache)
             let displayName = personName || 'Desconhecido'
@@ -927,6 +961,16 @@ export default function CondominiumRecognitionPage() {
             console.log(`👤 [${method}] Verificando se é MORADOR...`)
             try {
                 const response = await fetch(`/api/residents?condominiumId=${selectedCondominium.id}`)
+                
+                // Verificar erro de autenticação
+                if (response.status === 401) {
+                    throw new Error('Não autorizado: Faça login novamente')
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+                }
+                
                 const data = await response.json()
 
                 if (data.success && Array.isArray(data.data)) {
@@ -960,6 +1004,16 @@ export default function CondominiumRecognitionPage() {
                 console.log(`👷 [${method}] Verificando se é FUNCIONÁRIO...`)
                 try {
                     const response = await fetch(`/api/employees?condominiumId=${selectedCondominium.id}`)
+                    
+                    // Verificar erro de autenticação
+                    if (response.status === 401) {
+                        throw new Error('Não autorizado: Faça login novamente')
+                    }
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+                    }
+                    
                     const data = await response.json()
 
                     const employees = Array.isArray(data) ? data : data.employees || []
@@ -999,7 +1053,8 @@ export default function CondominiumRecognitionPage() {
                         console.log(`⚠️ [${method}] Convidado não encontrado (HTTP ${response.status})`)
                         // Não definir personFound = true, continuar para "não encontrado"
                     } else {
-                        const currentGuest = await response.json()
+                        const data = await response.json()
+                        const currentGuest = data.guest
 
                         if (currentGuest && currentGuest.id === personId) {
                             personFound = true
@@ -1008,27 +1063,26 @@ export default function CondominiumRecognitionPage() {
                             personUnit = `Convidado de ${currentGuest.invitedByResident?.unit?.block || ''}${currentGuest.invitedByResident?.unit?.number || ''}`
                             
                             console.log(`✅ [${method}] CONVIDADO encontrado: ${displayName} - ${personUnit}`)
+                            console.log(`📊 [${method}] Status do convite:`, {
+                                isActive: currentGuest.isActive,
+                                isAuthorized: currentGuest.isAuthorized,
+                                isExpired: currentGuest.isExpired,
+                                hasEntriesAvailable: currentGuest.hasEntriesAvailable,
+                                isValidDate: currentGuest.isValidDate,
+                                currentEntries: currentGuest.currentEntries,
+                                maxEntries: currentGuest.maxEntries,
+                                validFrom: currentGuest.validFrom,
+                                validUntil: currentGuest.validUntil
+                            })
 
-                            if (!currentGuest.isActive) {
-                                isAuthorized = false
-                                unauthorizedReason = 'Não autorizado: Convite inativo/expirado/esgotado, fale com o morador ou na portaria.'
+                            // Usar a validação da API que já verifica tudo
+                            if (currentGuest.isAuthorized) {
+                                isAuthorized = true
+                                console.log(`✅ [${method}] Convite AUTORIZADO`)
                             } else {
-                                const now = new Date()
-                                const validFrom = new Date(currentGuest.validFrom)
-                                const validUntil = currentGuest.validUntil ? new Date(currentGuest.validUntil) : null
-
-                                if (now < validFrom) {
-                                    isAuthorized = false
-                                    unauthorizedReason = 'Não autorizado: Convite inativo/expirado/esgotado, fale com o morador ou na portaria.'
-                                } else if (validUntil && now > validUntil) {
-                                    isAuthorized = false
-                                    unauthorizedReason = 'Não autorizado: Convite inativo/expirado/esgotado, fale com o morador ou na portaria.'
-                                } else if (currentGuest.currentEntries >= currentGuest.maxEntries) {
-                                    isAuthorized = false
-                                    unauthorizedReason = 'Não autorizado: Convite inativo/expirado/esgotado, fale com o morador ou na portaria.'
-                                } else {
-                                    isAuthorized = true
-                                }
+                                isAuthorized = false
+                                unauthorizedReason = currentGuest.denialReason || 'Não autorizado: Convite inativo/expirado/esgotado, fale com o morador ou na portaria.'
+                                console.log(`❌ [${method}] Convite NEGADO: ${unauthorizedReason}`)
                             }
                         }
                     }
@@ -1042,6 +1096,9 @@ export default function CondominiumRecognitionPage() {
             if (!personFound) {
                 console.log(`❌ [${method}] Pessoa não encontrada em nenhuma API (ID: ${personId})`)
                 
+                // Finalizar processamento
+                setIsProcessingAccess(false)
+                
                 // NÃO definir lastDetection com nome - apenas usar a mensagem de erro
                 setLastDetection(null)
                 setDetectionStatus('unauthorized')
@@ -1049,7 +1106,7 @@ export default function CondominiumRecognitionPage() {
                 setIsPaused(true)
                 
                 // Countdown 3 segundos
-                let timeLeft = 3
+                let timeLeft = 5
                 setPauseTimeRemaining(timeLeft)
                 const countdown = setInterval(() => {
                     timeLeft--
@@ -1075,6 +1132,9 @@ export default function CondominiumRecognitionPage() {
             if (!isAuthorized) {
                 // ACESSO NEGADO
                 console.log(`❌ [${method}] ACESSO NEGADO: ${displayName}`)
+                
+                // Finalizar processamento
+                setIsProcessingAccess(false)
                 
                 setLastDetection({
                     name: displayName,
@@ -1103,7 +1163,7 @@ export default function CondominiumRecognitionPage() {
                 })
 
                 // Countdown 3 segundos
-                let timeLeft = 3
+                let timeLeft = 5
                 setPauseTimeRemaining(timeLeft)
 
                 const countdown = setInterval(() => {
@@ -1130,6 +1190,9 @@ export default function CondominiumRecognitionPage() {
             } else {
                 // ACESSO APROVADO
                 console.log(`✅ [${method}] ACESSO APROVADO: ${displayName}`)
+                
+                // Finalizar processamento
+                setIsProcessingAccess(false)
                 
                 const detection: DetectionResult = {
                     name: displayName,
@@ -1180,6 +1243,27 @@ export default function CondominiumRecognitionPage() {
             
         } catch (error) {
             console.error(`❌ [${method}] Erro ao validar acesso:`, error)
+            
+            // Limpar estado de processamento em caso de erro
+            setIsProcessingAccess(false)
+            setDetectionStatus('unauthorized')
+            setUnauthorizedMessage(`Erro ao processar: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
+            
+            // Pausa de 3 segundos antes de voltar
+            let timeLeft = 5
+            setPauseTimeRemaining(timeLeft)
+            const countdown = setInterval(() => {
+                timeLeft--
+                setPauseTimeRemaining(timeLeft)
+                if (timeLeft <= 0) {
+                    clearInterval(countdown)
+                    setIsPaused(false)
+                    setDetectionStatus('idle')
+                    setUnauthorizedMessage('')
+                    setPauseTimeRemaining(0)
+                }
+            }, 1000)
+            pauseTimeoutRef.current = countdown as any
         }
     }, [selectedCondominium, saveAccessLog, sendArduinoCommand])
 
@@ -1598,7 +1682,7 @@ export default function CondominiumRecognitionPage() {
                                         })
                                         
                                         // Countdown para mostrar tempo restante
-                                        let timeLeft = 3
+                                        let timeLeft = 5
                                         setPauseTimeRemaining(timeLeft)
 
                                         const countdown = setInterval(() => {
@@ -1722,7 +1806,7 @@ export default function CondominiumRecognitionPage() {
                                 })
                                 
                                 // Countdown para mostrar tempo restante
-                                let timeLeft = 3
+                                let timeLeft = 5
                                 setPauseTimeRemaining(timeLeft)
 
                                 const countdown = setInterval(() => {
@@ -1905,7 +1989,7 @@ export default function CondominiumRecognitionPage() {
                         }
                         
                         // Countdown para mostrar tempo restante
-                        let timeLeft = 3
+                        let timeLeft = 5
                         setPauseTimeRemaining(timeLeft)
 
                         const countdown = setInterval(() => {
@@ -2581,6 +2665,12 @@ export default function CondominiumRecognitionPage() {
                                             <span className="text-sm">Detectando...</span>
                                         </>
                                     )}
+                                    {detectionStatus === 'processing' && (
+                                        <>
+                                            <div className="h-3 w-3 bg-blue-500 rounded-full animate-spin" />
+                                            <span className="text-sm">🔍 Processando acesso...</span>
+                                        </>
+                                    )}
                                     {detectionStatus === 'recognized' && lastDetection && (
                                         <>
                                             <div className="h-3 w-3 bg-green-500 rounded-full" />
@@ -3031,8 +3121,28 @@ export default function CondominiumRecognitionPage() {
                             </div>
                         )}
 
+                        {/* Overlay de processamento */}
+                        {isProcessingAccess && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-md z-50">
+                                <div className="text-center text-white">
+                                    <div className="bg-blue-600/90 rounded-full p-8 mb-6 mx-auto w-32 h-32 flex items-center justify-center">
+                                        <div className="animate-spin text-6xl">
+                                            ⚙️
+                                        </div>
+                                    </div>
+                                    <h2 className="text-4xl font-bold mb-4 text-blue-400">🔍 PROCESSANDO</h2>
+                                    <p className="text-2xl text-white mb-2">
+                                        Verificando credenciais...
+                                    </p>
+                                    <p className="text-lg text-blue-300 animate-pulse">
+                                        Aguarde um momento
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Overlay central de pausa */}
-                        {isPaused && (
+                        {isPaused && !isProcessingAccess && (
                             <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50">
                                 <div className="text-center text-white">
                                     {unauthorizedMessage ? (

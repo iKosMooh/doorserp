@@ -5,6 +5,8 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { MainLayout } from '@/components/main-layout';
 import CreateGuestModal from '@/components/CreateGuestModal';
+import ResidentQRCodeModal from '@/components/ResidentQRCodeModal';
+import { formatCPF, formatPhone } from '@/lib/utils';
 import { 
   UserIcon, 
   HomeIcon, 
@@ -13,7 +15,8 @@ import {
   EyeIcon,
   KeyIcon,
   CalendarIcon,
-  UsersIcon
+  UsersIcon,
+  QrCodeIcon
 } from '@heroicons/react/24/outline';
 
 interface User {
@@ -65,12 +68,16 @@ interface Resident {
 
 interface AccessLog {
   id: string;
-  accessType: string;
-  accessMethod: string;
-  success: boolean;
-  createdAt: string;
-  user?: User;
-  guest?: Guest;
+  timestamp: string;
+  personName: string;
+  personType: 'RESIDENT' | 'EMPLOYEE' | 'GUEST';
+  accessType: 'ENTRY' | 'EXIT';
+  method: string;
+  location: string;
+  status: 'APPROVED' | 'DENIED' | 'FORCED';
+  unitNumber?: string;
+  building?: string;
+  notes?: string;
 }
 
 export default function ResidentDashboard() {
@@ -79,11 +86,18 @@ export default function ResidentDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isCreateGuestModalOpen, setIsCreateGuestModalOpen] = useState(false);
+  const [isQRCodeModalOpen, setIsQRCodeModalOpen] = useState(false);
 
   useEffect(() => {
     fetchResidentData();
-    fetchRecentAccess();
   }, []);
+
+  useEffect(() => {
+    if (resident) {
+      fetchRecentAccess();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resident]);
 
   const fetchResidentData = async () => {
     try {
@@ -110,12 +124,67 @@ export default function ResidentDashboard() {
 
   const fetchRecentAccess = async () => {
     try {
-      const response = await fetch('/api/access-logs?limit=10');
+      // Buscar apenas logs de acesso do morador logado e seus convidados
+      const response = await fetch('/api/access-logs?limit=100');
       
       if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setRecentAccess(data.logs);
+        const logs = await response.json();
+        console.log('📊 Total de logs recebidos:', logs.length);
+        
+        if (resident && Array.isArray(logs)) {
+          console.log('👤 Morador:', resident.user.name);
+          console.log('🏠 Unidade:', resident.unit.number);
+          console.log('🏢 Bloco:', resident.unit.block);
+          console.log('👥 Convidados:', resident.guests.map(g => g.name));
+          
+          // Filtrar logs apenas da unidade do morador
+          const filteredLogs = logs.filter((log: {
+            personName: string;
+            unitNumber?: string;
+            building?: string;
+          }) => {
+            // Ignorar logs sem identificação válida
+            if (!log.personName || 
+                log.personName === 'Usuário Desconhecido' || 
+                log.personName === 'QR Code Inválido' ||
+                log.personName.includes('Desconhecido') ||
+                log.personName.includes('não identificada')) {
+              return false;
+            }
+
+            // Deve ter unitNumber
+            if (!log.unitNumber) {
+              console.log('❌ Log sem unitNumber:', log.personName);
+              return false;
+            }
+            
+            // Verificar se é da mesma unidade
+            const isSameUnit = log.unitNumber === resident.unit.number &&
+                              (!log.building || !resident.unit.block || log.building === resident.unit.block);
+            
+            // Verificar se é o morador ou seus convidados
+            const isResidentOrGuest = log.personName === resident.user.name ||
+                                     resident.guests.some(guest => guest.name === log.personName);
+            
+            if (!isSameUnit) {
+              console.log('❌ Unidade diferente:', log.personName, '- Unidade:', log.unitNumber, 'Bloco:', log.building);
+            }
+            
+            if (!isResidentOrGuest) {
+              console.log('❌ Pessoa não é morador nem convidado:', log.personName);
+            }
+            
+            return isSameUnit && isResidentOrGuest;
+          });
+          
+          console.log('✅ Logs filtrados:', filteredLogs.length);
+          console.log('📋 Logs:', filteredLogs.map(l => ({ 
+            nome: l.personName, 
+            unidade: l.unitNumber, 
+            timestamp: l.timestamp 
+          })));
+          
+          setRecentAccess(filteredLogs.slice(0, 10)); // Limitar a 10
         }
       }
     } catch (error) {
@@ -208,13 +277,23 @@ export default function ResidentDashboard() {
               </p>
             </div>
             
-            <Button
-              onClick={() => setIsCreateGuestModalOpen(true)}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <PlusIcon className="h-5 w-5 mr-2" />
-              Novo Convidado
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                onClick={() => setIsQRCodeModalOpen(true)}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <QrCodeIcon className="h-5 w-5 mr-2" />
+                Meu QR Code
+              </Button>
+              
+              <Button
+                onClick={() => setIsCreateGuestModalOpen(true)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <PlusIcon className="h-5 w-5 mr-2" />
+                Novo Convidado
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -241,8 +320,8 @@ export default function ResidentDashboard() {
                     Tipo: {resident.relationshipType}
                   </div>
                   <p>{resident.user.email}</p>
-                  {resident.user.phone && <p>Tel: {resident.user.phone}</p>}
-                  {resident.user.document && <p>CPF: {resident.user.document}</p>}
+                  {resident.user.phone && <p>Tel: {formatPhone(resident.user.phone)}</p>}
+                  {resident.user.document && <p>CPF: {formatCPF(resident.user.document)}</p>}
                 </div>
               </div>
               
@@ -310,10 +389,28 @@ export default function ResidentDashboard() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Acessos Hoje</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {recentAccess.filter(log => {
-                    const today = new Date().toDateString();
-                    return new Date(log.createdAt).toDateString() === today;
-                  }).length}
+                  {(() => {
+                    const today = new Date();
+                    console.log('📅 Hoje:', today.toISOString());
+                    console.log('📅 Dia:', today.getDate(), 'Mês:', today.getMonth(), 'Ano:', today.getFullYear());
+                    
+                    const todayLogs = recentAccess.filter(log => {
+                      const logDate = new Date(log.timestamp);
+                      console.log('🕐 Log timestamp:', log.timestamp);
+                      console.log('🕐 Log date:', logDate.toISOString());
+                      console.log('🕐 Log Dia:', logDate.getDate(), 'Mês:', logDate.getMonth(), 'Ano:', logDate.getFullYear());
+                      
+                      const isToday = logDate.getDate() === today.getDate() &&
+                                     logDate.getMonth() === today.getMonth() &&
+                                     logDate.getFullYear() === today.getFullYear();
+                      
+                      console.log('✅ É hoje?', isToday);
+                      return isToday;
+                    });
+                    
+                    console.log('📊 Total de acessos hoje:', todayLogs.length);
+                    return todayLogs.length;
+                  })()}
                 </p>
               </div>
             </div>
@@ -363,7 +460,7 @@ export default function ResidentDashboard() {
                           <div>
                             Entradas: {guest.currentEntries}/{guest.maxEntries}
                           </div>
-                          {guest.phone && <div>Tel: {guest.phone}</div>}
+                          {guest.phone && <div>Tel: {formatPhone(guest.phone)}</div>}
                           {guest.observations && (
                             <div className="text-xs bg-white p-2 rounded border">
                               {guest.observations}
@@ -403,7 +500,7 @@ export default function ResidentDashboard() {
                   <div
                     key={log.id}
                     className={`p-3 rounded-md border ${
-                      log.success 
+                      log.status === 'APPROVED' 
                         ? 'bg-green-50 border-green-200' 
                         : 'bg-red-50 border-red-200'
                     }`}
@@ -411,20 +508,23 @@ export default function ResidentDashboard() {
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <div className="text-sm font-medium text-gray-900">
-                          {log.user ? log.user.name : log.guest?.name || 'Usuário desconhecido'}
+                          {log.personName}
                         </div>
                         <div className="text-xs text-gray-600 mt-1">
-                          <div>{log.accessType} via {log.accessMethod}</div>
-                          <div>{formatDate(log.createdAt)}</div>
+                          <div>
+                            {log.accessType === 'ENTRY' ? 'Entrada' : 'Saída'} via {log.method}
+                          </div>
+                          <div>{formatDate(log.timestamp)}</div>
+                          {log.location && <div>{log.location}</div>}
                         </div>
                       </div>
                       <div className="text-right">
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          log.success
+                          log.status === 'APPROVED'
                             ? 'bg-green-100 text-green-800'
                             : 'bg-red-100 text-red-800'
                         }`}>
-                          {log.success ? 'Sucesso' : 'Falhou'}
+                          {log.status === 'APPROVED' ? 'Aprovado' : 'Negado'}
                         </span>
                       </div>
                     </div>
@@ -473,6 +573,15 @@ export default function ResidentDashboard() {
         <CreateGuestModal
           isOpen={isCreateGuestModalOpen}
           onClose={handleCloseModal}
+          resident={resident}
+        />
+      )}
+
+      {/* Modal do QR Code do Morador */}
+      {isQRCodeModalOpen && resident && (
+        <ResidentQRCodeModal
+          isOpen={isQRCodeModalOpen}
+          onClose={() => setIsQRCodeModalOpen(false)}
           resident={resident}
         />
       )}

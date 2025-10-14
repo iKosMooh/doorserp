@@ -139,13 +139,7 @@ const residentMenuItems = [
     color: "text-pink-600"
   },
   {
-    title: "Reconhecimento Facial",
-    href: "/face-recognition",
-    icon: Camera,
-    color: "text-green-600"
-  },
-  {
-    title: "Meus Acessos",
+    title: "Histórico de Acesso",
     href: "/access-logs",
     icon: Activity,
     color: "text-red-600"
@@ -163,7 +157,7 @@ export function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout, isLoading } = useAuth();
+  const { user, logout } = useAuth();
 
   // Determine which menu items to show based on user role
   const getMenuItems = () => {
@@ -219,18 +213,18 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-2">
-        {/* Voltar para Home */}
+        {/* Voltar para Home - Redireciona baseado no tipo de usuário */}
         <Link
-          href="/"
+          href={user?.isAdmin ? "/dashboard" : "/resident-dashboard"}
           className={cn(
             "flex items-center space-x-3 p-3 rounded-xl transition-all duration-200",
             "text-gray-600 hover:text-green-600 hover:bg-green-50",
             collapsed ? "justify-center" : ""
           )}
-          title={collapsed ? "Página Inicial" : ""}
+          title={collapsed ? (user?.isAdmin ? "Dashboard Admin" : "Painel do Morador") : ""}
         >
           <Home className="w-5 h-5 flex-shrink-0" />
-          {!collapsed && <span className="font-medium">Página Inicial</span>}
+          {!collapsed && <span className="font-medium">{user?.isAdmin ? "Dashboard Admin" : "Painel do Morador"}</span>}
         </Link>
 
         <div className="border-t border-gray-200 pt-4 mt-4">

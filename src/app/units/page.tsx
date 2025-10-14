@@ -160,42 +160,43 @@ export default function UnitsPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Unidades</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Unidades</h1>
+            <p className="text-sm sm:text-base text-muted-foreground mt-1">
               Gerencie as unidades de {selectedCondominium.name}
             </p>
           </div>
           <Button 
-            className="bg-green-600 hover:bg-green-700"
+            className="w-full sm:w-auto bg-green-600 hover:bg-green-700 min-h-[44px] px-6"
             onClick={() => setShowCreateModal(true)}
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
             Nova Unidade
           </Button>
         </div>
 
         {/* Estatísticas */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Unidades</CardTitle>
-              <Building className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-xs sm:text-sm font-medium">Total</CardTitle>
+              <Building className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
+              <div className="text-xl sm:text-2xl font-bold">{stats.total}</div>
+              <p className="text-xs text-muted-foreground">Unidades</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Ocupadas</CardTitle>
-              <Users className="h-4 w-4 text-green-600" />
+              <CardTitle className="text-xs sm:text-sm font-medium">Ocupadas</CardTitle>
+              <Users className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats.occupied}</div>
+              <div className="text-xl sm:text-2xl font-bold text-green-600">{stats.occupied}</div>
               <p className="text-xs text-muted-foreground">
                 {stats.total > 0 ? Math.round((stats.occupied / stats.total) * 100) : 0}% ocupação
               </p>
@@ -204,11 +205,11 @@ export default function UnitsPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Vagas</CardTitle>
-              <Home className="h-4 w-4 text-blue-600" />
+              <CardTitle className="text-xs sm:text-sm font-medium">Vagas</CardTitle>
+              <Home className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{stats.vacant}</div>
+              <div className="text-xl sm:text-2xl font-bold text-blue-600">{stats.vacant}</div>
               <p className="text-xs text-muted-foreground">
                 Disponíveis
               </p>
@@ -217,13 +218,13 @@ export default function UnitsPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Vagas de Garagem</CardTitle>
-              <Car className="h-4 w-4 text-purple-600" />
+              <CardTitle className="text-xs sm:text-sm font-medium">Garagens</CardTitle>
+              <Car className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-purple-600">{stats.totalParkingSpaces}</div>
+              <div className="text-xl sm:text-2xl font-bold text-purple-600">{stats.totalParkingSpaces}</div>
               <p className="text-xs text-muted-foreground">
-                Total no condomínio
+                Total
               </p>
             </CardContent>
           </Card>
@@ -232,44 +233,44 @@ export default function UnitsPage() {
         {/* Filtros e busca */}
         <Card>
           <CardHeader>
-            <CardTitle>Filtros</CardTitle>
+            <CardTitle className="text-lg sm:text-xl">Filtros</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="space-y-3 sm:space-y-4">
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                   <input
-                    placeholder="Buscar por bloco/número ou nome do morador..."
+                    placeholder="Buscar por bloco/número ou morador..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-8 w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="pl-10 sm:pl-11 w-full min-h-[44px] px-3 py-2.5 sm:py-2 text-base sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button
                   variant={filter === "all" ? "default" : "outline"}
                   onClick={() => setFilter("all")}
-                  size="sm"
+                  className="flex-1 sm:flex-none min-h-[44px] px-4"
                 >
-                  <Filter className="w-4 h-4 mr-1" />
+                  <Filter className="w-4 h-4 mr-1.5" />
                   Todas
                 </Button>
                 <Button
                   variant={filter === "occupied" ? "default" : "outline"}
                   onClick={() => setFilter("occupied")}
-                  size="sm"
+                  className="flex-1 sm:flex-none min-h-[44px] px-4"
                 >
-                  <Users className="w-4 h-4 mr-1" />
+                  <Users className="w-4 h-4 mr-1.5" />
                   Ocupadas
                 </Button>
                 <Button
                   variant={filter === "vacant" ? "default" : "outline"}
                   onClick={() => setFilter("vacant")}
-                  size="sm"
+                  className="flex-1 sm:flex-none min-h-[44px] px-4"
                 >
-                  <Home className="w-4 h-4 mr-1" />
+                  <Home className="w-4 h-4 mr-1.5" />
                   Vagas
                 </Button>
               </div>
@@ -280,31 +281,37 @@ export default function UnitsPage() {
         {/* Lista de unidades */}
         <Card>
           <CardHeader>
-            <CardTitle>Lista de Unidades</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-lg sm:text-xl">Lista de Unidades</CardTitle>
+            <CardDescription className="text-sm sm:text-base">
               {filteredUnits.length} unidade(s) encontrada(s)
             </CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
               <div className="text-center py-8">
-                <div className="text-lg">Carregando unidades...</div>
+                <div className="text-base sm:text-lg">Carregando unidades...</div>
               </div>
             ) : error ? (
               <div className="text-center py-8">
-                <div className="text-red-600 mb-4">{error}</div>
-                <Button onClick={() => fetchUnits(selectedCondominium.id)}>
+                <div className="text-red-600 mb-4 text-sm sm:text-base">{error}</div>
+                <Button onClick={() => fetchUnits(selectedCondominium.id)} className="min-h-[44px] px-6">
                   Tentar novamente
                 </Button>
               </div>
             ) : filteredUnits.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                {searchTerm || filter !== "all" 
-                  ? "Nenhuma unidade encontrada com os filtros aplicados" 
-                  : "Nenhuma unidade cadastrada"}
+              <div className="text-center py-12">
+                <Building className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-4" />
+                <div className="text-sm sm:text-base text-gray-500">
+                  {searchTerm || filter !== "all" 
+                    ? "Nenhuma unidade encontrada com os filtros aplicados" 
+                    : "Nenhuma unidade cadastrada"}
+                </div>
               </div>
             ) : (
-              <Table>
+              <>
+                {/* Desktop/Tablet: Tabela */}
+                <div className="hidden md:block overflow-x-auto -mx-6 px-6">
+                  <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Unidade</TableHead>
@@ -399,6 +406,86 @@ export default function UnitsPage() {
                   ))}
                 </TableBody>
               </Table>
+            </div>
+
+            {/* Mobile: Cards */}
+            <div className="md:hidden space-y-4">
+              {filteredUnits.map((unit) => {
+                const borderColor = unit.isOccupied ? 'border-l-green-500' : 'border-l-blue-500'
+                
+                return (
+                  <Card key={unit.id} className={`border-l-4 ${borderColor}`}>
+                    <CardContent className="p-4 space-y-3">
+                      {/* Cabeçalho */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <Square className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                          <div>
+                            <div className="font-semibold text-base">{unit.block}/{unit.number}</div>
+                            {unit.floor && (
+                              <div className="text-sm text-gray-500">Andar {unit.floor}</div>
+                            )}
+                          </div>
+                        </div>
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
+                          unit.isOccupied ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                        }`}>
+                          {unit.isOccupied ? 'Ocupada' : 'Vaga'}
+                        </span>
+                      </div>
+
+                      {/* Tipo e detalhes */}
+                      <div className="text-sm">
+                        <div className="font-medium text-gray-900">{getUnitTypeLabel(unit.unitType)}</div>
+                        <div className="grid grid-cols-2 gap-2 mt-2 text-gray-600">
+                          {unit.area && <div>{unit.area}m²</div>}
+                          {unit.bedrooms && <div>{unit.bedrooms} quartos</div>}
+                          {unit.bathrooms && <div>{unit.bathrooms} banheiros</div>}
+                          {unit.parkingSpaces > 0 && (
+                            <div className="flex items-center gap-1">
+                              <Car className="h-3 w-3" />
+                              {unit.parkingSpaces} vaga(s)
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Moradores */}
+                      {unit.residents.filter(r => r.isActive).length > 0 && (
+                        <div className="pt-2 border-t">
+                          <div className="text-xs text-gray-500 mb-1">Moradores:</div>
+                          {unit.residents.filter(r => r.isActive).map((resident) => (
+                            <div key={resident.id} className="text-sm">
+                              <span className="font-medium">{resident.user.name}</span>
+                              <span className="text-gray-500"> • {getRelationshipLabel(resident.relationshipType)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Taxa e ações */}
+                      <div className="flex items-center justify-between pt-2 border-t">
+                        <div className="flex items-center text-sm font-medium text-green-600">
+                          <DollarSign className="h-4 w-4" />
+                          R$ {unit.monthlyFee.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" className="min-h-[36px]">
+                            <Eye className="w-3 h-3 mr-1" />
+                            Ver
+                          </Button>
+                          <Button variant="outline" size="sm" className="min-h-[36px]">
+                            <Edit className="w-3 h-3 mr-1" />
+                            Editar
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          </>
             )}
           </CardContent>
         </Card>

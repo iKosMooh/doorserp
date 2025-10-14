@@ -166,88 +166,88 @@ export default function Dashboard() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Visão geral de {data.condominium.name} - {data.condominium.city}, {data.condominium.state}
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">
+            {data.condominium.name} - {data.condominium.city}, {data.condominium.state}
           </p>
         </div>
 
         {/* Cards de estatísticas principais */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-xs sm:text-sm font-medium">
                 Moradores
               </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
+              <Users className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{data.stats.totalResidents}</div>
+              <div className="text-xl sm:text-2xl font-bold">{data.stats.totalResidents}</div>
               <p className="text-xs text-muted-foreground">
-                Moradores ativos
+                Ativos
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-xs sm:text-sm font-medium">
                 Funcionários
               </CardTitle>
-              <UserCheck className="h-4 w-4 text-muted-foreground" />
+              <UserCheck className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{data.stats.totalEmployees}</div>
+              <div className="text-xl sm:text-2xl font-bold">{data.stats.totalEmployees}</div>
               <p className="text-xs text-muted-foreground">
-                Funcionários ativos
+                Ativos
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-xs sm:text-sm font-medium">
                 Unidades
               </CardTitle>
-              <Building className="h-4 w-4 text-muted-foreground" />
+              <Building className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{data.stats.totalUnits}</div>
+              <div className="text-xl sm:text-2xl font-bold">{data.stats.totalUnits}</div>
               <p className="text-xs text-muted-foreground">
-                Total de unidades
+                Total
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Convidados Ativos
+              <CardTitle className="text-xs sm:text-sm font-medium">
+                Convidados
               </CardTitle>
-              <UserPlus className="h-4 w-4 text-muted-foreground" />
+              <UserPlus className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{data.stats.totalGuests}</div>
+              <div className="text-xl sm:text-2xl font-bold">{data.stats.totalGuests}</div>
               <p className="text-xs text-muted-foreground">
-                Com acesso válido
+                Válidos
               </p>
             </CardContent>
           </Card>
         </div>
 
         {/* Estatísticas de acesso */}
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-xs sm:text-sm font-medium">
                 Acessos Hoje
               </CardTitle>
-              <Activity className="h-4 w-4 text-blue-600" />
+              <Activity className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{data.stats.todayAccess}</div>
+              <div className="text-xl sm:text-2xl font-bold text-blue-600">{data.stats.todayAccess}</div>
               <p className="text-xs text-muted-foreground">
                 Últimas 24 horas
               </p>
@@ -256,32 +256,32 @@ export default function Dashboard() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-xs sm:text-sm font-medium">
                 Acessos da Semana
               </CardTitle>
-              <Activity className="h-4 w-4 text-green-600" />
+              <Activity className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{data.stats.weeklyAccess}</div>
+              <div className="text-xl sm:text-2xl font-bold text-green-600">{data.stats.weeklyAccess}</div>
               <p className="text-xs text-muted-foreground">
                 Últimos 7 dias
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="sm:col-span-2 lg:col-span-1">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-xs sm:text-sm font-medium">
                 Saldo Mensal
               </CardTitle>
               {data.stats.netBalance >= 0 ? (
-                <TrendingUp className="h-4 w-4 text-green-600" />
+                <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
               ) : (
-                <TrendingDown className="h-4 w-4 text-red-600" />
+                <TrendingDown className="h-4 w-4 sm:h-5 sm:w-5 text-red-600" />
               )}
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold ${
+              <div className={`text-xl sm:text-2xl font-bold ${
                 data.stats.netBalance >= 0 ? 'text-green-600' : 'text-red-600'
               }`}>
                 R$ {data.stats.netBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
@@ -294,16 +294,16 @@ export default function Dashboard() {
         </div>
 
         {/* Resumo financeiro */}
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>Receitas do Mês</CardTitle>
-              <CardDescription>
-                Total de receitas de {new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+              <CardTitle className="text-base sm:text-lg">Receitas do Mês</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
+                {new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-xl sm:text-2xl font-bold text-green-600">
                 R$ {data.stats.monthlyIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </div>
             </CardContent>
@@ -311,13 +311,13 @@ export default function Dashboard() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Despesas do Mês</CardTitle>
-              <CardDescription>
-                Total de despesas de {new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+              <CardTitle className="text-base sm:text-lg">Despesas do Mês</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
+                {new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">
+              <div className="text-xl sm:text-2xl font-bold text-red-600">
                 R$ {data.stats.monthlyExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </div>
             </CardContent>
@@ -327,17 +327,20 @@ export default function Dashboard() {
         {/* Acessos recentes */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <LogIn className="h-4 w-4" />
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+              <LogIn className="h-4 w-4 sm:h-5 sm:w-5" />
               Acessos Recentes
             </CardTitle>
-            <CardDescription>
-              Últimos acessos registrados no sistema (24h)
+            <CardDescription className="text-sm sm:text-base">
+              Últimos acessos registrados (24h)
             </CardDescription>
           </CardHeader>
           <CardContent>
             {data.recentAccess.length > 0 ? (
-              <Table>
+              <>
+                {/* Desktop/Tablet: Tabela */}
+                <div className="hidden md:block overflow-x-auto -mx-6 px-6">
+                  <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Hora</TableHead>
@@ -375,9 +378,64 @@ export default function Dashboard() {
                   ))}
                 </TableBody>
               </Table>
+            </div>
+
+            {/* Mobile: Cards */}
+            <div className="md:hidden space-y-3">
+              {data.recentAccess.map((access) => {
+                const isApproved = access.status === 'APPROVED'
+                const borderColor = isApproved ? 'border-l-green-500' : 'border-l-red-500'
+                
+                return (
+                  <Card key={access.id} className={`border-l-4 ${borderColor}`}>
+                    <CardContent className="p-4 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="font-semibold text-base truncate flex-1">
+                          {access.personName}
+                        </div>
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
+                          isApproved 
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {isApproved ? 'Aprovado' : 'Rejeitado'}
+                        </span>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-1.5">
+                          <Activity className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                          <span className="truncate">
+                            {new Date(access.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        
+                        <div>
+                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                            access.accessType === 'USER' 
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {access.accessType === 'USER' ? 'Usuário' : 'Convidado'}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="text-xs text-gray-500">
+                        {new Date(access.timestamp).toLocaleDateString('pt-BR')}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          </>
             ) : (
-              <div className="text-center py-8 text-gray-500">
-                Nenhum acesso registrado nas últimas 24 horas
+              <div className="text-center py-12">
+                <Activity className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-4" />
+                <div className="text-sm sm:text-base text-gray-500">
+                  Nenhum acesso registrado nas últimas 24 horas
+                </div>
               </div>
             )}
           </CardContent>

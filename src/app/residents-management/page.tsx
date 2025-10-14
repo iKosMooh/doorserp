@@ -8,6 +8,7 @@ import { CreateResidentModal } from '@/components/CreateResidentModal';
 import CreateGuestModal from '@/components/CreateGuestModal';
 import { EditResidentModal } from '@/components/EditResidentModal';
 import { EditGuestModal } from '@/components/EditGuestModal';
+import { formatCPF, formatPhone } from '@/lib/utils';
 import { 
   PlusIcon, 
   UsersIcon, 
@@ -512,8 +513,8 @@ export default function ResidentManagementPage() {
                                     
                                     <div className="text-sm text-gray-600 space-y-1 mb-3">
                                       <p>{resident.user.email}</p>
-                                      {resident.user.phone && <p>Tel: {resident.user.phone}</p>}
-                                      {resident.user.document && <p>CPF: {resident.user.document}</p>}
+                                      {resident.user.phone && <p>Tel: {formatPhone(resident.user.phone)}</p>}
+                                      {resident.user.document && <p>CPF: {formatCPF(resident.user.document)}</p>}
                                       {resident.user.lastLogin && (
                                         <p>Último acesso: {formatDate(resident.user.lastLogin)}</p>
                                       )}

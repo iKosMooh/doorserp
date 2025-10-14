@@ -7,6 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button"
 import { useCondominium } from "@/contexts/CondominiumContext"
 import CreateGuestModal from "@/components/CreateGuestModal"
+import GuestQRCodeModal from "@/components/GuestQRCodeModal"
+import { formatPhone, formatDocument } from "@/lib/utils"
 import { 
   UserPlus, 
   Clock, 
@@ -19,7 +21,9 @@ import {
   Building,
   Search,
   Filter,
-  Plus
+  Plus,
+  QrCode,
+  UserCheck
 } from "lucide-react"
 
 interface Guest {
@@ -29,6 +33,7 @@ interface Guest {
   phone: string | null
   visitPurpose: string | null
   vehiclePlate: string | null
+  accessCode: string
   validFrom: string
   validUntil: string | null
   currentEntries: number
@@ -53,12 +58,14 @@ export default function GuestsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filter, setFilter] = useState<"all" | "active" | "expired">("all")
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null)
+  const [isQRCodeModalOpen, setIsQRCodeModalOpen] = useState(false)
   const [currentUser, setCurrentUser] = useState<{
     id: string;
     name: string;
     residents?: Array<{
       id: string;
-      user: { name: string };
+      user: { id: string; name: string };
       unit: { block: string; number: string };
     }>;
   } | null>(null)
@@ -91,10 +98,29 @@ export default function GuestsPage() {
 
   const fetchCurrentUser = async () => {
     try {
-      const response = await fetch('/api/auth/me')
+      // Buscar dados completos do morador via API residents-management
+      const response = await fetch('/api/residents-management')
       if (response.ok) {
-        const userData = await response.json()
-        setCurrentUser(userData.user)
+        const data = await response.json()
+        if (data.success && data.residents.length > 0) {
+          // Pegar o primeiro morador (morador logado)
+          const residentData = data.residents[0]
+          setCurrentUser({
+            id: residentData.user.id,
+            name: residentData.user.name,
+            residents: [{
+              id: residentData.id,
+              user: {
+                id: residentData.user.id,
+                name: residentData.user.name
+              },
+              unit: {
+                block: residentData.unit.block,
+                number: residentData.unit.number
+              }
+            }]
+          })
+        }
       }
     } catch (error) {
       console.error('Erro ao buscar usuário atual:', error)
@@ -106,6 +132,16 @@ export default function GuestsPage() {
     if (selectedCondominium?.id) {
       fetchGuests(selectedCondominium.id) // Recarregar lista após criar
     }
+  }
+
+  const handleShowQRCode = (guest: Guest) => {
+    setSelectedGuest(guest)
+    setIsQRCodeModalOpen(true)
+  }
+
+  const handleCloseQRCodeModal = () => {
+    setIsQRCodeModalOpen(false)
+    setSelectedGuest(null)
   }
 
   useEffect(() => {
@@ -201,42 +237,42 @@ export default function GuestsPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Convidados</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Convidados</h1>
+            <p className="text-sm sm:text-base text-muted-foreground mt-1">
               Gerencie visitantes e convidados de {selectedCondominium.name}
             </p>
           </div>
           <Button 
-            className="bg-green-600 hover:bg-green-700"
+            className="w-full sm:w-auto bg-green-600 hover:bg-green-700 min-h-[44px] px-6"
             onClick={() => setIsCreateModalOpen(true)}
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
             Novo Convidado
           </Button>
         </div>
 
         {/* Estatísticas */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Convidados</CardTitle>
-              <UserPlus className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-xs sm:text-sm font-medium">Total</CardTitle>
+              <UserPlus className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{guests?.length || 0}</div>
+              <div className="text-xl sm:text-2xl font-bold">{guests?.length || 0}</div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Ativos</CardTitle>
-              <CheckCircle className="h-4 w-4 text-green-600" />
+              <CardTitle className="text-xs sm:text-sm font-medium">Ativos</CardTitle>
+              <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-xl sm:text-2xl font-bold text-green-600">
                 {guests?.filter(isGuestActive).length || 0}
               </div>
             </CardContent>
@@ -244,11 +280,11 @@ export default function GuestsPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Expirados</CardTitle>
-              <Clock className="h-4 w-4 text-red-600" />
+              <CardTitle className="text-xs sm:text-sm font-medium">Expirados</CardTitle>
+              <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-red-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">
+              <div className="text-xl sm:text-2xl font-bold text-red-600">
                 {guests?.filter(guest => !isGuestActive(guest)).length || 0}
               </div>
             </CardContent>
@@ -256,11 +292,11 @@ export default function GuestsPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Com Veículo</CardTitle>
-              <Car className="h-4 w-4 text-blue-600" />
+              <CardTitle className="text-xs sm:text-sm font-medium">Com Veículo</CardTitle>
+              <Car className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-xl sm:text-2xl font-bold text-blue-600">
                 {guests?.filter(guest => guest.vehiclePlate).length || 0}
               </div>
             </CardContent>
@@ -270,44 +306,44 @@ export default function GuestsPage() {
         {/* Filtros e busca */}
         <Card>
           <CardHeader>
-            <CardTitle>Filtros</CardTitle>
+            <CardTitle className="text-lg sm:text-xl">Filtros</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="space-y-3 sm:space-y-4">
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                   <input
-                    placeholder="Buscar por nome, documento, telefone ou convidante..."
+                    placeholder="Buscar por nome, documento, telefone..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-8 w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="pl-10 sm:pl-11 w-full min-h-[44px] px-3 py-2.5 sm:py-2 text-base sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button
                   variant={filter === "all" ? "default" : "outline"}
                   onClick={() => setFilter("all")}
-                  size="sm"
+                  className="flex-1 sm:flex-none min-h-[44px] px-4"
                 >
-                  <Filter className="w-4 h-4 mr-1" />
+                  <Filter className="w-4 h-4 mr-1.5" />
                   Todos
                 </Button>
                 <Button
                   variant={filter === "active" ? "default" : "outline"}
                   onClick={() => setFilter("active")}
-                  size="sm"
+                  className="flex-1 sm:flex-none min-h-[44px] px-4"
                 >
-                  <CheckCircle className="w-4 h-4 mr-1" />
+                  <CheckCircle className="w-4 h-4 mr-1.5" />
                   Ativos
                 </Button>
                 <Button
                   variant={filter === "expired" ? "default" : "outline"}
                   onClick={() => setFilter("expired")}
-                  size="sm"
+                  className="flex-1 sm:flex-none min-h-[44px] px-4"
                 >
-                  <Clock className="w-4 h-4 mr-1" />
+                  <Clock className="w-4 h-4 mr-1.5" />
                   Expirados
                 </Button>
               </div>
@@ -318,31 +354,40 @@ export default function GuestsPage() {
         {/* Lista de convidados */}
         <Card>
           <CardHeader>
-            <CardTitle>Lista de Convidados</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-lg sm:text-xl">Lista de Convidados</CardTitle>
+            <CardDescription className="text-sm sm:text-base">
               {filteredGuests.length} convidado(s) encontrado(s)
             </CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
               <div className="text-center py-8">
-                <div className="text-lg">Carregando convidados...</div>
+                <div className="text-base sm:text-lg">Carregando convidados...</div>
               </div>
             ) : error ? (
               <div className="text-center py-8">
-                <div className="text-red-600 mb-4">{error}</div>
-                <Button onClick={() => fetchGuests(selectedCondominium.id)}>
+                <div className="text-red-600 mb-4 text-sm sm:text-base">{error}</div>
+                <Button 
+                  onClick={() => fetchGuests(selectedCondominium.id)}
+                  className="min-h-[44px] px-6"
+                >
                   Tentar novamente
                 </Button>
               </div>
             ) : filteredGuests.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                {searchTerm || filter !== "all" 
-                  ? "Nenhum convidado encontrado com os filtros aplicados" 
-                  : "Nenhum convidado cadastrado"}
+              <div className="text-center py-12">
+                <UserCheck className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-4" />
+                <div className="text-sm sm:text-base text-gray-500">
+                  {searchTerm || filter !== "all" 
+                    ? "Nenhum convidado encontrado com os filtros aplicados" 
+                    : "Nenhum convidado cadastrado"}
+                </div>
               </div>
             ) : (
-              <Table>
+              <>
+                {/* Desktop/Tablet: Tabela */}
+                <div className="hidden md:block overflow-x-auto -mx-6 px-6">
+                  <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nome</TableHead>
@@ -364,7 +409,7 @@ export default function GuestsPage() {
                           <div>
                             <div className="font-medium">{guest.name}</div>
                             {guest.document && (
-                              <div className="text-sm text-gray-500">{guest.document}</div>
+                              <div className="text-sm text-gray-500">{formatDocument(guest.document)}</div>
                             )}
                           </div>
                         </div>
@@ -374,7 +419,7 @@ export default function GuestsPage() {
                           {guest.phone && (
                             <div className="flex items-center text-sm">
                               <Phone className="h-3 w-3 mr-1 text-gray-400" />
-                              {guest.phone}
+                              {formatPhone(guest.phone)}
                             </div>
                           )}
                           {guest.vehiclePlate && (
@@ -417,11 +462,17 @@ export default function GuestsPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
-                            Editar
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleShowQRCode(guest)}
+                            className="bg-blue-50 hover:bg-blue-100 text-blue-600 border-blue-200"
+                          >
+                            <QrCode className="w-4 h-4 mr-1" />
+                            QR Code
                           </Button>
                           <Button variant="outline" size="sm">
-                            Histórico
+                            Editar
                           </Button>
                         </div>
                       </TableCell>
@@ -429,6 +480,97 @@ export default function GuestsPage() {
                   ))}
                 </TableBody>
               </Table>
+            </div>
+
+            {/* Mobile: Cards */}
+            <div className="md:hidden space-y-4">
+              {filteredGuests.map((guest) => {
+                const isActive = isGuestActive(guest)
+                const borderColor = isActive 
+                  ? 'border-l-green-500' 
+                  : 'border-l-red-500'
+                
+                return (
+                  <Card key={guest.id} className={`border-l-4 ${borderColor}`}>
+                    <CardContent className="p-4 space-y-3">
+                      {/* Cabeçalho com nome e status */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <User className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <div className="font-semibold text-base truncate">{guest.name}</div>
+                            {guest.document && (
+                              <div className="text-sm text-gray-500">{formatDocument(guest.document)}</div>
+                            )}
+                          </div>
+                        </div>
+                        {getStatusBadge(guest)}
+                      </div>
+
+                      {/* Informações em grid */}
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        {guest.phone && (
+                          <div className="flex items-center gap-1.5">
+                            <Phone className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                            <span className="truncate">{formatPhone(guest.phone)}</span>
+                          </div>
+                        )}
+                        
+                        {guest.vehiclePlate && (
+                          <div className="flex items-center gap-1.5">
+                            <Car className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                            <span className="truncate">{guest.vehiclePlate}</span>
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-1.5 col-span-2">
+                          <UserPlus className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                          <span className="truncate">{guest.invitedByResident.user.name}</span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <Building className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                          <span>{guest.invitedByResident.unit.block}/{guest.invitedByResident.unit.number}</span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                          <span className="truncate">
+                            {guest.currentEntries}/{guest.maxEntries} acessos
+                          </span>
+                        </div>
+
+                        <div className="col-span-2 text-xs text-gray-500">
+                          <div>Válido de {new Date(guest.validFrom).toLocaleDateString('pt-BR')}</div>
+                          {guest.validUntil && (
+                            <div>até {new Date(guest.validUntil).toLocaleDateString('pt-BR')}</div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Ações */}
+                      <div className="flex gap-2 pt-2 border-t">
+                        <Button 
+                          variant="outline" 
+                          onClick={() => handleShowQRCode(guest)}
+                          className="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-600 border-blue-200 min-h-[44px]"
+                        >
+                          <QrCode className="w-4 h-4 mr-1.5" />
+                          QR Code
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          className="flex-1 min-h-[44px]"
+                        >
+                          Editar
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          </>
             )}
           </CardContent>
         </Card>
@@ -440,6 +582,21 @@ export default function GuestsPage() {
           isOpen={isCreateModalOpen}
           onClose={handleCloseModal}
           resident={currentUser.residents[0]}
+        />
+      )}
+
+      {/* Modal de QR Code */}
+      {isQRCodeModalOpen && selectedGuest && (
+        <GuestQRCodeModal
+          isOpen={isQRCodeModalOpen}
+          onClose={handleCloseQRCodeModal}
+          guest={{
+            id: selectedGuest.id,
+            name: selectedGuest.name,
+            accessCode: selectedGuest.accessCode || '',
+            validFrom: selectedGuest.validFrom,
+            validUntil: selectedGuest.validUntil
+          }}
         />
       )}
     </MainLayout>
