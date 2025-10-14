@@ -266,29 +266,30 @@ export default function ResidentDashboard() {
     <MainLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center">
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
                 Painel do Morador
               </h1>
-              <p className="text-gray-600 mt-2">
+              <p className="text-gray-600 mt-2 text-sm sm:text-base">
                 Bem-vindo, {resident.user.name}
               </p>
             </div>
             
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <Button
                 onClick={() => setIsQRCodeModalOpen(true)}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-green-600 hover:bg-green-700 min-h-[44px] w-full sm:w-auto justify-center"
               >
                 <QrCodeIcon className="h-5 w-5 mr-2" />
-                Meu QR Code
+                <span className="hidden sm:inline">Meu QR Code</span>
+                <span className="sm:hidden">QR Code</span>
               </Button>
               
               <Button
                 onClick={() => setIsCreateGuestModalOpen(true)}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-blue-600 hover:bg-blue-700 min-h-[44px] w-full sm:w-auto justify-center"
               >
                 <PlusIcon className="h-5 w-5 mr-2" />
                 Novo Convidado
@@ -298,38 +299,39 @@ export default function ResidentDashboard() {
         </div>
 
         {/* Informações do Morador */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <Card className="lg:col-span-2 p-6">
-            <div className="flex items-center space-x-4">
-              <div className="h-20 w-20 rounded-full bg-blue-100 flex items-center justify-center">
-                <UserIcon className="h-10 w-10 text-blue-600" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+          <Card className="lg:col-span-2 p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
+              <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-blue-100 flex items-center justify-center mx-auto sm:mx-0">
+                <UserIcon className="h-8 w-8 sm:h-10 sm:w-10 text-blue-600" />
               </div>
               
-              <div className="flex-1">
-                <h2 className="text-xl font-semibold text-gray-900">
+              <div className="flex-1 text-center sm:text-left">
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
                   {resident.user.name}
                 </h2>
                 <div className="text-sm text-gray-600 space-y-1 mt-2">
-                  <div className="flex items-center">
+                  <div className="flex items-center justify-center sm:justify-start">
                     <HomeIcon className="h-4 w-4 mr-2" />
                     Unidade: {resident.unit.block}{resident.unit.number}
                     {resident.unit.floor && ` - ${resident.unit.floor}º andar`}
                   </div>
-                  <div className="flex items-center">
+                  <div className="flex items-center justify-center sm:justify-start">
                     <KeyIcon className="h-4 w-4 mr-2" />
                     Tipo: {resident.relationshipType}
                   </div>
-                  <p>{resident.user.email}</p>
+                  <p className="text-xs sm:text-sm">{resident.user.email}</p>
                   {resident.user.phone && <p>Tel: {formatPhone(resident.user.phone)}</p>}
                   {resident.user.document && <p>CPF: {formatCPF(resident.user.document)}</p>}
                 </div>
               </div>
               
-              <div className="text-right">
+              <div className="text-center sm:text-right">
                 {resident.user.faceRecognitionEnabled && (
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                  <span className="inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium bg-green-100 text-green-800">
                     <EyeIcon className="h-4 w-4 mr-1" />
-                    Reconhecimento Facial Ativo
+                    <span className="hidden sm:inline">Reconhecimento Facial Ativo</span>
+                    <span className="sm:hidden">Facial Ativo</span>
                   </span>
                 )}
                 {resident.user.lastLogin && (
@@ -341,74 +343,62 @@ export default function ResidentDashboard() {
             </div>
           </Card>
 
-          <Card className="p-6">
+          <Card className="p-4 sm:p-6">
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600 mb-2">
+              <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-600 mb-2">
                 {resident.condominium.name}
               </div>
-              <p className="text-gray-600">Seu Condomínio</p>
+              <p className="text-sm sm:text-base text-gray-600">Seu Condomínio</p>
             </div>
           </Card>
         </div>
 
         {/* Estatísticas dos Convidados */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card className="p-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
+          <Card className="p-3 sm:p-4">
             <div className="flex items-center">
-              <UsersIcon className="h-8 w-8 text-blue-600 mr-3" />
+              <UsersIcon className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 mr-2 sm:mr-3" />
               <div>
-                <p className="text-sm font-medium text-gray-600">Total de Convidados</p>
-                <p className="text-2xl font-bold text-gray-900">{resident.guests.length}</p>
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Total</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900">{resident.guests.length}</p>
               </div>
             </div>
           </Card>
           
-          <Card className="p-4">
+          <Card className="p-3 sm:p-4">
             <div className="flex items-center">
-              <ClockIcon className="h-8 w-8 text-green-600 mr-3" />
+              <ClockIcon className="h-6 w-6 sm:h-8 sm:w-8 text-green-600 mr-2 sm:mr-3" />
               <div>
-                <p className="text-sm font-medium text-gray-600">Convidados Ativos</p>
-                <p className="text-2xl font-bold text-gray-900">{getActiveGuests().length}</p>
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Ativos</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900">{getActiveGuests().length}</p>
               </div>
             </div>
           </Card>
           
-          <Card className="p-4">
+          <Card className="p-3 sm:p-4">
             <div className="flex items-center">
-              <CalendarIcon className="h-8 w-8 text-red-600 mr-3" />
+              <CalendarIcon className="h-6 w-6 sm:h-8 sm:w-8 text-red-600 mr-2 sm:mr-3" />
               <div>
-                <p className="text-sm font-medium text-gray-600">Expirados</p>
-                <p className="text-2xl font-bold text-gray-900">{getExpiredGuests().length}</p>
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Expirados</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900">{getExpiredGuests().length}</p>
               </div>
             </div>
           </Card>
 
-          <Card className="p-4">
+          <Card className="p-3 sm:p-4">
             <div className="flex items-center">
-              <EyeIcon className="h-8 w-8 text-purple-600 mr-3" />
+              <EyeIcon className="h-6 w-6 sm:h-8 sm:w-8 text-purple-600 mr-2 sm:mr-3" />
               <div>
-                <p className="text-sm font-medium text-gray-600">Acessos Hoje</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Hoje</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900">
                   {(() => {
                     const today = new Date();
-                    console.log('📅 Hoje:', today.toISOString());
-                    console.log('📅 Dia:', today.getDate(), 'Mês:', today.getMonth(), 'Ano:', today.getFullYear());
-                    
                     const todayLogs = recentAccess.filter(log => {
                       const logDate = new Date(log.timestamp);
-                      console.log('🕐 Log timestamp:', log.timestamp);
-                      console.log('🕐 Log date:', logDate.toISOString());
-                      console.log('🕐 Log Dia:', logDate.getDate(), 'Mês:', logDate.getMonth(), 'Ano:', logDate.getFullYear());
-                      
-                      const isToday = logDate.getDate() === today.getDate() &&
-                                     logDate.getMonth() === today.getMonth() &&
-                                     logDate.getFullYear() === today.getFullYear();
-                      
-                      console.log('✅ É hoje?', isToday);
-                      return isToday;
+                      return logDate.getDate() === today.getDate() &&
+                             logDate.getMonth() === today.getMonth() &&
+                             logDate.getFullYear() === today.getFullYear();
                     });
-                    
-                    console.log('📊 Total de acessos hoje:', todayLogs.length);
                     return todayLogs.length;
                   })()}
                 </p>
@@ -419,15 +409,15 @@ export default function ResidentDashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Convidados Ativos */}
-          <Card className="p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">
+          <Card className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                 Convidados Ativos ({getActiveGuests().length})
               </h3>
               <Button
                 onClick={() => setIsCreateGuestModalOpen(true)}
                 size="sm"
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-green-600 hover:bg-green-700 min-h-[44px] w-full sm:w-auto"
               >
                 <PlusIcon className="h-4 w-4 mr-1" />
                 Adicionar
@@ -481,8 +471,8 @@ export default function ResidentDashboard() {
           </Card>
 
           {/* Acessos Recentes */}
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <Card className="p-4 sm:p-6">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
               Acessos Recentes
             </h3>
             
@@ -537,8 +527,8 @@ export default function ResidentDashboard() {
 
         {/* Convidados Expirados/Inativos */}
         {getExpiredGuests().length > 0 && (
-          <Card className="p-6 mt-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <Card className="p-4 sm:p-6 mt-4 sm:mt-6">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
               Convidados Expirados/Inativos ({getExpiredGuests().length})
             </h3>
             

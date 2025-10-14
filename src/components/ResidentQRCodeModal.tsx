@@ -126,7 +126,7 @@ export default function ResidentQRCodeModal({ isOpen, onClose, resident }: Resid
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
           >
             <X className="w-6 h-6" />
           </button>
@@ -165,7 +165,7 @@ export default function ResidentQRCodeModal({ isOpen, onClose, resident }: Resid
                 <span className="text-xs font-medium text-gray-500">ID do Morador:</span>
                 <button
                   onClick={handleCopyId}
-                  className="flex items-center space-x-1 p-1 text-blue-600 hover:bg-blue-100 rounded transition-colors"
+                  className="flex items-center space-x-1 px-2 py-1 text-blue-600 hover:bg-blue-100 rounded transition-colors min-h-[36px]"
                   title="Copiar ID"
                 >
                   <span className="text-xs font-mono">{resident.id.substring(0, 8)}...</span>
@@ -187,10 +187,10 @@ export default function ResidentQRCodeModal({ isOpen, onClose, resident }: Resid
           </div>
 
           {/* Botões de Ação */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
               onClick={handleDownload}
-              className="flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors shadow-lg shadow-blue-200"
+              className="flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors shadow-lg shadow-blue-200 min-h-[44px]"
             >
               <Download className="w-5 h-5" />
               <span>Baixar</span>
@@ -198,7 +198,7 @@ export default function ResidentQRCodeModal({ isOpen, onClose, resident }: Resid
 
             <button
               onClick={handleShare}
-              className="flex items-center justify-center space-x-2 px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors shadow-lg shadow-green-200"
+              className="flex items-center justify-center space-x-2 px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors shadow-lg shadow-green-200 min-h-[44px]"
             >
               <Share2 className="w-5 h-5" />
               <span>Compartilhar</span>

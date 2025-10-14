@@ -131,7 +131,7 @@ export default function GuestQRCodeModal({ isOpen, onClose, guest }: GuestQRCode
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
           >
             <X className="w-6 h-6" />
           </button>
@@ -154,7 +154,7 @@ export default function GuestQRCodeModal({ isOpen, onClose, guest }: GuestQRCode
                 <span className="text-lg font-mono font-bold text-gray-900">{guest.accessCode}</span>
                 <button
                   onClick={handleCopyCode}
-                  className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                  className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
                   title="Copiar código"
                 >
                   {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
@@ -186,10 +186,10 @@ export default function GuestQRCodeModal({ isOpen, onClose, guest }: GuestQRCode
           </div>
 
           {/* Botões de Ação */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
               onClick={handleDownload}
-              className="flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors shadow-lg shadow-blue-200"
+              className="flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors shadow-lg shadow-blue-200 min-h-[44px]"
             >
               <Download className="w-5 h-5" />
               <span>Baixar</span>
@@ -197,7 +197,7 @@ export default function GuestQRCodeModal({ isOpen, onClose, guest }: GuestQRCode
 
             <button
               onClick={handleShare}
-              className="flex items-center justify-center space-x-2 px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors shadow-lg shadow-green-200"
+              className="flex items-center justify-center space-x-2 px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors shadow-lg shadow-green-200 min-h-[44px]"
             >
               <Share2 className="w-5 h-5" />
               <span>Compartilhar</span>

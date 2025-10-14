@@ -394,7 +394,7 @@ export default function CreateGuestModal({ isOpen, onClose, resident, unit, resi
               value={formData.name}
               onChange={handleInputChange}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
               placeholder="Nome completo do convidado"
             />
           </div>
@@ -409,7 +409,7 @@ export default function CreateGuestModal({ isOpen, onClose, resident, unit, resi
               name="document"
               value={formData.document}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
               placeholder="000.000.000-00"
             />
           </div>
@@ -424,7 +424,7 @@ export default function CreateGuestModal({ isOpen, onClose, resident, unit, resi
               name="phone"
               value={formData.phone}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
               placeholder="(00) 00000-0000"
             />
           </div>
@@ -440,7 +440,7 @@ export default function CreateGuestModal({ isOpen, onClose, resident, unit, resi
               value={formData.validFrom}
               onChange={handleInputChange}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
             />
           </div>
 
@@ -455,7 +455,7 @@ export default function CreateGuestModal({ isOpen, onClose, resident, unit, resi
               value={formData.validUntil}
               onChange={handleInputChange}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
             />
           </div>
 
@@ -468,7 +468,7 @@ export default function CreateGuestModal({ isOpen, onClose, resident, unit, resi
               name="maxEntries"
               value={formData.maxEntries}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
             >
               {[1, 2, 3, 4, 5, 10, 15, 20, 25, 30, 50].map(num => (
                 <option key={num} value={num}>
@@ -491,7 +491,7 @@ export default function CreateGuestModal({ isOpen, onClose, resident, unit, resi
               value={formData.observations}
               onChange={handleInputChange}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base sm:text-sm"
               placeholder="Informações adicionais sobre o convidado..."
             />
           </div>
@@ -664,19 +664,20 @@ export default function CreateGuestModal({ isOpen, onClose, resident, unit, resi
         </div>
 
         {/* Botões */}
-        <div className="flex justify-end space-x-3 pt-4 border-t">
+        <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t">
           <Button
             type="button"
             onClick={handleClose}
             variant="outline"
             disabled={loading}
+            className="min-h-[44px] w-full sm:w-auto order-2 sm:order-1"
           >
             Cancelar
           </Button>
           <Button
             type="submit"
             disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-blue-600 hover:bg-blue-700 min-h-[44px] w-full sm:w-auto order-1 sm:order-2"
           >
             {loading ? 'Criando...' : 'Criar Convidado'}
           </Button>

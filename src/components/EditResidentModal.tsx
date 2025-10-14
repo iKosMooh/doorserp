@@ -700,7 +700,7 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
             type="text"
             value={formData.name}
             onChange={(e) => handleInputChange('name', e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
             placeholder="Nome completo do morador"
           />
         </div>
@@ -713,7 +713,7 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
             type="email"
             value={formData.email}
             onChange={(e) => handleInputChange('email', e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
             placeholder="email@exemplo.com"
           />
         </div>
@@ -726,7 +726,7 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
             type="tel"
             value={formData.phone}
             onChange={(e) => handleInputChange('phone', e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
             placeholder="(11) 99999-9999"
           />
         </div>
@@ -738,7 +738,7 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
           <select
             value={formData.documentType}
             onChange={(e) => handleInputChange('documentType', e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
           >
             <option value="CPF">CPF</option>
             <option value="RG">RG</option>
@@ -755,7 +755,7 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
             type="text"
             value={formData.document}
             onChange={(e) => handleInputChange('document', e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
             placeholder="Número do documento"
           />
         </div>
@@ -768,7 +768,7 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
             type="date"
             value={formData.birthDate}
             onChange={(e) => handleInputChange('birthDate', e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
           />
         </div>
 
@@ -780,7 +780,7 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
             type="tel"
             value={formData.emergencyContact}
             onChange={(e) => handleInputChange('emergencyContact', e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
             placeholder="Telefone de emergência"
           />
         </div>
@@ -813,14 +813,14 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
             Unidade *
           </label>
           {loadingUnits ? (
-            <div className="p-2 border border-gray-300 rounded-md">
+            <div className="px-4 py-3 sm:py-2 border border-gray-300 rounded-md min-h-[44px] flex items-center">
               Carregando unidades...
             </div>
           ) : (
             <select
               value={formData.unitId}
               onChange={(e) => handleInputChange('unitId', e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
             >
               <option value="">Selecione uma unidade</option>
               {units.map((unit) => (
@@ -839,7 +839,7 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
           <select
             value={formData.relationshipType}
             onChange={(e) => handleInputChange('relationshipType', e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
           >
             <option value="OWNER">Proprietário</option>
             <option value="TENANT">Inquilino</option>
@@ -859,7 +859,7 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
               type="text"
               value={plate}
               onChange={(e) => handleVehiclePlateChange(index, e.target.value)}
-              className="flex-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
               placeholder="ABC-1234"
             />
             {formData.vehiclePlates.length > 1 && (
@@ -868,7 +868,7 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
                 variant="outline"
                 size="sm"
                 onClick={() => removeVehiclePlate(index)}
-                className="text-red-600 hover:text-red-700"
+                className="text-red-600 hover:text-red-700 min-h-[44px] min-w-[44px]"
               >
                 <X className="w-4 h-4" />
               </Button>
@@ -881,7 +881,7 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
             type="button"
             variant="outline"
             onClick={addVehiclePlate}
-            className="mt-2"
+            className="mt-2 min-h-[44px] w-full sm:w-auto"
           >
             <Plus className="w-4 h-4 mr-2" />
             Adicionar Veículo
@@ -968,13 +968,13 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
                   className="hidden"
                 />
                 
-                <div className="flex gap-2 mt-4">
+                <div className="flex flex-col sm:flex-row gap-2 mt-4">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={faceImages.length >= 15 || loadingExistingImages}
-                    className="flex-1"
+                    className="flex-1 min-h-[44px]"
                   >
                     <Upload className="w-4 h-4 mr-2" />
                     Enviar Fotos
@@ -985,7 +985,7 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
                     variant="outline"
                     onClick={openCamera}
                     disabled={faceImages.length >= 15 || loadingExistingImages}
-                    className="flex-1"
+                    className="flex-1 min-h-[44px]"
                   >
                     <Camera className="w-4 h-4 mr-2" />
                     Usar Câmera
@@ -1096,22 +1096,23 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
             {currentStep === 3 && renderStep3()}
           </div>
 
-          <div className="flex justify-between pt-6 border-t">
+          <div className="flex flex-col sm:flex-row justify-between gap-3 pt-6 border-t">
             <Button
               variant="outline"
               onClick={currentStep === 1 ? onClose : prevStep}
               disabled={loading}
+              className="min-h-[44px] w-full sm:w-auto order-2 sm:order-1"
             >
               {currentStep === 1 ? 'Cancelar' : 'Voltar'}
             </Button>
 
-            <div className="flex space-x-2">
+            <div className="flex flex-col sm:flex-row gap-2 order-1 sm:order-2">
               {currentStep < 3 ? (
-                <Button onClick={nextStep} disabled={loading}>
+                <Button onClick={nextStep} disabled={loading} className="min-h-[44px] w-full sm:w-auto">
                   Próximo
                 </Button>
               ) : (
-                <Button onClick={handleSubmit} disabled={loading}>
+                <Button onClick={handleSubmit} disabled={loading} className="min-h-[44px] w-full sm:w-auto">
                   {loading ? 'Salvando...' : 'Salvar Alterações'}
                 </Button>
               )}
@@ -1133,7 +1134,7 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
                 <select
                   value={selectedCamera}
                   onChange={(e) => setSelectedCamera(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
                 >
                   {cameras.map((camera) => (
                     <option key={camera.deviceId} value={camera.deviceId}>
@@ -1186,11 +1187,12 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
                 Imagens: {faceImages.length}/15
               </p>
               
-              <div className="flex space-x-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={closeCamera}
+                  className="min-h-[44px] w-full sm:w-auto order-2 sm:order-1"
                 >
                   Fechar
                 </Button>
@@ -1199,7 +1201,7 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
                   type="button"
                   onClick={capturePhoto}
                   disabled={faceImages.length >= 15 || !cameraStream}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-blue-600 hover:bg-blue-700 min-h-[44px] w-full sm:w-auto order-1 sm:order-2"
                 >
                   <Camera className="w-4 h-4 mr-2" />
                   Capturar
