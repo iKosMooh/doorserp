@@ -5,6 +5,7 @@ import { MainLayout } from "@/components/main-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Pagination } from "@/components/ui/pagination"
 import { Search, Download, LogIn, LogOut, Shield, Users, Clock, Calendar, Activity } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 
@@ -51,6 +52,12 @@ export default function AccessLogsPage() {
   const [dateFilter, setDateFilter] = useState<string>("")
   const [resident, setResident] = useState<Resident | null>(null)
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(25)
+  const [totalItems, setTotalItems] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
+
   // Buscar dados do morador se não for admin
   useEffect(() => {
     const fetchResidentData = async () => {
@@ -77,10 +84,16 @@ export default function AccessLogsPage() {
   useEffect(() => {
     const fetchAccessLogs = async () => {
       try {
-        const response = await fetch('/api/access-logs')
+        const limitParam = itemsPerPage === 0 ? 'all' : itemsPerPage.toString()
+        const dateParam = dateFilter ? `&date=${dateFilter}` : ''
+        const response = await fetch(`/api/access-logs?page=${currentPage}&limit=${limitParam}${dateParam}`)
         if (response.ok) {
-          const data = await response.json()
-          setLogs(data)
+          const result = await response.json()
+          setLogs(result.data || [])
+          if (result.pagination) {
+            setTotalItems(result.pagination.total)
+            setTotalPages(result.pagination.totalPages)
+          }
         } else {
           console.error('Erro ao buscar logs:', response.statusText)
           // Fallback para dados simulados em caso de erro
@@ -95,7 +108,7 @@ export default function AccessLogsPage() {
     }
 
     fetchAccessLogs()
-  }, [])
+  }, [currentPage, itemsPerPage, dateFilter])
 
   // Filtrar logs por unidade do morador se não for admin
   const logsToFilter = user && !user.isAdmin && resident 
@@ -558,6 +571,23 @@ export default function AccessLogsPage() {
                 ))
               )}
             </div>
+
+            {/* Pagination */}
+            {filteredLogs.length > 0 && (
+              <div className="mt-6">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={totalItems}
+                  itemsPerPage={itemsPerPage}
+                  onPageChange={(page) => setCurrentPage(page)}
+                  onItemsPerPageChange={(newItemsPerPage) => {
+                    setItemsPerPage(newItemsPerPage)
+                    setCurrentPage(1)
+                  }}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -5,6 +5,7 @@ import { MainLayout } from "@/components/main-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import { Pagination } from "@/components/ui/pagination"
 import { CreateUnitModal } from "@/components/CreateUnitModal"
 import { useCondominium } from "@/contexts/CondominiumContext"
 import { 
@@ -53,12 +54,19 @@ export default function UnitsPage() {
   const [filter, setFilter] = useState<"all" | "occupied" | "vacant">("all")
   const [showCreateModal, setShowCreateModal] = useState(false)
 
-  const fetchUnits = async (condominiumId: string) => {
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(25)
+  const [totalItems, setTotalItems] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
+
+  const fetchUnits = async (condominiumId: string, page = 1, limit = 25) => {
     try {
       setLoading(true)
       setError(null)
       
-      const response = await fetch(`/api/units?condominiumId=${condominiumId}`)
+      const limitParam = limit === 0 ? 'all' : limit.toString()
+      const response = await fetch(`/api/units?condominiumId=${condominiumId}&page=${page}&limit=${limitParam}`)
       
       if (!response.ok) {
         throw new Error('Erro ao carregar unidades')
@@ -67,7 +75,11 @@ export default function UnitsPage() {
       const result = await response.json()
       
       if (result.success) {
-        setUnits(result.data)
+        setUnits(result.data || [])
+        if (result.pagination) {
+          setTotalItems(result.pagination.total)
+          setTotalPages(result.pagination.totalPages)
+        }
       } else {
         throw new Error(result.error || 'Erro desconhecido')
       }
@@ -81,9 +93,9 @@ export default function UnitsPage() {
 
   useEffect(() => {
     if (selectedCondominium?.id) {
-      fetchUnits(selectedCondominium.id)
+      fetchUnits(selectedCondominium.id, currentPage, itemsPerPage)
     }
-  }, [selectedCondominium])
+  }, [selectedCondominium, currentPage, itemsPerPage])
 
   const filteredUnits = units.filter(unit => {
     // Filtro por busca
@@ -485,6 +497,23 @@ export default function UnitsPage() {
                 )
               })}
             </div>
+
+          {/* Pagination */}
+          {filteredUnits.length > 0 && (
+            <div className="mt-6">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                onPageChange={(page) => setCurrentPage(page)}
+                onItemsPerPageChange={(newItemsPerPage) => {
+                  setItemsPerPage(newItemsPerPage)
+                  setCurrentPage(1)
+                }}
+              />
+            </div>
+          )}
           </>
             )}
           </CardContent>

@@ -1,16 +1,68 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const employees = await prisma.employee.findMany({
-      include: {
-        user: true
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    })
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = searchParams.get('limit') === 'all' 
+      ? undefined 
+      : parseInt(searchParams.get('limit') || '25');
+
+    const include = {
+      user: true
+    };
+
+    const orderBy = {
+      createdAt: 'desc' as const
+    };
+
+    // Se limit é undefined (all), buscar tudo sem paginação
+    if (limit === undefined) {
+      const employees = await prisma.employee.findMany({
+        include,
+        orderBy
+      });
+
+      const formattedEmployees = employees.map((employee) => ({
+        id: employee.id,
+        name: employee.user.name || 'Nome não informado',
+        email: employee.user.email || '',
+        phone: '', // Campo não existe no schema atual
+        documentNumber: '', // Campo não existe no schema atual
+        position: employee.position,
+        department: employee.department || 'Não informado',
+        shift: 'FULL_TIME', // Campo não existe no schema atual, assumindo FULL_TIME
+        salary: employee.salary ? Number(employee.salary) : 0,
+        status: employee.isActive ? "ACTIVE" : "INACTIVE",
+        hireDate: employee.hireDate.toISOString(),
+        createdAt: employee.createdAt.toISOString(),
+        userId: employee.user.id
+      }));
+
+      return NextResponse.json({
+        data: formattedEmployees,
+        pagination: {
+          total: formattedEmployees.length,
+          page: 1,
+          limit: formattedEmployees.length,
+          totalPages: 1
+        }
+      });
+    }
+
+    // Com paginação
+    const skip = (page - 1) * limit;
+
+    const [employees, total] = await Promise.all([
+      prisma.employee.findMany({
+        skip,
+        take: limit,
+        include,
+        orderBy
+      }),
+      prisma.employee.count()
+    ]);
 
     const formattedEmployees = employees.map((employee) => ({
       id: employee.id,
@@ -26,9 +78,17 @@ export async function GET() {
       hireDate: employee.hireDate.toISOString(),
       createdAt: employee.createdAt.toISOString(),
       userId: employee.user.id
-    }))
+    }));
 
-    return NextResponse.json(formattedEmployees)
+    return NextResponse.json({
+      data: formattedEmployees,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
     console.error("Erro ao buscar funcionários:", error)
     return NextResponse.json(
@@ -47,23 +107,27 @@ export async function POST(request: NextRequest) {
       position, 
       department, 
       salary,
-      hireDate 
+      hireDate,
+      condominiumId 
     } = body
 
     // Validações básicas
-    if (!name || !position) {
+    if (!name || !position || !condominiumId) {
       return NextResponse.json(
-        { error: "Nome e cargo são obrigatórios" },
+        { error: "Nome, cargo e condomínio são obrigatórios" },
         { status: 400 }
       )
     }
 
-    // Criar usuário
+    // Gerar código único de funcionário
+    const employeeCode = `EMP${Date.now()}`
+
+    // Criar usuário (sem password por enquanto - pode ser adicionado depois)
     const user = await prisma.user.create({
       data: {
         name,
-        email,
-        isResident: false
+        email: email || `${employeeCode.toLowerCase()}@temp.com`,
+        password: 'temp123' // Senha temporária - deve ser alterada
       }
     })
 
@@ -71,10 +135,12 @@ export async function POST(request: NextRequest) {
     const employee = await prisma.employee.create({
       data: {
         userId: user.id,
+        condominiumId,
+        employeeCode,
         position,
-        department,
+        department: department || 'Geral',
         salary: salary ? parseFloat(salary) : null,
-        accessCardId: `EMP${Date.now()}`,
+        accessCardId: `CARD${Date.now()}`,
         hireDate: hireDate ? new Date(hireDate) : new Date(),
         isActive: true
       }

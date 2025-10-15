@@ -5,6 +5,7 @@ import { MainLayout } from "@/components/main-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import { Pagination } from "@/components/ui/pagination"
 import { useCondominium } from "@/contexts/CondominiumContext"
 import CreateGuestModal from "@/components/CreateGuestModal"
 import GuestQRCodeModal from "@/components/GuestQRCodeModal"
@@ -70,12 +71,19 @@ export default function GuestsPage() {
     }>;
   } | null>(null)
 
-  const fetchGuests = async (condominiumId: string) => {
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(25)
+  const [totalItems, setTotalItems] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
+
+  const fetchGuests = async (condominiumId: string, page = 1, limit = 25) => {
     try {
       setLoading(true)
       setError(null)
       
-      const response = await fetch(`/api/guests?condominiumId=${condominiumId}`)
+      const limitParam = limit === 0 ? 'all' : limit.toString()
+      const response = await fetch(`/api/guests?condominiumId=${condominiumId}&page=${page}&limit=${limitParam}`)
       
       if (!response.ok) {
         throw new Error('Erro ao carregar convidados')
@@ -85,6 +93,10 @@ export default function GuestsPage() {
       
       if (result.success) {
         setGuests(result.guests || [])
+        if (result.pagination) {
+          setTotalItems(result.pagination.total)
+          setTotalPages(result.pagination.totalPages)
+        }
       } else {
         throw new Error(result.message || 'Erro desconhecido')
       }
@@ -146,10 +158,10 @@ export default function GuestsPage() {
 
   useEffect(() => {
     if (selectedCondominium?.id) {
-      fetchGuests(selectedCondominium.id)
+      fetchGuests(selectedCondominium.id, currentPage, itemsPerPage)
     }
     fetchCurrentUser()
-  }, [selectedCondominium])
+  }, [selectedCondominium, currentPage, itemsPerPage])
 
   const isGuestActive = (guest: Guest) => {
     if (!guest.isActive) return false
@@ -572,6 +584,23 @@ export default function GuestsPage() {
             </div>
           </>
             )}
+
+          {/* Pagination */}
+          {filteredGuests.length > 0 && (
+            <div className="mt-6">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                onPageChange={(page) => setCurrentPage(page)}
+                onItemsPerPageChange={(newItemsPerPage) => {
+                  setItemsPerPage(newItemsPerPage)
+                  setCurrentPage(1)
+                }}
+              />
+            </div>
+          )}
           </CardContent>
         </Card>
       </div>

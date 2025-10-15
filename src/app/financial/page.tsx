@@ -5,7 +5,10 @@ import { MainLayout } from "@/components/main-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Search, Edit, Trash2, TrendingUp, TrendingDown, DollarSign, Calendar, Filter, Download, BarChart3, Activity, X, Check } from "lucide-react"
+import { RecurringRevenueModal } from "@/components/RecurringRevenueModal"
+import { useCondominium } from "@/contexts/CondominiumContext"
+import { useAuth } from "@/contexts/AuthContext"
+import { Plus, Search, Edit, Trash2, TrendingUp, TrendingDown, DollarSign, Calendar, Filter, Download, BarChart3, Activity, X, Check, RefreshCw } from "lucide-react"
 import { BarChart, Bar, PieChart as RechartsPie, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import * as XLSX from 'xlsx'
 
@@ -25,6 +28,8 @@ interface FinancialEntry {
 }
 
 export default function FinancialPage() {
+  const { selectedCondominium } = useCondominium()
+  const { user } = useAuth()
   const [entries, setEntries] = useState<FinancialEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -34,6 +39,7 @@ export default function FinancialPage() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedEntry, setSelectedEntry] = useState<FinancialEntry | null>(null)
   const [showCharts, setShowCharts] = useState(false)
+  const [showRecurringModal, setShowRecurringModal] = useState(false)
   
   // Form states
   const [formData, setFormData] = useState({
@@ -293,6 +299,14 @@ export default function FinancialPage() {
             <Button onClick={handleExport} variant="outline" className="flex-1 sm:flex-none min-h-[44px] px-4">
               <Download className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
               <span className="hidden sm:inline">Exportar</span>
+            </Button>
+            <Button 
+              onClick={() => setShowRecurringModal(true)} 
+              variant="outline" 
+              className="flex-1 sm:flex-none min-h-[44px] px-4 border-blue-600 text-blue-600 hover:bg-blue-50"
+            >
+              <RefreshCw className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+              <span className="hidden sm:inline">Mensalidades</span>
             </Button>
             <Button onClick={handleAddNew} className="flex-1 sm:flex-none min-h-[44px] px-4 bg-green-600 hover:bg-green-700">
               <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
@@ -825,6 +839,31 @@ export default function FinancialPage() {
               </form>
             </div>
           </div>
+        )}
+
+        {/* Modal de Receitas Recorrentes */}
+        {showRecurringModal && selectedCondominium && user && (
+          <RecurringRevenueModal
+            isOpen={showRecurringModal}
+            onClose={() => setShowRecurringModal(false)}
+            condominiumId={selectedCondominium.id}
+            userId={user.id}
+            onSuccess={() => {
+              // Recarregar dados
+              const fetchFinancialEntries = async () => {
+                try {
+                  const response = await fetch('/api/financial')
+                  if (response.ok) {
+                    const data = await response.json()
+                    setEntries(data)
+                  }
+                } catch (error) {
+                  console.error('Erro ao recarregar entradas:', error)
+                }
+              }
+              fetchFinancialEntries()
+            }}
+          />
         )}
       </div>
     </MainLayout>

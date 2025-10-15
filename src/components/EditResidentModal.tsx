@@ -725,9 +725,25 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
           <input
             type="tel"
             value={formData.phone}
-            onChange={(e) => handleInputChange('phone', e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value.replace(/\D/g, '')
+              let formatted = value
+              if (value.length === 11) {
+                formatted = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
+              } else if (value.length === 10) {
+                formatted = value.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3')
+              } else if (value.length <= 2) {
+                formatted = value
+              } else if (value.length <= 7) {
+                formatted = value.replace(/(\d{2})(\d+)/, '($1) $2')
+              } else if (value.length <= 10) {
+                formatted = value.replace(/(\d{2})(\d{4})(\d+)/, '($1) $2-$3')
+              }
+              handleInputChange('phone', formatted)
+            }}
             className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
-            placeholder="(11) 99999-9999"
+            placeholder="(00) 00000-0000"
+            maxLength={15}
           />
         </div>
 
@@ -754,9 +770,19 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
           <input
             type="text"
             value={formData.document}
-            onChange={(e) => handleInputChange('document', e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value.replace(/\D/g, '')
+              let formatted = value
+              if (formData.documentType === 'CPF' && value.length === 11) {
+                formatted = value.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
+              } else {
+                formatted = value
+              }
+              handleInputChange('document', formatted)
+            }}
             className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
-            placeholder="Número do documento"
+            placeholder={formData.documentType === 'CPF' ? '000.000.000-00' : 'Número do documento'}
+            maxLength={formData.documentType === 'CPF' ? 14 : 20}
           />
         </div>
 
@@ -779,9 +805,25 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
           <input
             type="tel"
             value={formData.emergencyContact}
-            onChange={(e) => handleInputChange('emergencyContact', e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value.replace(/\D/g, '')
+              let formatted = value
+              if (value.length === 11) {
+                formatted = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
+              } else if (value.length === 10) {
+                formatted = value.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3')
+              } else if (value.length <= 2) {
+                formatted = value
+              } else if (value.length <= 7) {
+                formatted = value.replace(/(\d{2})(\d+)/, '($1) $2')
+              } else if (value.length <= 10) {
+                formatted = value.replace(/(\d{2})(\d{4})(\d+)/, '($1) $2-$3')
+              }
+              handleInputChange('emergencyContact', formatted)
+            }}
             className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
-            placeholder="Telefone de emergência"
+            placeholder="(00) 00000-0000"
+            maxLength={15}
           />
         </div>
 

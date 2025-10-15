@@ -5,7 +5,10 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const date = searchParams.get('date')
-    const limit = parseInt(searchParams.get('limit') || '100')
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = searchParams.get('limit') === 'all' 
+      ? undefined 
+      : parseInt(searchParams.get('limit') || '25')
 
     let whereClause = {}
     if (date) {
@@ -21,13 +24,59 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const logs = await prisma.accessLog.findMany({
-      where: whereClause,
-      orderBy: {
-        timestamp: 'desc'
-      },
-      take: limit
-    })
+    const orderBy = {
+      timestamp: 'desc' as const
+    }
+
+    // Se limit é undefined (all), buscar tudo sem paginação
+    if (limit === undefined) {
+      const logs = await prisma.accessLog.findMany({
+        where: whereClause,
+        orderBy
+      })
+
+      const formattedLogs = logs.map((log) => {
+        const personName = extractPersonNameFromNotes(log.notes) || "Usuário Desconhecido"
+        const status = mapStatus(log.status)
+        
+        return {
+          id: log.id,
+          timestamp: log.timestamp.toISOString(),
+          personName,
+          personType: log.accessType as "RESIDENT" | "EMPLOYEE" | "GUEST",
+          accessType: log.entryExit === "EXIT" ? "EXIT" : "ENTRY" as "ENTRY" | "EXIT",
+          method: extractMethodFromNotes(log.notes) || "FACIAL_RECOGNITION" as "FACIAL_RECOGNITION" | "KEY_CARD" | "MANUAL",
+          location: log.location || "Portaria Principal",
+          status: status as "APPROVED" | "DENIED" | "FORCED",
+          notes: log.notes,
+          unitNumber: extractUnitFromLocation(log.location),
+          building: extractBuildingFromLocation(log.location)
+        }
+      })
+
+      return NextResponse.json({
+        data: formattedLogs,
+        pagination: {
+          total: formattedLogs.length,
+          page: 1,
+          limit: formattedLogs.length,
+          totalPages: 1
+        }
+      })
+    }
+
+    // Com paginação
+    const skip = (page - 1) * limit
+
+    const [logs, total] = await Promise.all([
+      prisma.accessLog.findMany({
+        where: whereClause,
+        skip,
+        take: limit,
+        orderBy
+      }),
+      prisma.accessLog.count({ where: whereClause })
+    ])
 
     const formattedLogs = logs.map((log) => {
       const personName = extractPersonNameFromNotes(log.notes) || "Usuário Desconhecido"
@@ -48,7 +97,15 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    return NextResponse.json(formattedLogs)
+    return NextResponse.json({
+      data: formattedLogs,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    })
   } catch (error) {
     console.error("Erro ao buscar logs de acesso:", error)
     return NextResponse.json(

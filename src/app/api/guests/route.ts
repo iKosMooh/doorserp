@@ -111,55 +111,99 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    const guests = await prisma.guest.findMany({
-      where: whereClause,
-      include: {
-        invitedByResident: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true
-              }
-            },
-            unit: {
-              select: {
-                id: true,
-                block: true,
-                number: true,
-                floor: true
-              }
+    // Pagination
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = searchParams.get('limit') === 'all' 
+      ? undefined 
+      : parseInt(searchParams.get('limit') || '25');
+
+    const include = {
+      invitedByResident: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true
             }
-          }
-        },
-        condominium: {
-          select: {
-            id: true,
-            name: true
-          }
-        },
-        accessLogs: {
-          orderBy: {
-            timestamp: 'desc'
           },
-          take: 5,
-          select: {
-            id: true,
-            timestamp: true,
-            accessType: true
+          unit: {
+            select: {
+              id: true,
+              block: true,
+              number: true,
+              floor: true
+            }
           }
         }
       },
-      orderBy: [
-        { validUntil: 'desc' },
-        { createdAt: 'desc' }
-      ]
-    });
+      condominium: {
+        select: {
+          id: true,
+          name: true
+        }
+      },
+      accessLogs: {
+        orderBy: {
+          timestamp: 'desc' as const
+        },
+        take: 5,
+        select: {
+          id: true,
+          timestamp: true,
+          accessType: true
+        }
+      }
+    };
+
+    const orderBy = [
+      { validUntil: 'desc' as const },
+      { createdAt: 'desc' as const }
+    ];
+
+    // Se limit é undefined (all), buscar tudo sem paginação
+    if (limit === undefined) {
+      const guests = await prisma.guest.findMany({
+        where: whereClause,
+        include,
+        orderBy
+      });
+
+      return NextResponse.json({
+        success: true,
+        guests,
+        pagination: {
+          total: guests.length,
+          page: 1,
+          limit: guests.length,
+          totalPages: 1
+        }
+      });
+    }
+
+    // Com paginação
+    const skip = (page - 1) * limit;
+
+    const [guests, total] = await Promise.all([
+      prisma.guest.findMany({
+        where: whereClause,
+        skip,
+        take: limit,
+        include,
+        orderBy
+      }),
+      prisma.guest.count({ where: whereClause })
+    ]);
 
     return NextResponse.json({
       success: true,
-      guests
+      guests,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
     });
 
   } catch (error) {

@@ -87,15 +87,27 @@ export default function CreateGuestModal({ isOpen, onClose, resident, unit, resi
     // Detectar se é mobile
     const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     setIsMobile(isMobileDevice);
+    console.log('📱 Dispositivo:', isMobileDevice ? 'Mobile' : 'Desktop');
 
     try {
+      // Verificar se getUserMedia está disponível
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Seu navegador não suporta acesso à câmera');
+      }
+
+      console.log('🔍 Solicitando permissão para câmera...');
       // Solicitar permissão para câmera
-      await navigator.mediaDevices.getUserMedia({ video: true });
+      const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      console.log('✅ Permissão concedida');
+      
+      // Parar stream temporário
+      tempStream.getTracks().forEach(track => track.stop());
       
       // Enumerar dispositivos de mídia
       const devices = await navigator.mediaDevices.enumerateDevices();
       const videoDevices = devices.filter(device => device.kind === 'videoinput');
       
+      console.log(`📹 Câmeras encontradas: ${videoDevices.length}`, videoDevices);
       setAvailableCameras(videoDevices);
       
       // Selecionar câmera padrão (frontal para mobile, primeira disponível para desktop)
@@ -104,11 +116,15 @@ export default function CreateGuestModal({ isOpen, onClose, resident, unit, resi
           ? videoDevices.find(device => device.label.toLowerCase().includes('front')) || videoDevices[0]
           : videoDevices[0];
         
+        console.log('🎯 Câmera padrão selecionada:', defaultCamera.label || defaultCamera.deviceId);
         setSelectedCameraId(defaultCamera.deviceId);
+      } else {
+        setError('Nenhuma câmera encontrada no dispositivo');
       }
     } catch (error) {
-      console.error('Erro ao detectar câmeras:', error);
-      setError('Erro ao acessar câmeras. Verifique as permissões.');
+      console.error('❌ Erro ao detectar câmeras:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      setError(`Erro ao acessar câmeras: ${errorMessage}. Verifique as permissões no navegador.`);
     }
   };
 
@@ -125,6 +141,8 @@ export default function CreateGuestModal({ isOpen, onClose, resident, unit, resi
   // Função para iniciar a câmera
   const startCamera = async () => {
     try {
+      console.log('🎥 Iniciando câmera...', { selectedCameraId, isMobile });
+      
       const constraints: MediaStreamConstraints = {
         video: {
           width: { ideal: 640 },
@@ -134,16 +152,27 @@ export default function CreateGuestModal({ isOpen, onClose, resident, unit, resi
         }
       };
 
+      console.log('📹 Constraints:', constraints);
       const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+      console.log('✅ Stream obtido:', mediaStream);
       
       setStream(mediaStream);
       setShowCamera(true);
       
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
+        console.log('🎬 Video srcObject definido');
+        
+        // Garantir que o vídeo comece a tocar
+        videoRef.current.onloadedmetadata = () => {
+          console.log('📺 Metadata carregado, iniciando reprodução...');
+          videoRef.current?.play().catch(err => {
+            console.error('Erro ao iniciar reprodução:', err);
+          });
+        };
       }
     } catch (error) {
-      console.error('Erro ao acessar câmera:', error);
+      console.error('❌ Erro ao acessar câmera:', error);
       setError('Erro ao acessar câmera. Verifique as permissões.');
     }
   };
@@ -408,9 +437,17 @@ export default function CreateGuestModal({ isOpen, onClose, resident, unit, resi
               type="text"
               name="document"
               value={formData.document}
-              onChange={handleInputChange}
+              onChange={(e) => {
+                const value = e.target.value.replace(/\D/g, '')
+                let formatted = value
+                if (value.length === 11) {
+                  formatted = value.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
+                }
+                setFormData({ ...formData, document: formatted })
+              }}
               className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
               placeholder="000.000.000-00"
+              maxLength={14}
             />
           </div>
 
@@ -423,9 +460,25 @@ export default function CreateGuestModal({ isOpen, onClose, resident, unit, resi
               type="tel"
               name="phone"
               value={formData.phone}
-              onChange={handleInputChange}
+              onChange={(e) => {
+                const value = e.target.value.replace(/\D/g, '')
+                let formatted = value
+                if (value.length === 11) {
+                  formatted = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
+                } else if (value.length === 10) {
+                  formatted = value.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3')
+                } else if (value.length <= 2) {
+                  formatted = value
+                } else if (value.length <= 7) {
+                  formatted = value.replace(/(\d{2})(\d+)/, '($1) $2')
+                } else if (value.length <= 10) {
+                  formatted = value.replace(/(\d{2})(\d{4})(\d+)/, '($1) $2-$3')
+                }
+                setFormData({ ...formData, phone: formatted })
+              }}
               className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
               placeholder="(00) 00000-0000"
+              maxLength={15}
             />
           </div>
 
@@ -553,24 +606,43 @@ export default function CreateGuestModal({ isOpen, onClose, resident, unit, resi
               {/* Câmera com Preview */}
               {showCamera && (
                 <div className="space-y-4">
-                  <div className="relative">
+                  <div className="relative bg-black rounded-md min-h-[360px] flex items-center justify-center">
+                    {/* Indicador de carregamento */}
+                    {!stream && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="text-white text-center">
+                          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+                          <p>Carregando câmera...</p>
+                        </div>
+                      </div>
+                    )}
+                    
                     <video
                       ref={videoRef}
                       autoPlay
                       playsInline
                       muted
-                      className="w-full max-w-md mx-auto rounded-md border-2 border-blue-300 shadow-lg"
+                      style={{ width: '100%', maxWidth: '640px', margin: '0 auto', display: stream ? 'block' : 'none' }}
+                      className="rounded-md border-2 border-blue-300 shadow-lg"
+                      onCanPlay={(e) => {
+                        console.log('🎬 Video can play');
+                        e.currentTarget.play().catch(err => console.error('Play error:', err));
+                      }}
                     />
                     
                     {/* Overlay com instruções */}
-                    <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-                      Preview da Câmera
-                    </div>
-                    
-                    {/* Indicador de fotos capturadas */}
-                    <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded">
-                      {faceImages.length}/2 fotos
-                    </div>
+                    {stream && (
+                      <>
+                        <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                          Preview da Câmera
+                        </div>
+                        
+                        {/* Indicador de fotos capturadas */}
+                        <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded">
+                          {faceImages.length}/2 fotos
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {/* Seletor de câmera durante preview */}

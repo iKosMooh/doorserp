@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { CreateCondominiumModal } from "@/components/CreateCondominiumModal"
 import { useCondominium } from "@/contexts/CondominiumContext"
 import { useAuth } from "@/contexts/AuthContext"
+import { formatPhone } from "@/lib/utils"
 import { 
   Settings, 
   Building2, 
@@ -53,7 +54,7 @@ interface CondominiumData {
 }
 
 export default function SettingsPage() {
-  const { selectedCondominium, condominiums, loading: condominiumLoading, loadCondominiums } = useCondominium()
+  const { selectedCondominium, condominiums, loading: condominiumLoading, refreshCondominiums } = useCondominium()
   const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -143,7 +144,7 @@ export default function SettingsPage() {
         throw new Error(error.error || 'Erro ao salvar condomínio')
       }
 
-      await loadCondominiums()
+      await refreshCondominiums()
       setShowForm(false)
       setEditingId(null)
       setFormData({
@@ -211,7 +212,7 @@ export default function SettingsPage() {
         throw new Error(result.error || 'Erro ao excluir condomínio')
       }
 
-      await loadCondominiums()
+      await refreshCondominiums()
       alert(`✅ ${result.message}`)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido'
@@ -279,7 +280,7 @@ export default function SettingsPage() {
   }
 
   const handleCreateCondominiumSuccess = async () => {
-    await loadCondominiums();
+    await refreshCondominiums();
     setShowCreateModal(false);
   };
 
@@ -404,7 +405,7 @@ export default function SettingsPage() {
                 {viewingCondominium.phone && (
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-500">Telefone</label>
-                    <p>{viewingCondominium.phone}</p>
+                    <p>{formatPhone(viewingCondominium.phone)}</p>
                   </div>
                 )}
                 {viewingCondominium.email && (
@@ -619,9 +620,25 @@ export default function SettingsPage() {
                     <input
                       type="text"
                       value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '')
+                        let formatted = value
+                        if (value.length === 11) {
+                          formatted = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
+                        } else if (value.length === 10) {
+                          formatted = value.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3')
+                        } else if (value.length <= 2) {
+                          formatted = value
+                        } else if (value.length <= 7) {
+                          formatted = value.replace(/(\d{2})(\d+)/, '($1) $2')
+                        } else if (value.length <= 10) {
+                          formatted = value.replace(/(\d{2})(\d{4})(\d+)/, '($1) $2-$3')
+                        }
+                        setFormData({ ...formData, phone: formatted })
+                      }}
                       className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="(00) 0000-0000"
+                      placeholder="(00) 00000-0000"
+                      maxLength={15}
                     />
                   </div>
                   <div>
@@ -871,7 +888,7 @@ export default function SettingsPage() {
                           {condominium.phone && (
                             <div className="flex items-center text-sm">
                               <Phone className="h-3 w-3 mr-1 text-gray-400" />
-                              {condominium.phone}
+                              {formatPhone(condominium.phone)}
                             </div>
                           )}
                           {condominium.email && (

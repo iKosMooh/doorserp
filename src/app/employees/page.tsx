@@ -5,6 +5,8 @@ import { MainLayout } from "@/components/main-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Pagination } from "@/components/ui/pagination"
+import { formatCPF, formatPhone } from "@/lib/utils"
 import { Plus, Search, Edit, Trash2, Phone, Mail, UserCheck, Clock, Users, Briefcase, DollarSign } from "lucide-react"
 
 interface Employee {
@@ -26,14 +28,25 @@ export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(25)
+  const [totalItems, setTotalItems] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
 
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const response = await fetch('/api/employees')
+        const limitParam = itemsPerPage === 0 ? 'all' : itemsPerPage.toString()
+        const response = await fetch(`/api/employees?page=${currentPage}&limit=${limitParam}`)
         if (response.ok) {
-          const data = await response.json()
-          setEmployees(data)
+          const result = await response.json()
+          setEmployees(result.data || [])
+          if (result.pagination) {
+            setTotalItems(result.pagination.total)
+            setTotalPages(result.pagination.totalPages)
+          }
         } else {
           console.error('Erro ao buscar funcionários:', response.statusText)
           setEmployees([])
@@ -46,7 +59,7 @@ export default function EmployeesPage() {
     }
 
     fetchEmployees()
-  }, [])
+  }, [currentPage, itemsPerPage])
 
   const filteredEmployees = employees.filter(employee =>
     employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -272,7 +285,7 @@ export default function EmployeesPage() {
                     <TableCell>
                       <div className="font-medium">{employee.position}</div>
                       <div className="text-sm text-muted-foreground">
-                        {employee.documentNumber}
+                        {formatCPF(employee.documentNumber)}
                       </div>
                     </TableCell>
                     <TableCell>{employee.department}</TableCell>
@@ -285,7 +298,7 @@ export default function EmployeesPage() {
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <Phone className="h-3 w-3 text-muted-foreground" />
-                        {employee.phone}
+                        {formatPhone(employee.phone)}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -369,7 +382,11 @@ export default function EmployeesPage() {
 
                       <div className="flex items-center gap-1.5">
                         <Phone className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                        <span className="truncate">{employee.phone}</span>
+                        <span className="truncate">{formatPhone(employee.phone)}</span>
+                      </div>
+
+                      <div className="col-span-2 text-xs text-gray-500">
+                        CPF: {formatCPF(employee.documentNumber)}
                       </div>
 
                       <div className="col-span-2 text-sm font-medium text-green-600">
@@ -405,6 +422,23 @@ export default function EmployeesPage() {
               )
             })}
           </div>
+
+          {/* Pagination */}
+          {filteredEmployees.length > 0 && (
+            <div className="mt-6">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                onPageChange={(page) => setCurrentPage(page)}
+                onItemsPerPageChange={(newItemsPerPage) => {
+                  setItemsPerPage(newItemsPerPage)
+                  setCurrentPage(1)
+                }}
+              />
+            </div>
+          )}
         </>
             )}
           </CardContent>

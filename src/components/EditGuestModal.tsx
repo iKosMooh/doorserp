@@ -238,9 +238,17 @@ export function EditGuestModal({ isOpen, onClose, onSuccess, guest }: EditGuestM
               <input
                 type="text"
                 value={formData.document}
-                onChange={(e) => handleInputChange('document', e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '')
+                  let formatted = value
+                  if (value.length === 11) {
+                    formatted = value.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
+                  }
+                  handleInputChange('document', formatted)
+                }}
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="CPF, RG, etc."
+                placeholder="000.000.000-00"
+                maxLength={14}
               />
             </div>
 
@@ -251,9 +259,25 @@ export function EditGuestModal({ isOpen, onClose, onSuccess, guest }: EditGuestM
               <input
                 type="tel"
                 value={formData.phone}
-                onChange={(e) => handleInputChange('phone', e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '')
+                  let formatted = value
+                  if (value.length === 11) {
+                    formatted = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
+                  } else if (value.length === 10) {
+                    formatted = value.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3')
+                  } else if (value.length <= 2) {
+                    formatted = value
+                  } else if (value.length <= 7) {
+                    formatted = value.replace(/(\d{2})(\d+)/, '($1) $2')
+                  } else if (value.length <= 10) {
+                    formatted = value.replace(/(\d{2})(\d{4})(\d+)/, '($1) $2-$3')
+                  }
+                  handleInputChange('phone', formatted)
+                }}
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="(11) 99999-9999"
+                placeholder="(00) 00000-0000"
+                maxLength={15}
               />
             </div>
 

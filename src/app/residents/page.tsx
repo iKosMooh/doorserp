@@ -5,6 +5,7 @@ import { MainLayout } from "@/components/main-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Pagination } from "@/components/ui/pagination"
 import { CreateResidentModal } from "@/components/CreateResidentModal"
 import { EditResidentModal } from "@/components/EditResidentModal"
 import { useCondominium } from "@/contexts/CondominiumContext"
@@ -45,13 +46,20 @@ export default function ResidentsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedResident, setSelectedResident] = useState<Resident | null>(null)
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(25)
+  const [totalItems, setTotalItems] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
 
-  const fetchResidents = async (condominiumId: string) => {
+  const fetchResidents = async (condominiumId: string, page = 1, limit = 25) => {
     try {
       setLoading(true)
       setError(null)
       
-      const response = await fetch(`/api/residents?condominiumId=${condominiumId}`)
+      const limitParam = limit === 0 ? 'all' : limit.toString()
+      const response = await fetch(`/api/residents?condominiumId=${condominiumId}&page=${page}&limit=${limitParam}`)
       
       if (!response.ok) {
         throw new Error('Erro ao carregar moradores')
@@ -61,6 +69,11 @@ export default function ResidentsPage() {
       
       if (result.success) {
         setResidents(result.data)
+        if (result.pagination) {
+          setTotalItems(result.pagination.total)
+          setTotalPages(result.pagination.totalPages)
+          setCurrentPage(result.pagination.page)
+        }
       } else {
         throw new Error(result.error || 'Erro desconhecido')
       }
@@ -74,9 +87,9 @@ export default function ResidentsPage() {
 
   useEffect(() => {
     if (selectedCondominium?.id) {
-      fetchResidents(selectedCondominium.id)
+      fetchResidents(selectedCondominium.id, currentPage, itemsPerPage)
     }
-  }, [selectedCondominium])
+  }, [selectedCondominium, currentPage, itemsPerPage])
 
   const filteredResidents = residents.filter(resident =>
     resident.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -513,6 +526,23 @@ export default function ResidentsPage() {
                 )
               })}
             </div>
+
+            {/* Pagination */}
+            {filteredResidents.length > 0 && (
+              <div className="mt-6">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={totalItems}
+                  itemsPerPage={itemsPerPage}
+                  onPageChange={(page) => setCurrentPage(page)}
+                  onItemsPerPageChange={(newItemsPerPage) => {
+                    setItemsPerPage(newItemsPerPage)
+                    setCurrentPage(1) // Reset to first page when changing items per page
+                  }}
+                />
+              </div>
+            )}
           </>
             )}
           </CardContent>

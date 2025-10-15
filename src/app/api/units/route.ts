@@ -5,6 +5,10 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const condominiumId = searchParams.get('condominiumId');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = searchParams.get('limit') === 'all' 
+      ? undefined 
+      : parseInt(searchParams.get('limit') || '25');
 
     if (!condominiumId) {
       return NextResponse.json(
@@ -25,34 +29,71 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Buscar unidades do condomínio
-    const units = await prisma.unit.findMany({
-      where: {
-        condominiumId
-      },
-      include: {
-        residents: {
-          where: {
-            isActive: true
-          },
-          include: {
-            user: {
-              select: {
-                name: true
-              }
+    const where = { condominiumId };
+
+    const include = {
+      residents: {
+        where: {
+          isActive: true
+        },
+        include: {
+          user: {
+            select: {
+              name: true
             }
           }
         }
-      },
-      orderBy: [
-        { block: 'asc' },
-        { number: 'asc' }
-      ]
-    });
+      }
+    };
+
+    const orderBy = [
+      { block: 'asc' as const },
+      { number: 'asc' as const }
+    ];
+
+    // Se limit é undefined (all), buscar tudo sem paginação
+    if (limit === undefined) {
+      const units = await prisma.unit.findMany({
+        where,
+        include,
+        orderBy
+      });
+
+      return NextResponse.json({
+        success: true,
+        data: units,
+        pagination: {
+          total: units.length,
+          page: 1,
+          limit: units.length,
+          totalPages: 1
+        }
+      });
+    }
+
+    // Com paginação
+    const skip = (page - 1) * limit;
+
+    const [units, total] = await Promise.all([
+      prisma.unit.findMany({
+        where,
+        skip,
+        take: limit,
+        include,
+        orderBy
+      }),
+      prisma.unit.count({ where })
+    ]);
 
     return NextResponse.json({
       success: true,
-      data: units
+      data: units,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
     });
 
   } catch (error) {

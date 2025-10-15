@@ -8,6 +8,10 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const condominiumId = searchParams.get('condominiumId')
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = searchParams.get('limit') === 'all' 
+      ? undefined 
+      : parseInt(searchParams.get('limit') || '25')
 
     if (!condominiumId) {
       return NextResponse.json({
@@ -16,44 +20,84 @@ export async function GET(request: NextRequest) {
       }, { status: 400 })
     }
 
-    const residents = await prisma.resident.findMany({
-      where: {
-        unit: {
-          condominiumId: condominiumId
+    const where = {
+      unit: {
+        condominiumId: condominiumId
+      }
+    }
+
+    const include = {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          document: true,
+          documentType: true,
+          birthDate: true,
+          faceRecognitionEnabled: true,
+          faceRecognitionFolder: true
         }
       },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            phone: true,
-            document: true,
-            documentType: true,
-            birthDate: true,
-            faceRecognitionEnabled: true,
-            faceRecognitionFolder: true
-          }
-        },
-        unit: {
-          select: {
-            id: true,
-            block: true,
-            number: true
-          }
+      unit: {
+        select: {
+          id: true,
+          block: true,
+          number: true
         }
-      },
-      orderBy: [
-        { unit: { block: 'asc' } },
-        { unit: { number: 'asc' } },
-        { user: { name: 'asc' } }
-      ]
-    })
+      }
+    }
+
+    const orderBy = [
+      { unit: { block: 'asc' as const } },
+      { unit: { number: 'asc' as const } },
+      { user: { name: 'asc' as const } }
+    ]
+
+    // Se limit é undefined (all), buscar tudo sem paginação
+    if (limit === undefined) {
+      const residents = await prisma.resident.findMany({
+        where,
+        include,
+        orderBy
+      })
+
+      return NextResponse.json({
+        success: true,
+        data: residents,
+        pagination: {
+          total: residents.length,
+          page: 1,
+          limit: residents.length,
+          totalPages: 1
+        }
+      })
+    }
+
+    // Com paginação
+    const skip = (page - 1) * limit
+
+    const [residents, total] = await Promise.all([
+      prisma.resident.findMany({
+        where,
+        skip,
+        take: limit,
+        include,
+        orderBy
+      }),
+      prisma.resident.count({ where })
+    ])
 
     return NextResponse.json({
       success: true,
-      data: residents
+      data: residents,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
     })
 
   } catch (error) {
