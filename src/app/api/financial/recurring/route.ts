@@ -15,16 +15,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Buscar todas as unidades ativas do condomínio
-    const activeUnits = await prisma.unit.findMany({
+    const allActiveUnits = await prisma.unit.findMany({
       where: {
         condominiumId,
-        isActive: true,
-        isOccupied: true
+        isActive: true
       },
       include: {
         residents: {
           where: { isActive: true },
-          take: 1,
           include: {
             user: true
           }
@@ -32,10 +30,15 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    // Filtrar apenas unidades que têm moradores ativos (ocupadas)
+    const activeUnits = allActiveUnits.filter(unit => 
+      unit.residents && unit.residents.length > 0
+    )
+
     if (activeUnits.length === 0) {
       return NextResponse.json({
         success: false,
-        error: 'Nenhuma unidade ativa encontrada'
+        error: 'Nenhuma unidade ativa com moradores encontrada. Certifique-se de que as unidades têm moradores cadastrados e ativos.'
       }, { status: 404 })
     }
 

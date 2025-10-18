@@ -154,7 +154,7 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
         unitId: resident.unit.id,
         relationshipType: resident.relationshipType as FormData['relationshipType'],
         emergencyContact: resident.emergencyContact || '',
-        vehiclePlates: resident.vehiclePlates.length > 0 ? resident.vehiclePlates : [''],
+        vehiclePlates: resident.vehiclePlates && resident.vehiclePlates.length > 0 ? resident.vehiclePlates : [''],
         faceRecognitionEnabled: resident.user.faceRecognitionEnabled,
         isActive: resident.isActive
       })

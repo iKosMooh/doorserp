@@ -109,10 +109,13 @@ export default function UnitsPage() {
         resident.user.name.toLowerCase().includes(searchTerm.toLowerCase())
       )
 
+    // Verificar se tem moradores ativos
+    const hasActiveResidents = unit.residents && unit.residents.some(r => r.isActive)
+
     // Filtro por ocupação
     const matchesFilter = filter === "all" || 
-      (filter === "occupied" && unit.isOccupied) ||
-      (filter === "vacant" && !unit.isOccupied)
+      (filter === "occupied" && hasActiveResidents) ||
+      (filter === "vacant" && !hasActiveResidents)
 
     return matchesSearch && matchesFilter && unit.isActive
   })
@@ -139,8 +142,8 @@ export default function UnitsPage() {
 
   const stats = {
     total: units.filter(u => u.isActive).length,
-    occupied: units.filter(u => u.isActive && u.isOccupied).length,
-    vacant: units.filter(u => u.isActive && !u.isOccupied).length,
+    occupied: units.filter(u => u.isActive && u.residents && u.residents.some(r => r.isActive)).length,
+    vacant: units.filter(u => u.isActive && (!u.residents || !u.residents.some(r => r.isActive))).length,
     totalParkingSpaces: units.reduce((sum, u) => sum + u.parkingSpaces, 0)
   }
 

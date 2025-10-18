@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Pagination } from "@/components/ui/pagination"
 import { useCondominium } from "@/contexts/CondominiumContext"
 import CreateGuestModal from "@/components/CreateGuestModal"
+import { EditGuestModal } from "@/components/EditGuestModal"
 import GuestQRCodeModal from "@/components/GuestQRCodeModal"
 import { formatPhone, formatDocument } from "@/lib/utils"
 import { 
@@ -59,6 +60,7 @@ export default function GuestsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filter, setFilter] = useState<"all" | "active" | "expired">("all")
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null)
   const [isQRCodeModalOpen, setIsQRCodeModalOpen] = useState(false)
   const [currentUser, setCurrentUser] = useState<{
@@ -154,6 +156,19 @@ export default function GuestsPage() {
   const handleCloseQRCodeModal = () => {
     setIsQRCodeModalOpen(false)
     setSelectedGuest(null)
+  }
+
+  const handleEdit = (guest: Guest) => {
+    setSelectedGuest(guest)
+    setIsEditModalOpen(true)
+  }
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false)
+    setSelectedGuest(null)
+    if (selectedCondominium?.id) {
+      fetchGuests(selectedCondominium.id, currentPage, itemsPerPage)
+    }
   }
 
   useEffect(() => {
@@ -483,7 +498,11 @@ export default function GuestsPage() {
                             <QrCode className="w-4 h-4 mr-1" />
                             QR Code
                           </Button>
-                          <Button variant="outline" size="sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleEdit(guest)}
+                          >
                             Editar
                           </Button>
                         </div>
@@ -572,6 +591,7 @@ export default function GuestsPage() {
                         </Button>
                         <Button 
                           variant="outline" 
+                          onClick={() => handleEdit(guest)}
                           className="flex-1 min-h-[44px]"
                         >
                           Editar
@@ -611,6 +631,27 @@ export default function GuestsPage() {
           isOpen={isCreateModalOpen}
           onClose={handleCloseModal}
           resident={currentUser.residents[0]}
+        />
+      )}
+
+      {/* Modal de Edição de Convidado */}
+      {isEditModalOpen && selectedGuest && selectedGuest.validUntil && (
+        <EditGuestModal
+          isOpen={isEditModalOpen}
+          onClose={handleCloseEditModal}
+          onSuccess={handleCloseEditModal}
+          guest={{
+            id: selectedGuest.id,
+            name: selectedGuest.name,
+            document: selectedGuest.document || undefined,
+            phone: selectedGuest.phone || undefined,
+            validFrom: selectedGuest.validFrom,
+            validUntil: selectedGuest.validUntil,
+            accessCode: selectedGuest.accessCode,
+            currentEntries: selectedGuest.currentEntries,
+            maxEntries: selectedGuest.maxEntries,
+            isActive: selectedGuest.isActive
+          }}
         />
       )}
 

@@ -20,7 +20,7 @@ export function Pagination({
   itemsPerPage,
   onPageChange,
   onItemsPerPageChange,
-  pageSizeOptions = [25, 50, 100],
+  pageSizeOptions = [10, 15, 25, 50, 100],
   showPageInfo = true
 }: PaginationProps) {
   const startItem = (currentPage - 1) * itemsPerPage + 1
