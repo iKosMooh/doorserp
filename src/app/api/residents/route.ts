@@ -134,6 +134,7 @@ export async function POST(request: NextRequest) {
     const email = formData.get('email') as string
     const phone = formData.get('phone') as string
     const document = formData.get('document') as string
+    const birthDateString = formData.get('birthDate') as string
     const unitId = formData.get('unitId') as string
     const relationshipType = formData.get('relationshipType') as string
     const emergencyContact = formData.get('emergencyContact') as string
@@ -253,6 +254,7 @@ export async function POST(request: NextRequest) {
           email,
           phone: phone || null,
           document: document || null,
+          birthDate: birthDateString ? new Date(birthDateString) : null,
           password: hashedPassword,
           faceRecognitionEnabled,
           faceRecognitionFolder: faceRecognitionFolder,

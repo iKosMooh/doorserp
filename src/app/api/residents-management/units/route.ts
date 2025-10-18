@@ -69,7 +69,10 @@ export async function GET(request: NextRequest) {
             email: true,
             phone: true,
             document: true,
+            documentType: true,
+            birthDate: true,
             faceRecognitionEnabled: true,
+            faceRecognitionFolder: true,
             lastLogin: true
           }
         },

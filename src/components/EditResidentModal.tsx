@@ -146,13 +146,42 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
         faceRecognitionFolderType: typeof resident.user.faceRecognitionFolder
       })
       
+      // Processar data de nascimento de forma mais robusta
+      let birthDateFormatted = ''
+      if (resident.user.birthDate) {
+        try {
+          // Extrair apenas a parte da data (YYYY-MM-DD) sem conversão de timezone
+          const dateString = resident.user.birthDate.toString()
+          if (dateString.includes('T')) {
+            // Se vier no formato ISO (2005-07-07T00:00:00.000Z), pegar só a parte da data
+            birthDateFormatted = dateString.split('T')[0]
+          } else {
+            // Se vier em outro formato, tentar converter
+            const date = new Date(resident.user.birthDate)
+            if (!isNaN(date.getTime())) {
+              // Usar UTC para evitar problema de timezone
+              const year = date.getUTCFullYear()
+              const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+              const day = String(date.getUTCDate()).padStart(2, '0')
+              birthDateFormatted = `${year}-${month}-${day}`
+            }
+          }
+          console.log('📅 Data convertida:', {
+            original: resident.user.birthDate,
+            converted: birthDateFormatted
+          })
+        } catch (error) {
+          console.error('❌ Erro ao processar data de nascimento:', error)
+        }
+      }
+      
       setFormData({
         name: resident.user.name,
         email: resident.user.email,
         phone: resident.user.phone || '',
         document: resident.user.document || '',
         documentType: (resident.user.documentType as FormData['documentType']) || 'CPF',
-        birthDate: resident.user.birthDate ? new Date(resident.user.birthDate).toISOString().split('T')[0] : '',
+        birthDate: birthDateFormatted,
         unitId: resident.unit.id,
         relationshipType: resident.relationshipType as FormData['relationshipType'],
         emergencyContact: resident.emergencyContact || '',
@@ -161,9 +190,8 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
         isActive: resident.isActive
       })
       
-      console.log('📝 FormData setado:', {
-        birthDate: resident.user.birthDate ? new Date(resident.user.birthDate).toISOString().split('T')[0] : '',
-        birthDateOriginal: resident.user.birthDate,
+      console.log('📝 FormData final:', {
+        birthDate: birthDateFormatted,
         vehiclePlates: resident.vehiclePlates,
         vehiclePlatesType: typeof resident.vehiclePlates,
         isArray: Array.isArray(resident.vehiclePlates)

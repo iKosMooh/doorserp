@@ -27,9 +27,48 @@ export async function GET(
     const resident = await prisma.resident.findUnique({
       where: { id },
       include: {
-        user: true,
-        unit: true,
-        condominium: true
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            document: true,
+            documentType: true,
+            birthDate: true,
+            faceRecognitionEnabled: true,
+            faceRecognitionFolder: true,
+            lastLogin: true
+          }
+        },
+        unit: {
+          select: {
+            id: true,
+            block: true,
+            number: true,
+            floor: true
+          }
+        },
+        condominium: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
+        guests: {
+          select: {
+            id: true,
+            name: true,
+            validFrom: true,
+            validUntil: true,
+            accessCode: true,
+            currentEntries: true,
+            maxEntries: true,
+            isActive: true,
+            faceRecognitionEnabled: true,
+            faceRecognitionFolder: true
+          }
+        }
       }
     })
 
@@ -76,15 +115,22 @@ export async function PUT(
     }
 
     // Extrair dados do formData
+    const birthDateString = formData.get('birthDate') as string
     const userData = {
       name: formData.get('name') as string,
       email: formData.get('email') as string,
       phone: formData.get('phone') as string || null,
       document: formData.get('document') as string || null,
       documentType: formData.get('documentType') as 'CPF' | 'RG' | 'CNH' | 'PASSPORT' || 'CPF',
-      birthDate: formData.get('birthDate') ? new Date(formData.get('birthDate') as string) : null,
+      birthDate: birthDateString ? new Date(birthDateString) : null,
       faceRecognitionEnabled: formData.get('faceRecognitionEnabled') === 'true'
     }
+
+    console.log('📅 Atualizando usuário com birthDate:', {
+      birthDateString,
+      birthDateObject: userData.birthDate,
+      userId: existingResident.userId
+    })
 
     const residentData = {
       unitId: formData.get('unitId') as string,
@@ -146,6 +192,8 @@ export async function PUT(
       }
 
       if (faceImages.length > 0) {
+        console.log(`📸 Processando ${faceImages.length} novas imagens de reconhecimento facial`)
+        
         // Criar pasta se não existir
         if (!faceRecognitionFolder) {
           faceRecognitionFolder = `${userData.name.replace(/\s+/g, '_')}_${Date.now()}`
@@ -153,24 +201,38 @@ export async function PUT(
 
         const labelsPath = path.join(process.cwd(), 'public', 'assets', 'lib', 'face-api', 'labels', faceRecognitionFolder)
         
-        if (!fs.existsSync(labelsPath)) {
+        // Se a pasta já existe, EXCLUIR todas as imagens antigas primeiro
+        if (fs.existsSync(labelsPath)) {
+          console.log('🗑️ Removendo imagens antigas da pasta')
+          const files = fs.readdirSync(labelsPath)
+          files.forEach(file => {
+            fs.unlinkSync(path.join(labelsPath, file))
+          })
+        } else {
+          // Criar pasta se não existir
           fs.mkdirSync(labelsPath, { recursive: true })
         }
 
-        // Salvar novas imagens (adicionar às existentes)
+        // Salvar APENAS as novas imagens (substituindo as antigas)
         for (let i = 0; i < faceImages.length; i++) {
           const file = faceImages[i]
           const buffer = Buffer.from(await file.arrayBuffer())
-          const fileName = `${faceModelsCount + i + 1}.jpg`
+          const fileName = `${i + 1}.jpg` // Começar do 1 novamente
           const filePath = path.join(labelsPath, fileName)
           fs.writeFileSync(filePath, buffer)
+          console.log(`✅ Imagem ${i + 1} salva: ${fileName}`)
         }
 
-        faceModelsCount += faceImages.length
+        // Atualizar contagem para o número de novas imagens
+        faceModelsCount = faceImages.length
+        console.log(`📊 Total de imagens atualizadas: ${faceModelsCount}`)
+      } else {
+        console.log('ℹ️ Nenhuma nova imagem enviada, mantendo as existentes')
       }
     } else {
       // Se reconhecimento facial foi desabilitado, excluir pasta
       if (faceRecognitionFolder) {
+        console.log('🗑️ Reconhecimento facial desabilitado, removendo pasta')
         deleteFaceRecognitionFolder(faceRecognitionFolder)
         faceRecognitionFolder = null
         faceModelsCount = 0
@@ -179,15 +241,27 @@ export async function PUT(
 
     // Atualizar dados em transação
     const updatedResident = await prisma.$transaction(async (tx) => {
-      // Atualizar usuário
+      // Preparar dados para atualização do usuário
+      const userUpdateData = {
+        ...userData,
+        faceRecognitionFolder,
+        faceModelsCount,
+        lastFaceTraining: faceModelsCount > 0 ? new Date() : null
+      }
+
+      console.log('💾 Dados que serão salvos na tabela USERS:', {
+        userId: existingResident.userId,
+        name: userUpdateData.name,
+        email: userUpdateData.email,
+        birthDate: userUpdateData.birthDate,
+        birthDateType: typeof userUpdateData.birthDate,
+        birthDateISO: userUpdateData.birthDate?.toISOString()
+      })
+
+      // Atualizar usuário na tabela USERS
       await tx.user.update({
         where: { id: existingResident.userId },
-        data: {
-          ...userData,
-          faceRecognitionFolder,
-          faceModelsCount,
-          lastFaceTraining: faceModelsCount > 0 ? new Date() : null
-        }
+        data: userUpdateData
       })
 
       // Atualizar morador
