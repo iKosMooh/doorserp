@@ -138,6 +138,8 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
       console.log('👤 Carregando dados completos do morador:', JSON.stringify(resident, null, 2))
       console.log('🔍 Detalhes específicos:', {
         name: resident.user.name,
+        birthDate: resident.user.birthDate,
+        birthDateType: typeof resident.user.birthDate,
         faceRecognitionEnabled: resident.user.faceRecognitionEnabled,
         faceRecognitionFolder: resident.user.faceRecognitionFolder,
         hasFaceRecognitionFolder: !!resident.user.faceRecognitionFolder,
@@ -154,9 +156,17 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
         unitId: resident.unit.id,
         relationshipType: resident.relationshipType as FormData['relationshipType'],
         emergencyContact: resident.emergencyContact || '',
-        vehiclePlates: resident.vehiclePlates && resident.vehiclePlates.length > 0 ? resident.vehiclePlates : [''],
+        vehiclePlates: Array.isArray(resident.vehiclePlates) && resident.vehiclePlates.length > 0 ? resident.vehiclePlates : [''],
         faceRecognitionEnabled: resident.user.faceRecognitionEnabled,
         isActive: resident.isActive
+      })
+      
+      console.log('📝 FormData setado:', {
+        birthDate: resident.user.birthDate ? new Date(resident.user.birthDate).toISOString().split('T')[0] : '',
+        birthDateOriginal: resident.user.birthDate,
+        vehiclePlates: resident.vehiclePlates,
+        vehiclePlatesType: typeof resident.vehiclePlates,
+        isArray: Array.isArray(resident.vehiclePlates)
       })
       
       // Load existing face images

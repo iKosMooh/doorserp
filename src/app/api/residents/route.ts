@@ -63,9 +63,17 @@ export async function GET(request: NextRequest) {
         orderBy
       })
 
+      // Processar vehiclePlates de JSON para array
+      const processedResidents = residents.map(resident => ({
+        ...resident,
+        vehiclePlates: resident.vehiclePlates 
+          ? JSON.parse(resident.vehiclePlates) 
+          : []
+      }))
+
       return NextResponse.json({
         success: true,
-        data: residents,
+        data: processedResidents,
         pagination: {
           total: residents.length,
           page: 1,
@@ -89,9 +97,17 @@ export async function GET(request: NextRequest) {
       prisma.resident.count({ where })
     ])
 
+    // Processar vehiclePlates de JSON para array
+    const processedResidents = residents.map(resident => ({
+      ...resident,
+      vehiclePlates: resident.vehiclePlates 
+        ? JSON.parse(resident.vehiclePlates) 
+        : []
+    }))
+
     return NextResponse.json({
       success: true,
-      data: residents,
+      data: processedResidents,
       pagination: {
         total,
         page,
