@@ -53,6 +53,10 @@ export default function UnitsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filter, setFilter] = useState<"all" | "occupied" | "vacant">("all")
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showViewModal, setShowViewModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null)
+  const [showUpdateFeeModal, setShowUpdateFeeModal] = useState(false)
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
@@ -142,7 +146,39 @@ export default function UnitsPage() {
 
   const handleCreateSuccess = () => {
     if (selectedCondominium?.id) {
-      fetchUnits(selectedCondominium.id)
+      fetchUnits(selectedCondominium.id, currentPage, itemsPerPage)
+    }
+  }
+
+  const handleView = (unit: Unit) => {
+    setSelectedUnit(unit)
+    setShowViewModal(true)
+  }
+
+  const handleEdit = (unit: Unit) => {
+    setSelectedUnit(unit)
+    setShowEditModal(true)
+  }
+
+  const handleUpdateFee = async (unitId: string, newFee: number) => {
+    try {
+      const response = await fetch(`/api/units/${unitId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ monthlyFee: newFee })
+      })
+
+      if (!response.ok) {
+        throw new Error('Erro ao atualizar taxa')
+      }
+
+      // Recarregar unidades
+      if (selectedCondominium?.id) {
+        fetchUnits(selectedCondominium.id, currentPage, itemsPerPage)
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar taxa:', error)
+      alert('Erro ao atualizar taxa da unidade')
     }
   }
 
@@ -180,13 +216,23 @@ export default function UnitsPage() {
               Gerencie as unidades de {selectedCondominium.name}
             </p>
           </div>
-          <Button 
-            className="w-full sm:w-auto bg-green-600 hover:bg-green-700 min-h-[44px] px-6"
-            onClick={() => setShowCreateModal(true)}
-          >
-            <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-            Nova Unidade
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              className="w-full sm:w-auto min-h-[44px] px-6"
+              onClick={() => setShowUpdateFeeModal(true)}
+            >
+              <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+              Atualizar Taxa
+            </Button>
+            <Button 
+              className="w-full sm:w-auto bg-green-600 hover:bg-green-700 min-h-[44px] px-6"
+              onClick={() => setShowCreateModal(true)}
+            >
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+              Nova Unidade
+            </Button>
+          </div>
         </div>
 
         {/* Estatísticas */}
@@ -404,11 +450,11 @@ export default function UnitsPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" onClick={() => handleView(unit)}>
                             <Eye className="w-3 h-3 mr-1" />
                             Ver
                           </Button>
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" onClick={() => handleEdit(unit)}>
                             <Edit className="w-3 h-3 mr-1" />
                             Editar
                           </Button>
@@ -482,11 +528,11 @@ export default function UnitsPage() {
                           R$ {unit.monthlyFee.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </div>
                         <div className="flex gap-2">
-                          <Button variant="outline" size="sm" className="min-h-[36px]">
+                          <Button variant="outline" size="sm" className="min-h-[36px]" onClick={() => handleView(unit)}>
                             <Eye className="w-3 h-3 mr-1" />
                             Ver
                           </Button>
-                          <Button variant="outline" size="sm" className="min-h-[36px]">
+                          <Button variant="outline" size="sm" className="min-h-[36px]" onClick={() => handleEdit(unit)}>
                             <Edit className="w-3 h-3 mr-1" />
                             Editar
                           </Button>
@@ -524,6 +570,261 @@ export default function UnitsPage() {
           onClose={() => setShowCreateModal(false)}
           onSuccess={handleCreateSuccess}
         />
+
+        {/* Modal de Visualização */}
+        {showViewModal && selectedUnit && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold">Detalhes da Unidade</h2>
+                  <Button variant="outline" size="sm" onClick={() => setShowViewModal(false)}>
+                    ✕
+                  </Button>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Bloco/Torre</label>
+                      <p className="text-lg font-semibold">{selectedUnit.block}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Número</label>
+                      <p className="text-lg font-semibold">{selectedUnit.number}</p>
+                    </div>
+                    {selectedUnit.floor && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Andar</label>
+                        <p className="text-lg">{selectedUnit.floor}</p>
+                      </div>
+                    )}
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Tipo</label>
+                      <p className="text-lg">{getUnitTypeLabel(selectedUnit.unitType)}</p>
+                    </div>
+                    {selectedUnit.area && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Área (m²)</label>
+                        <p className="text-lg">{Number(selectedUnit.area).toFixed(2)}</p>
+                      </div>
+                    )}
+                    {selectedUnit.bedrooms && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Quartos</label>
+                        <p className="text-lg">{selectedUnit.bedrooms}</p>
+                      </div>
+                    )}
+                    {selectedUnit.bathrooms && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Banheiros</label>
+                        <p className="text-lg">{selectedUnit.bathrooms}</p>
+                      </div>
+                    )}
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Vagas</label>
+                      <p className="text-lg">{selectedUnit.parkingSpaces}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Taxa Mensal</label>
+                      <p className="text-lg font-semibold text-green-600">
+                        R$ {Number(selectedUnit.monthlyFee).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Status</label>
+                      <p className="text-lg">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                          selectedUnit.isOccupied ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                        }`}>
+                          {selectedUnit.isOccupied ? 'Ocupada' : 'Vaga'}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+
+                  {selectedUnit.residents && selectedUnit.residents.length > 0 && (
+                    <div className="pt-4 border-t">
+                      <label className="text-sm font-medium text-gray-500 block mb-2">Moradores</label>
+                      <div className="space-y-2">
+                        {selectedUnit.residents.map((resident, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                            <div>
+                              <p className="font-medium">{resident.user.name}</p>
+                              <p className="text-sm text-gray-500">{getRelationshipLabel(resident.relationshipType)}</p>
+                            </div>
+                            <span className={`px-2 py-1 rounded text-xs ${
+                              resident.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {resident.isActive ? 'Ativo' : 'Inativo'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Edição */}
+        {showEditModal && selectedUnit && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg max-w-md w-full">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold">Editar Taxa Mensal</h2>
+                  <Button variant="outline" size="sm" onClick={() => setShowEditModal(false)}>
+                    ✕
+                  </Button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Unidade: {selectedUnit.block}/{selectedUnit.number}
+                    </label>
+                    <div className="relative">
+                      <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        defaultValue={Number(selectedUnit.monthlyFee)}
+                        id="newFee"
+                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => setShowEditModal(false)}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      className="flex-1"
+                      onClick={() => {
+                        const input = document.getElementById('newFee') as HTMLInputElement
+                        const newFee = parseFloat(input.value)
+                        if (newFee && newFee > 0) {
+                          handleUpdateFee(selectedUnit.id, newFee)
+                          setShowEditModal(false)
+                        } else {
+                          alert('Digite um valor válido')
+                        }
+                      }}
+                    >
+                      Salvar
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Atualização em Massa */}
+        {showUpdateFeeModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg max-w-md w-full">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold">Atualizar Taxa em Massa</h2>
+                  <Button variant="outline" size="sm" onClick={() => setShowUpdateFeeModal(false)}>
+                    ✕
+                  </Button>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <p className="text-sm text-yellow-800">
+                      Esta ação atualizará a taxa mensal de <strong>todas as unidades ativas</strong> deste condomínio.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nova Taxa Mensal (R$)
+                    </label>
+                    <div className="relative">
+                      <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        id="massUpdateFee"
+                        placeholder="0,00"
+                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => setShowUpdateFeeModal(false)}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      className="flex-1"
+                      onClick={async () => {
+                        const input = document.getElementById('massUpdateFee') as HTMLInputElement
+                        const newFee = parseFloat(input.value)
+                        
+                        if (!newFee || newFee <= 0) {
+                          alert('Digite um valor válido')
+                          return
+                        }
+
+                        if (!confirm(`Confirma atualizar a taxa de todas as unidades ativas para R$ ${newFee.toFixed(2)}?`)) {
+                          return
+                        }
+
+                        try {
+                          const response = await fetch('/api/financial/recurring', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              condominiumId: selectedCondominium?.id,
+                              newAmount: newFee,
+                              updateType: 'units',
+                              userId: 'system' // TODO: pegar do auth context
+                            })
+                          })
+
+                          const result = await response.json()
+
+                          if (result.success) {
+                            alert(`✅ ${result.message}`)
+                            setShowUpdateFeeModal(false)
+                            if (selectedCondominium?.id) {
+                              fetchUnits(selectedCondominium.id, currentPage, itemsPerPage)
+                            }
+                          } else {
+                            alert(`❌ ${result.error}`)
+                          }
+                        } catch (error) {
+                          console.error('Erro ao atualizar taxas:', error)
+                          alert('Erro ao atualizar taxas em massa')
+                        }
+                      }}
+                    >
+                      Atualizar Todas
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </MainLayout>
   )

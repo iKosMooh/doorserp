@@ -188,17 +188,19 @@ export default function FinancialPage() {
       })
       
       if (response.ok) {
-        const data = await response.json()
-        if (selectedEntry) {
-          setEntries(entries.map(e => e.id === selectedEntry.id ? data : e))
-        } else {
-          setEntries([...entries, data])
+        // Recarregar todos os dados para garantir consistência
+        const refreshResponse = await fetch('/api/financial')
+        if (refreshResponse.ok) {
+          const refreshedData = await refreshResponse.json()
+          setEntries(refreshedData)
         }
+        
         setShowAddModal(false)
         setShowEditModal(false)
         alert(`✅ Entrada ${selectedEntry ? 'atualizada' : 'criada'} com sucesso!`)
       } else {
-        alert('❌ Erro ao salvar entrada')
+        const errorData = await response.json()
+        alert(`❌ Erro ao salvar entrada: ${errorData.error || 'Erro desconhecido'}`)
       }
     } catch (error) {
       console.error('Erro ao salvar:', error)
