@@ -189,7 +189,7 @@ export default function UnitsPage() {
     return (
       <MainLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="text-lg">Carregando condomínios...</div>
+          <div className="text-lg text-black">Carregando condomínios...</div>
         </div>
       </MainLayout>
     )
@@ -214,8 +214,8 @@ export default function UnitsPage() {
       <div className="space-y-4 sm:space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Unidades</h1>
-            <p className="text-sm sm:text-base text-muted-foreground mt-1">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-black">Unidades</h1>
+            <p className="text-sm sm:text-base text-muted-foreground mt-1 text-black">
               Gerencie as unidades de {selectedCondominium.name}
             </p>
           </div>
@@ -225,14 +225,14 @@ export default function UnitsPage() {
               className="w-full sm:w-auto min-h-[44px] px-6"
               onClick={() => setShowUpdateFeeModal(true)}
             >
-              <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+              <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-black" />
               Atualizar Taxa
             </Button>
             <Button 
               className="w-full sm:w-auto bg-green-600 hover:bg-green-700 min-h-[44px] px-6"
               onClick={() => setShowCreateModal(true)}
             >
-              <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-black" />
               Nova Unidade
             </Button>
           </div>
@@ -242,23 +242,23 @@ export default function UnitsPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium">Total</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium text-black">Total</CardTitle>
               <Building className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl sm:text-2xl font-bold">{stats.total}</div>
-              <p className="text-xs text-muted-foreground">Unidades</p>
+              <div className="text-xl sm:text-2xl font-bold text-black">{stats.total}</div>
+              <p className="text-xs text-muted-foreground text-black">Unidades</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium">Ocupadas</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium text-black">Ocupadas</CardTitle>
               <Users className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
             </CardHeader>
             <CardContent>
               <div className="text-xl sm:text-2xl font-bold text-green-600">{stats.occupied}</div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground text-black">
                 {stats.total > 0 ? Math.round((stats.occupied / stats.total) * 100) : 0}% ocupação
               </p>
             </CardContent>
@@ -266,12 +266,12 @@ export default function UnitsPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium">Vagas</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium text-black">Vagas</CardTitle>
               <Home className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
             </CardHeader>
             <CardContent>
               <div className="text-xl sm:text-2xl font-bold text-blue-600">{stats.vacant}</div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground text-black">
                 Disponíveis
               </p>
             </CardContent>
@@ -284,7 +284,7 @@ export default function UnitsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-xl sm:text-2xl font-bold text-purple-600">{stats.totalParkingSpaces}</div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground text-black">
                 Total
               </p>
             </CardContent>
@@ -305,7 +305,7 @@ export default function UnitsPage() {
                     placeholder="Buscar por bloco/número ou morador..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 sm:pl-11 w-full min-h-[44px] px-3 py-2.5 sm:py-2 text-base sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="pl-10 sm:pl-11 w-full text-black min-h-[44px] px-3 py-2.5 sm:py-2 text-base sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
               </div>
@@ -342,20 +342,20 @@ export default function UnitsPage() {
         {/* Lista de unidades */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg sm:text-xl">Lista de Unidades</CardTitle>
-            <CardDescription className="text-sm sm:text-base">
+            <CardTitle className="text-lg sm:text-xl text-black">Lista de Unidades</CardTitle>
+            <CardDescription className="text-sm sm:text-base text-black">
               {filteredUnits.length} unidade(s) encontrada(s)
             </CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
               <div className="text-center py-8">
-                <div className="text-base sm:text-lg">Carregando unidades...</div>
+                <div className="text-base sm:text-lg text-black">Carregando unidades...</div>
               </div>
             ) : error ? (
               <div className="text-center py-8">
                 <div className="text-red-600 mb-4 text-sm sm:text-base">{error}</div>
-                <Button onClick={() => fetchUnits(selectedCondominium.id)} className="min-h-[44px] px-6">
+                <Button onClick={() => fetchUnits(selectedCondominium.id)} className="min-h-[44px] px-6 text-black">
                   Tentar novamente
                 </Button>
               </div>
@@ -371,7 +371,7 @@ export default function UnitsPage() {
             ) : (
               <>
                 {/* Desktop/Tablet: Tabela */}
-                <div className="hidden md:block overflow-x-auto -mx-6 px-6">
+                <div className="hidden md:block overflow-x-auto text-black -mx-6 px-6">
                   <Table>
                 <TableHeader>
                   <TableRow>
@@ -580,7 +580,7 @@ export default function UnitsPage() {
             <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold">Detalhes da Unidade</h2>
+                  <h2 className="text-2xl font-bold text-black">Detalhes da Unidade</h2>
                   <Button variant="outline" size="sm" onClick={() => setShowViewModal(false)}>
                     ✕
                   </Button>
@@ -590,43 +590,43 @@ export default function UnitsPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm font-medium text-gray-500">Bloco/Torre</label>
-                      <p className="text-lg font-semibold">{selectedUnit.block}</p>
+                      <p className="text-lg font-semibold text-black">{selectedUnit.block}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Número</label>
-                      <p className="text-lg font-semibold">{selectedUnit.number}</p>
+                      <label className="text-sm font-medium text-gray-500 ">Número</label>
+                      <p className="text-lg font-semibold text-black">{selectedUnit.number}</p>
                     </div>
                     {selectedUnit.floor && (
                       <div>
                         <label className="text-sm font-medium text-gray-500">Andar</label>
-                        <p className="text-lg">{selectedUnit.floor}</p>
+                        <p className="text-lg text-black">{selectedUnit.floor}</p>
                       </div>
                     )}
                     <div>
                       <label className="text-sm font-medium text-gray-500">Tipo</label>
-                      <p className="text-lg">{getUnitTypeLabel(selectedUnit.unitType)}</p>
+                      <p className="text-lg text-black">{getUnitTypeLabel(selectedUnit.unitType)}</p>
                     </div>
                     {selectedUnit.area && (
                       <div>
                         <label className="text-sm font-medium text-gray-500">Área (m²)</label>
-                        <p className="text-lg">{Number(selectedUnit.area).toFixed(2)}</p>
+                        <p className="text-lg text-black">{Number(selectedUnit.area).toFixed(2)}</p>
                       </div>
                     )}
                     {selectedUnit.bedrooms && (
                       <div>
                         <label className="text-sm font-medium text-gray-500">Quartos</label>
-                        <p className="text-lg">{selectedUnit.bedrooms}</p>
+                        <p className="text-lg text-black">{selectedUnit.bedrooms}</p>
                       </div>
                     )}
                     {selectedUnit.bathrooms && (
                       <div>
                         <label className="text-sm font-medium text-gray-500">Banheiros</label>
-                        <p className="text-lg">{selectedUnit.bathrooms}</p>
+                        <p className="text-lg text-black">{selectedUnit.bathrooms}</p>
                       </div>
                     )}
                     <div>
                       <label className="text-sm font-medium text-gray-500">Vagas</label>
-                      <p className="text-lg">{selectedUnit.parkingSpaces}</p>
+                      <p className="text-lg text-black">{selectedUnit.parkingSpaces}</p>
                     </div>
                     <div>
                       <label className="text-sm font-medium text-gray-500">Taxa Mensal</label>
@@ -678,7 +678,7 @@ export default function UnitsPage() {
             <div className="bg-white rounded-lg max-w-md w-full">
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold">Editar Taxa Mensal</h2>
+                  <h2 className="text-2xl font-bold text-black">Editar Taxa Mensal</h2>
                   <Button variant="outline" size="sm" onClick={() => setShowEditModal(false)}>
                     ✕
                   </Button>
@@ -697,7 +697,7 @@ export default function UnitsPage() {
                         min="0"
                         defaultValue={Number(selectedUnit.monthlyFee)}
                         id="newFee"
-                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full pl-10 pr-3 text-black py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
                   </div>
@@ -738,7 +738,7 @@ export default function UnitsPage() {
             <div className="bg-white rounded-lg max-w-md w-full">
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold">Atualizar Taxa em Massa</h2>
+                  <h2 className="text-2xl font-bold text-black">Atualizar Taxa em Massa</h2>
                   <Button variant="outline" size="sm" onClick={() => setShowUpdateFeeModal(false)}>
                     ✕
                   </Button>
@@ -763,7 +763,7 @@ export default function UnitsPage() {
                         min="0"
                         id="massUpdateFee"
                         placeholder="0,00"
-                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full pl-10 pr-3 py-2 text-black border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
                   </div>

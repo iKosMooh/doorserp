@@ -145,7 +145,7 @@ export function CreateUnitModal({ isOpen, onClose, onSuccess }: CreateUnitModalP
               onChange={handleInputChange}
               required
               placeholder="Ex: A, B, Torre 1"
-              className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px] text-base sm:text-sm"
+              className="w-full px-4 py-3 sm:py-2 border text-black border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px] text-base sm:text-sm"
             />
           </div>
 
@@ -161,7 +161,7 @@ export function CreateUnitModal({ isOpen, onClose, onSuccess }: CreateUnitModalP
               onChange={handleInputChange}
               required
               placeholder="Ex: 101, 201, 1A"
-              className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px] text-base sm:text-sm"
+              className="w-full px-4 py-3 sm:py-2 border text-black border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px] text-base sm:text-sm"
             />
           </div>
         </div>
@@ -177,7 +177,7 @@ export function CreateUnitModal({ isOpen, onClose, onSuccess }: CreateUnitModalP
               value={formData.unitType}
               onChange={handleInputChange}
               required
-              className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px] text-base sm:text-sm"
+              className="w-full px-4 py-3 sm:py-2 border text-black border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px] text-base sm:text-sm"
             >
               <option value="APARTMENT">Apartamento</option>
               <option value="HOUSE">Casa</option>
@@ -197,7 +197,7 @@ export function CreateUnitModal({ isOpen, onClose, onSuccess }: CreateUnitModalP
               value={formData.floor}
               onChange={handleInputChange}
               placeholder="Ex: 1, 2, 10"
-              className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px] text-base sm:text-sm"
+              className="w-full px-4 py-3 sm:py-2 border text-black border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px] text-base sm:text-sm"
             />
           </div>
         </div>
@@ -216,7 +216,7 @@ export function CreateUnitModal({ isOpen, onClose, onSuccess }: CreateUnitModalP
               value={formData.area}
               onChange={handleInputChange}
               placeholder="Ex: 65.5"
-              className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px] text-base sm:text-sm"
+              className="w-full px-4 py-3 sm:py-2 border text-black border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px] text-base sm:text-sm"
             />
           </div>
 
@@ -231,7 +231,7 @@ export function CreateUnitModal({ isOpen, onClose, onSuccess }: CreateUnitModalP
               value={formData.bedrooms}
               onChange={handleInputChange}
               placeholder="Ex: 2"
-              className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px] text-base sm:text-sm"
+              className="w-full px-4 py-3 sm:py-2 border text-black border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px] text-base sm:text-sm"
             />
           </div>
 
@@ -246,7 +246,7 @@ export function CreateUnitModal({ isOpen, onClose, onSuccess }: CreateUnitModalP
               value={formData.bathrooms}
               onChange={handleInputChange}
               placeholder="Ex: 2"
-              className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px] text-base sm:text-sm"
+              className="w-full px-4 py-3 sm:py-2 border text-black border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px] text-base sm:text-sm"
             />
           </div>
         </div>
@@ -265,7 +265,7 @@ export function CreateUnitModal({ isOpen, onClose, onSuccess }: CreateUnitModalP
               onChange={handleInputChange}
               min="0"
               placeholder="Ex: 1"
-              className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px] text-base sm:text-sm"
+              className="w-full px-4 py-3 sm:py-2 border text-black border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px] text-base sm:text-sm"
             />
           </div>
 
@@ -282,7 +282,7 @@ export function CreateUnitModal({ isOpen, onClose, onSuccess }: CreateUnitModalP
               onChange={handleInputChange}
               min="0"
               placeholder="Ex: 450.00"
-              className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px] text-base sm:text-sm"
+              className="w-full px-4 py-3 sm:py-2 border text-black border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px] text-base sm:text-sm"
             />
           </div>
         </div>
