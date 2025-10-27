@@ -472,39 +472,39 @@ export function CreateResidentModal({ isOpen, onClose, onSuccess }: CreateReside
 
   const renderStep1 = () => (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold flex items-center gap-2">
+      <h3 className="text-lg font-semibold flex items- text-black gap-2">
         <User className="w-5 h-5" />
         Dados Pessoais
       </h3>
       
       <div className="grid grid-cols-2 gap-4">
         <div className="col-span-2">
-          <label className="block text-sm font-medium mb-1">Nome Completo *</label>
+          <label className="block text-sm font-medium mb-1 text-black">Nome Completo *</label>
           <input
             type="text"
             value={formData.name}
             onChange={(e) => handleInputChange('name', e.target.value)}
-            className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
+            className="w-full px-4 py-3 sm:py-2 border text-black border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
             placeholder="Nome completo do morador"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Email *</label>
+          <label className="block text-sm font-medium mb-1 text-black">Email *</label>
           <div className="relative">
             <Mail className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
             <input
               type="email"
               value={formData.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
-              className="w-full pl-8 px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
+              className="w-full pl-8 px-4 py-3 sm:py-2  text-black border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
               placeholder="email@exemplo.com"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Telefone *</label>
+          <label className="block text-sm font-medium mb-1 text-black">Telefone *</label>
           <div className="relative">
             <Phone className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
             <input
@@ -526,7 +526,7 @@ export function CreateResidentModal({ isOpen, onClose, onSuccess }: CreateReside
                 }
                 handleInputChange('phone', formatted)
               }}
-              className="w-full pl-8 px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
+              className="w-full pl-8 px-4 py-3 sm:py-2 text-black border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
               placeholder="(00) 00000-0000"
               maxLength={15}
             />
@@ -534,11 +534,11 @@ export function CreateResidentModal({ isOpen, onClose, onSuccess }: CreateReside
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Tipo de Documento</label>
+          <label className="block text-sm font-medium mb-1 text-black">Tipo de Documento</label>
           <select
             value={formData.documentType}
             onChange={(e) => handleInputChange('documentType', e.target.value)}
-            className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
+            className="w-full px-4 py-3 sm:py-2 border text-black border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
           >
             <option value="CPF">CPF</option>
             <option value="RG">RG</option>
@@ -548,7 +548,7 @@ export function CreateResidentModal({ isOpen, onClose, onSuccess }: CreateReside
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Número do Documento *</label>
+          <label className="block text-sm font-medium mb-1 text-black">Número do Documento *</label>
           <div className="relative">
             <FileText className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
             <input
@@ -564,7 +564,7 @@ export function CreateResidentModal({ isOpen, onClose, onSuccess }: CreateReside
                 }
                 handleInputChange('document', formatted)
               }}
-              className="w-full pl-8 px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
+              className="w-full pl-8 px-4 py-3 sm:py-2 border text-black border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
               placeholder={formData.documentType === 'CPF' ? '000.000.000-00' : 'Número do documento'}
               maxLength={formData.documentType === 'CPF' ? 14 : 20}
             />
@@ -572,20 +572,20 @@ export function CreateResidentModal({ isOpen, onClose, onSuccess }: CreateReside
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Data de Nascimento</label>
+          <label className="block text-sm font-medium mb-1 text-black">Data de Nascimento</label>
           <div className="relative">
             <Calendar className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
             <input
               type="date"
               value={formData.birthDate}
               onChange={(e) => handleInputChange('birthDate', e.target.value)}
-              className="w-full pl-8 px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
+              className="w-full pl-8 px-4 py-3 sm:py-2  text-black border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Contato de Emergência</label>
+          <label className="block text-sm font-medium mb-1 text-black">Contato de Emergência</label>
           <div className="relative">
             <Phone className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
             <input
@@ -607,7 +607,7 @@ export function CreateResidentModal({ isOpen, onClose, onSuccess }: CreateReside
                 }
                 handleInputChange('emergencyContact', formatted)
               }}
-              className="w-full pl-8 px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
+              className="w-full pl-8 px-4 py-3 text-black sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
               placeholder="(00) 00000-0000"
               maxLength={15}
             />
@@ -619,21 +619,21 @@ export function CreateResidentModal({ isOpen, onClose, onSuccess }: CreateReside
 
   const renderStep2 = () => (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold flex items-center gap-2">
-        <Building className="w-5 h-5" />
+      <h3 className="text-lg font-semibold flex items-center text-black gap-2">
+        <Building className="w-5 h-5 text-black" />
         Informações da Unidade
       </h3>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="col-span-2">
-          <label className="block text-sm font-medium mb-1">Unidade *</label>
+          <label className="block text-sm font-medium mb-1 text-black">Unidade *</label>
           {loadingUnits ? (
             <div className="p-2 text-gray-500">Carregando unidades...</div>
           ) : (
             <select
               value={formData.unitId}
               onChange={(e) => handleInputChange('unitId', e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 border text-black border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="">Selecione uma unidade</option>
               {units.filter(unit => !unit.isOccupied).map(unit => (
@@ -646,11 +646,11 @@ export function CreateResidentModal({ isOpen, onClose, onSuccess }: CreateReside
         </div>
 
         <div className="col-span-2">
-          <label className="block text-sm font-medium mb-1">Tipo de Relacionamento</label>
+          <label className="block text-sm font-medium mb-1 text-black">Tipo de Relacionamento</label>
           <select
             value={formData.relationshipType}
             onChange={(e) => handleInputChange('relationshipType', e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full p-2 border text-black border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="OWNER">Proprietário</option>
             <option value="TENANT">Inquilino</option>
@@ -660,14 +660,14 @@ export function CreateResidentModal({ isOpen, onClose, onSuccess }: CreateReside
         </div>
 
         <div className="col-span-2">
-          <label className="block text-sm font-medium mb-1">Placas de Veículos</label>
+          <label className="block text-sm font-medium mb-1 text-black">Placas de Veículos</label>
           {formData.vehiclePlates.map((plate, index) => (
             <div key={index} className="flex gap-2 mb-2">
               <input
                 type="text"
                 value={plate}
                 onChange={(e) => handleVehiclePlateChange(index, e.target.value)}
-                className="flex-1 px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
+                className="flex-1 px-4 py-3 text-black sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
                 placeholder="ABC-1234"
               />
               {formData.vehiclePlates.length > 1 && (
@@ -691,7 +691,7 @@ export function CreateResidentModal({ isOpen, onClose, onSuccess }: CreateReside
               onClick={addVehiclePlate}
               className="mt-2 min-h-[44px] w-full sm:w-auto"
             >
-              <Plus className="w-4 h-4 mr-1" />
+              <Plus className="w-4 h-4 mr-1 text-black" />
               Adicionar Veículo
             </Button>
           )}
@@ -702,7 +702,7 @@ export function CreateResidentModal({ isOpen, onClose, onSuccess }: CreateReside
 
   const renderStep3 = () => (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold flex items-center gap-2">
+      <h3 className="text-lg font-semibold flex text-black items-center gap-2">
         <Camera className="w-5 h-5" />
         Reconhecimento Facial
       </h3>
@@ -714,9 +714,9 @@ export function CreateResidentModal({ isOpen, onClose, onSuccess }: CreateReside
             id="faceRecognition"
             checked={formData.faceRecognitionEnabled}
             onChange={(e) => handleInputChange('faceRecognitionEnabled', e.target.checked)}
-            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            className="rounded  border-gray-300 text-blue-600 focus:ring-blue-500"
           />
-          <label htmlFor="faceRecognition" className="text-sm font-medium">
+          <label htmlFor="faceRecognition" className="text-sm font-medium text-black">
             Habilitar reconhecimento facial
           </label>
         </div>
@@ -724,7 +724,7 @@ export function CreateResidentModal({ isOpen, onClose, onSuccess }: CreateReside
         {formData.faceRecognitionEnabled && (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="block text-sm font-medium mb-2 text-black">
                 Imagens para Treinamento (máximo 15)
               </label>
               <p className="text-sm text-gray-600 mb-4">
@@ -741,7 +741,7 @@ export function CreateResidentModal({ isOpen, onClose, onSuccess }: CreateReside
                 className="hidden"
               />
               
-              <div className="flex gap-2 mb-4">
+              <div className="flex gap-2 mb-4 text-black">
                 <Button
                   type="button"
                   variant="outline"
@@ -749,7 +749,7 @@ export function CreateResidentModal({ isOpen, onClose, onSuccess }: CreateReside
                   disabled={faceImages.length >= 15}
                   className="flex-1"
                 >
-                  <Upload className="w-4 h-4 mr-2" />
+                  <Upload className="w-4 h-4 mr-2 text-black" />
                   Enviar Arquivo ({faceImages.length}/15)
                 </Button>
                 
@@ -758,16 +758,16 @@ export function CreateResidentModal({ isOpen, onClose, onSuccess }: CreateReside
                   variant="outline"
                   onClick={openCamera}
                   disabled={faceImages.length >= 15}
-                  className="flex-1"
+                  className="flex-1 text-black"
                 >
-                  <Camera className="w-4 h-4 mr-2" />
+                  <Camera className="w-4 h-4 mr-2 text-black" />
                   Usar Câmera
                 </Button>
               </div>
             </div>
 
             {imagePreviewUrls.length > 0 && (
-              <div className="grid grid-cols-5 gap-2 max-h-60 overflow-y-auto">
+              <div className="grid grid-cols-5 gap-2 max-h-60 overflow-y-auto text-black">
                 {imagePreviewUrls.map((url, index) => (
                   <div key={index} className="relative group">
                     <Image
@@ -799,7 +799,7 @@ export function CreateResidentModal({ isOpen, onClose, onSuccess }: CreateReside
     <div className="flex items-center justify-center space-x-4 mb-6">
       {[1, 2, 3].map((step) => (
         <div key={step} className="flex items-center">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+          <div className={`w-8 h-8  rounded-full flex items-center justify-center text-sm font-medium ${
             currentStep >= step 
               ? 'bg-blue-600 text-white' 
               : 'bg-gray-200 text-gray-600'
@@ -821,7 +821,7 @@ export function CreateResidentModal({ isOpen, onClose, onSuccess }: CreateReside
   return (
     <>
       <Modal isOpen={isOpen} onClose={onClose} title="Cadastrar Novo Morador">
-        <div className="p-6 max-w-2xl mx-auto">
+        <div className="p-6 max-w-2xl mx-auto text-black">
           {renderStepIndicator()}
 
           {error && (
