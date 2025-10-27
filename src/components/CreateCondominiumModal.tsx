@@ -169,7 +169,7 @@ const BulkUnitCreationComponent: React.FC<BulkUnitCreationProps> = ({
                   type="text"
                   value={tower.name}
                   onChange={(e) => updateTower(tower.id, 'name', e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                  className="w-full text-black p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
                   placeholder="Ex: A, Torre 1, Bloco Norte"
                 />
               </div>
@@ -184,7 +184,7 @@ const BulkUnitCreationComponent: React.FC<BulkUnitCreationProps> = ({
                   max="50"
                   value={tower.floors}
                   onChange={(e) => updateTower(tower.id, 'floors', parseInt(e.target.value) || 1)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-2 border text-black border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
@@ -198,7 +198,7 @@ const BulkUnitCreationComponent: React.FC<BulkUnitCreationProps> = ({
                   max="20"
                   value={tower.unitsPerFloor}
                   onChange={(e) => updateTower(tower.id, 'unitsPerFloor', parseInt(e.target.value) || 1)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-2 border text-black border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
@@ -212,7 +212,7 @@ const BulkUnitCreationComponent: React.FC<BulkUnitCreationProps> = ({
                   max="10"
                   value={tower.startingFloor}
                   onChange={(e) => updateTower(tower.id, 'startingFloor', parseInt(e.target.value) || 1)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-2 border text-black border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -226,7 +226,7 @@ const BulkUnitCreationComponent: React.FC<BulkUnitCreationProps> = ({
                 <select
                   value={tower.unitType}
                   onChange={(e) => updateTower(tower.id, 'unitType', e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-2 border text-black border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="APARTMENT">Apartamento</option>
                   <option value="HOUSE">Casa</option>
@@ -244,7 +244,7 @@ const BulkUnitCreationComponent: React.FC<BulkUnitCreationProps> = ({
                   step="0.01"
                   value={tower.area}
                   onChange={(e) => updateTower(tower.id, 'area', e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-2 border text-black border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
                   placeholder="Ex: 65.5"
                 />
               </div>
@@ -258,7 +258,7 @@ const BulkUnitCreationComponent: React.FC<BulkUnitCreationProps> = ({
                   min="0"
                   value={tower.bedrooms}
                   onChange={(e) => updateTower(tower.id, 'bedrooms', e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-2 border text-black border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
@@ -271,7 +271,7 @@ const BulkUnitCreationComponent: React.FC<BulkUnitCreationProps> = ({
                   min="0"
                   value={tower.bathrooms}
                   onChange={(e) => updateTower(tower.id, 'bathrooms', e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-2 border text-black border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -286,7 +286,7 @@ const BulkUnitCreationComponent: React.FC<BulkUnitCreationProps> = ({
                   min="0"
                   value={tower.parkingSpacesPerUnit}
                   onChange={(e) => updateTower(tower.id, 'parkingSpacesPerUnit', e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-2 text-black border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
@@ -300,7 +300,7 @@ const BulkUnitCreationComponent: React.FC<BulkUnitCreationProps> = ({
                   min="0"
                   value={tower.monthlyFee}
                   onChange={(e) => updateTower(tower.id, 'monthlyFee', e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-2 border text-black border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
                   placeholder="Ex: 450.00"
                 />
               </div>
@@ -702,7 +702,7 @@ export function CreateCondominiumModal({ isOpen, onClose, onSuccess }: CreateCon
                   type="text"
                   value={formData.name}
                   onChange={handleChange('name')}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-3 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Ex: Residencial Vista Bela"
                   required
                 />
@@ -716,13 +716,13 @@ export function CreateCondominiumModal({ isOpen, onClose, onSuccess }: CreateCon
                   type="text"
                   value={formData.cnpj}
                   onChange={(e) => setFormData(prev => ({ ...prev, cnpj: formatCNPJ(e.target.value) }))}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-3 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="XX.XXX.XXX/XXXX-XX"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-black mb-1">
                   Total de Unidades
                 </label>
                 <div className="relative">
@@ -731,7 +731,7 @@ export function CreateCondominiumModal({ isOpen, onClose, onSuccess }: CreateCon
                     type="number"
                     value={formData.totalUnits}
                     onChange={handleChange('totalUnits')}
-                    className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full p-3 pl-10 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Ex: 120"
                     min="1"
                   />
@@ -752,11 +752,11 @@ export function CreateCondominiumModal({ isOpen, onClose, onSuccess }: CreateCon
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Endereço Completo *
                 </label>
-                <input
+                <input 
                   type="text"
                   value={formData.address}
                   onChange={handleChange('address')}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-3 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Rua, Avenida, número, complemento"
                   required
                 />
@@ -771,7 +771,7 @@ export function CreateCondominiumModal({ isOpen, onClose, onSuccess }: CreateCon
                     type="text"
                     value={formData.city}
                     onChange={handleChange('city')}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full p-3 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Ex: São Paulo"
                     required
                   />
@@ -784,7 +784,7 @@ export function CreateCondominiumModal({ isOpen, onClose, onSuccess }: CreateCon
                   <select
                     value={formData.state}
                     onChange={handleChange('state')}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full p-3 border border-gray-300 rounded-lg text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   >
                     <option value="">Selecione</option>
@@ -826,7 +826,7 @@ export function CreateCondominiumModal({ isOpen, onClose, onSuccess }: CreateCon
                     type="text"
                     value={formData.zipCode}
                     onChange={(e) => setFormData(prev => ({ ...prev, zipCode: formatZipCode(e.target.value) }))}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full p-3 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="XXXXX-XXX"
                   />
                 </div>
@@ -852,7 +852,7 @@ export function CreateCondominiumModal({ isOpen, onClose, onSuccess }: CreateCon
                     type="text"
                     value={formData.phone}
                     onChange={(e) => setFormData(prev => ({ ...prev, phone: formatPhone(e.target.value) }))}
-                    className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full text-black p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="(XX) XXXXX-XXXX"
                   />
                 </div>
@@ -868,7 +868,7 @@ export function CreateCondominiumModal({ isOpen, onClose, onSuccess }: CreateCon
                     type="email"
                     value={formData.email}
                     onChange={handleChange('email')}
-                    className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full p-3 pl-10 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="contato@condominio.com.br"
                   />
                 </div>
@@ -884,7 +884,7 @@ export function CreateCondominiumModal({ isOpen, onClose, onSuccess }: CreateCon
                     type="text"
                     value={formData.adminContact}
                     onChange={handleChange('adminContact')}
-                    className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full p-3 pl-10 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Nome do administrador ou empresa responsável"
                   />
                 </div>
