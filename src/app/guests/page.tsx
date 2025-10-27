@@ -242,7 +242,7 @@ export default function GuestsPage() {
     return (
       <MainLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="text-lg">Carregando condomínios...</div>
+          <div className="text-lg text-black">Carregando condomínios...</div>
         </div>
       </MainLayout>
     )
@@ -267,8 +267,8 @@ export default function GuestsPage() {
       <div className="space-y-4 sm:space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Convidados</h1>
-            <p className="text-sm sm:text-base text-muted-foreground mt-1">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-black">Convidados</h1>
+            <p className="text-sm sm:text-base text-muted-foreground mt-1 text-black">
               Gerencie visitantes e convidados de {selectedCondominium.name}
             </p>
           </div>
@@ -276,7 +276,7 @@ export default function GuestsPage() {
             className="w-full sm:w-auto bg-green-600 hover:bg-green-700 min-h-[44px] px-6"
             onClick={() => setIsCreateModalOpen(true)}
           >
-            <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+            <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-black" />
             Novo Convidado
           </Button>
         </div>
@@ -285,11 +285,11 @@ export default function GuestsPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium">Total</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium text-black">Total</CardTitle>
               <UserPlus className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl sm:text-2xl font-bold">{guests?.length || 0}</div>
+              <div className="text-xl sm:text-2xl font-bold text-black">{guests?.length || 0}</div>
             </CardContent>
           </Card>
 
@@ -307,7 +307,7 @@ export default function GuestsPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium">Expirados</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium text-black">Expirados</CardTitle>
               <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-red-600" />
             </CardHeader>
             <CardContent>
@@ -319,7 +319,7 @@ export default function GuestsPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium">Com Veículo</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium text-black">Com Veículo</CardTitle>
               <Car className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
             </CardHeader>
             <CardContent>
@@ -344,7 +344,7 @@ export default function GuestsPage() {
                     placeholder="Buscar por nome, documento, telefone..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 sm:pl-11 w-full min-h-[44px] px-3 py-2.5 sm:py-2 text-base sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="pl-10 sm:pl-11 text-black w-full min-h-[44px] px-3 py-2.5 sm:py-2 text-base sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
               </div>
