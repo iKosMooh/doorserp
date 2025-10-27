@@ -83,7 +83,7 @@ export default function Dashboard() {
   if (authLoading || !user) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-lg">Verificando autenticação...</div>
+        <div className="text-lg text-black">Verificando autenticação...</div>
       </div>
     )
   }
@@ -92,7 +92,7 @@ export default function Dashboard() {
     return (
       <MainLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="text-lg">Carregando condomínios...</div>
+          <div className="text-lg text-black">Carregando condomínios...</div>
         </div>
       </MainLayout>
     )
@@ -117,13 +117,13 @@ export default function Dashboard() {
       <MainLayout>
         <div className="space-y-6">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-black">Dashboard</h1>
             <p className="text-muted-foreground">
               Carregando dados de {selectedCondominium.name}...
             </p>
           </div>
           <div className="flex items-center justify-center h-32">
-            <div className="text-lg">Carregando dashboard...</div>
+            <div className="text-lg text-black">Carregando dashboard...</div>
           </div>
         </div>
       </MainLayout>
@@ -135,8 +135,8 @@ export default function Dashboard() {
       <MainLayout>
         <div className="space-y-6">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-3xl font-bold tracking-tight text-black">Dashboard</h1>
+            <p className="text-muted-foreground text-black">
               {selectedCondominium.name}
             </p>
           </div>
@@ -158,7 +158,7 @@ export default function Dashboard() {
     return (
       <MainLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="text-lg">Nenhum dado encontrado</div>
+          <div className="text-lg text-black">Nenhum dado encontrado</div>
         </div>
       </MainLayout>
     )
@@ -168,8 +168,8 @@ export default function Dashboard() {
     <MainLayout>
       <div className="space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-sm sm:text-base text-muted-foreground mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-black">Dashboard</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1 text-black">
             {data.condominium.name} - {data.condominium.city}, {data.condominium.state}
           </p>
         </div>
@@ -177,15 +177,15 @@ export default function Dashboard() {
         {/* Cards de estatísticas principais */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 text-black">
+              <CardTitle className="text-xs sm:text-sm font-medium text-black">
                 Moradores
               </CardTitle>
               <Users className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl sm:text-2xl font-bold">{data.stats.totalResidents}</div>
-              <p className="text-xs text-muted-foreground">
+              <div className="text-xl sm:text-2xl font-bold text-black">{data.stats.totalResidents}</div>
+              <p className="text-xs text-muted-foreground text-black">
                 Ativos
               </p>
             </CardContent>
@@ -199,8 +199,8 @@ export default function Dashboard() {
               <UserCheck className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl sm:text-2xl font-bold">{data.stats.totalEmployees}</div>
-              <p className="text-xs text-muted-foreground">
+              <div className="text-xl sm:text-2xl font-bold text-black">{data.stats.totalEmployees}</div>
+              <p className="text-xs text-muted-foreground text-black">
                 Ativos
               </p>
             </CardContent>
@@ -214,8 +214,8 @@ export default function Dashboard() {
               <Building className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl sm:text-2xl font-bold">{data.stats.totalUnits}</div>
-              <p className="text-xs text-muted-foreground">
+              <div className="text-xl sm:text-2xl font-bold text-black">{data.stats.totalUnits}</div>
+              <p className="text-xs text-muted-foreground text-black">
                 Total
               </p>
             </CardContent>
@@ -229,8 +229,8 @@ export default function Dashboard() {
               <UserPlus className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl sm:text-2xl font-bold">{data.stats.totalGuests}</div>
-              <p className="text-xs text-muted-foreground">
+              <div className="text-xl sm:text-2xl font-bold text-black">{data.stats.totalGuests}</div>
+              <p className="text-xs text-muted-foreground text-black">
                 Válidos
               </p>
             </CardContent>
@@ -248,7 +248,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-xl sm:text-2xl font-bold text-blue-600">{data.stats.todayAccess}</div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground text-black">
                 Últimas 24 horas
               </p>
             </CardContent>
@@ -263,7 +263,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-xl sm:text-2xl font-bold text-green-600">{data.stats.weeklyAccess}</div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground text-black">
                 Últimos 7 dias
               </p>
             </CardContent>
@@ -286,7 +286,7 @@ export default function Dashboard() {
               }`}>
                 R$ {data.stats.netBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground text-black">
                 Receitas - Despesas
               </p>
             </CardContent>
