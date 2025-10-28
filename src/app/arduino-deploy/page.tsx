@@ -278,24 +278,24 @@ void openGate() {
   };
 
   if (!user) {
-    return <div className="p-6">Acesso não autorizado</div>;
+    return <div className="p-6 text-black">Acesso não autorizado</div>;
   }
 
   if (!selectedCondominium) {
     return (
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-4">Deploy Arduino</h1>
+        <h1 className="text-2xl font-bold mb-4 text-black">Deploy Arduino</h1>
         <p>Por favor, selecione um condomínio para continuar.</p>
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6 max-w-7xl mx-auto ">
       <h1 className="text-3xl font-bold mb-6">Deploy de Código Arduino</h1>
       
       {/* Seleção de dispositivo Arduino */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+      <div className="bg-white rounded-lg shadow-md p-6 mb-6 text-black">
         <h2 className="text-xl font-semibold mb-4">Dispositivos Arduino</h2>
         
         {isLoading ? (
