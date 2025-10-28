@@ -290,8 +290,8 @@ export default function ArduinoRegisterPage() {
     <MainLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Cadastro de Arduino</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-bold tracking-tight text-black">Cadastro de Arduino</h1>
+          <p className="text-muted-foreground text-black">
             Detecte e cadastre Arduinos para o condomínio {selectedCondominium.name}
           </p>
         </div>
@@ -441,7 +441,7 @@ export default function ArduinoRegisterPage() {
                     type="text"
                     value={formData.deviceName}
                     onChange={(e) => handleInputChange('deviceName', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 text-black py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Ex: Arduino Portaria Principal"
                     required
                   />
@@ -455,7 +455,7 @@ export default function ArduinoRegisterPage() {
                     type="text"
                     value={formData.deviceCode}
                     onChange={(e) => handleInputChange('deviceCode', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border text-black border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Ex: ARD_001"
                   />
                   <p className="text-xs text-gray-500 mt-1">
@@ -470,7 +470,7 @@ export default function ArduinoRegisterPage() {
                   <select
                     value={formData.deviceType}
                     onChange={(e) => handleInputChange('deviceType', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="MAIN_GATE">Portão Principal</option>
                     <option value="GARAGE">Garagem</option>
@@ -494,7 +494,7 @@ export default function ArduinoRegisterPage() {
                   <select
                     value={formData.connectionPort}
                     onChange={(e) => handleInputChange('connectionPort', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 text-black py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   >
                     {availablePorts.map((port) => (
@@ -515,7 +515,7 @@ export default function ArduinoRegisterPage() {
                   <select
                     value={formData.baudRate}
                     onChange={(e) => handleInputChange('baudRate', parseInt(e.target.value))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border text-black border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value={9600}>9600</option>
                     <option value={19200}>19200</option>
@@ -543,7 +543,7 @@ export default function ArduinoRegisterPage() {
                     type="text"
                     value={formData.deviceLocation}
                     onChange={(e) => handleInputChange('deviceLocation', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border text-black border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Ex: Portaria Principal, Bloco A - Térreo"
                   />
                 </div>
@@ -555,7 +555,7 @@ export default function ArduinoRegisterPage() {
                   <textarea
                     value={formData.notes}
                     onChange={(e) => handleInputChange('notes', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     rows={3}
                     placeholder="Observações adicionais sobre o dispositivo..."
                   />
