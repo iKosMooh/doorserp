@@ -288,7 +288,7 @@ export default function SettingsPage() {
     return (
       <MainLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="text-lg">Carregando configurações...</div>
+          <div className="text-lg text-black">Carregando configurações...</div>
         </div>
       </MainLayout>
     )
@@ -299,8 +299,8 @@ export default function SettingsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-3xl font-bold tracking-tight text-black">Configurações</h1>
+            <p className="text-muted-foreground text-black">
               Gerencie condomínios e configurações do sistema
             </p>
           </div>
@@ -329,15 +329,15 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-500">Nome</label>
-                  <p className="font-semibold">{selectedCondominium.name}</p>
+                  <p className="font-semibold text-black">{selectedCondominium.name}</p>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-500">Localização</label>
-                  <p>{selectedCondominium.city}, {selectedCondominium.state}</p>
+                  <p className="text-black">{selectedCondominium.city}, {selectedCondominium.state}</p>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-500">Total de Unidades</label>
-                  <p>{selectedCondominium.totalUnits}</p>
+                  <p className="text-black">{selectedCondominium.totalUnits}</p>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-500">Plano</label>
@@ -358,7 +358,7 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-black">
                   <Eye className="h-5 w-5" />
                   Detalhes do Condomínio
                 </CardTitle>
@@ -383,7 +383,7 @@ export default function SettingsPage() {
                 {viewingCondominium.cnpj && (
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-500">CNPJ</label>
-                    <p>{viewingCondominium.cnpj}</p>
+                    <p className="text-black">{viewingCondominium.cnpj}</p>
                   </div>
                 )}
                 <div className="space-y-2">
@@ -530,7 +530,7 @@ export default function SettingsPage() {
                       required
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full text-black p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="Nome do condomínio"
                     />
                   </div>
@@ -728,22 +728,22 @@ export default function SettingsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-500">Nome</label>
-                <p className="font-semibold">{user?.name}</p>
+                <p className="font-semibold text-black">{user?.name}</p>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-500">Email</label>
-                <p>{user?.email}</p>
+                <p className="text-black">{user?.email}</p>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-500">Tipo de Usuário</label>
-                <p>{user?.isAdmin ? 'Administrador Global' : 'Usuário de Condomínio'}</p>
+                <p className="text-black">{user?.isAdmin ? 'Administrador Global' : 'Usuário de Condomínio'}</p>
               </div>
               {!user?.isAdmin && (
                 <div className="space-y-2 md:col-span-2 lg:col-span-3">
                   <label className="text-sm font-medium text-gray-500">Condomínios com Acesso</label>
                   <div className="flex flex-wrap gap-2">
                     {user?.condominiums.map(condo => (
-                      <span key={condo.id} className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
+                      <span key={condo.id} className="inline-flex items-center px-3  py-1 rounded-full text-sm bg-blue-100 text-blue-800">
                         {condo.name} ({condo.accessLevel})
                       </span>
                     ))}
@@ -755,7 +755,7 @@ export default function SettingsPage() {
             <div className="mt-6 pt-6 border-t">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-medium">Alterar Senha</h3>
+                  <h3 className="text-lg font-medium text-black">Alterar Senha</h3>
                   <p className="text-sm text-gray-600">Mantenha sua conta segura alterando sua senha regularmente</p>
                 </div>
                 <Button
@@ -853,7 +853,7 @@ export default function SettingsPage() {
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow>
+                  <TableRow className="text-black">
                     <TableHead>Nome</TableHead>
                     <TableHead>Localização</TableHead>
                     <TableHead>Contato</TableHead>
