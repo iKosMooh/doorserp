@@ -132,7 +132,7 @@ export default function RecognizedPage() {
     return (
       <MainLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="text-lg">Carregando...</div>
+          <div className="text-lg text-black">Carregando...</div>
         </div>
       </MainLayout>
     )

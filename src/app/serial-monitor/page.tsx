@@ -272,7 +272,7 @@ export default function SerialMonitorPage() {
                     value={selectedPort}
                     onChange={(e) => setSelectedPort(e.target.value)}
                     disabled={isConnected}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                    className="w-full p-2 border text-black border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
                   >
                     {ports.map((port) => (
                       <option key={port.path} value={port.path}>
@@ -290,7 +290,7 @@ export default function SerialMonitorPage() {
                     value={baudRate}
                     onChange={(e) => setBaudRate(Number(e.target.value))}
                     disabled={isConnected}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                    className="w-full p-2 border text-black border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
                   >
                     {baudRates.map((rate) => (
                       <option key={rate} value={rate}>
@@ -438,7 +438,7 @@ export default function SerialMonitorPage() {
                   onKeyPress={handleKeyPress}
                   placeholder="Digite um comando (ex: STATUS, PING, OPEN_GATE)"
                   disabled={!isConnected}
-                  className="flex-1 p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 font-mono"
+                  className="flex-1 p-2 border text-black border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 font-mono"
                 />
                 <Button
                   onClick={() => sendCommand()}
