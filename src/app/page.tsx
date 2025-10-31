@@ -46,15 +46,8 @@ export default function HomePage() {
                 </div>
                 <span className="text-2xl font-bold text-gray-900">DoorsERP</span>
               </div>
-              <div className="hidden md:flex items-center space-x-8">
-                <a href="#features" className="text-gray-600 hover:text-green-600 transition-colors">Recursos</a>
-                <a href="#demo" className="text-gray-600 hover:text-green-600 transition-colors">Algo</a>
-                <a href="#contact" className="text-gray-600 hover:text-green-600 transition-colors">Contato</a>
-              </div>
+
               <div className="flex items-center space-x-4">
-                <a href="/face-recognition" className="px-4 py-2 text-green-600 hover:text-green-700 transition-colors">
-                  Testar Demo
-                </a>
                 <a href="/login" className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors">
                   Fazer Login
                 </a>
@@ -81,17 +74,11 @@ export default function HomePage() {
                   Simplifique a gestão do seu condomínio com tecnologia de ponta, segurança e eficiência em um único sistema integrado.
                 </p>
                 <div className="flex flex-wrap gap-6">
-                  <a href="/login" className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-xl font-semibold flex items-center transition-colors">
-                    Fazer Login
+                  <a href="#solucao" className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-xl font-semibold flex justify-center items-center transition-colors">
+                    Temos a solução da sua portaria
                     <svg className="w-5 h-5 ml-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
                     </svg>
-                  </a>
-                  <a href="/face-recognition" className="border-2 border-green-600 text-green-600 hover:bg-green-50 px-8 py-4 rounded-xl font-semibold flex items-center transition-colors">
-                    <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                    </svg>
-                    Testar Reconhecimento
                   </a>
                 </div>
               </div>
@@ -136,6 +123,60 @@ export default function HomePage() {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <span id="solucao"></span>
+
+        {/*SESSÃO DE CONVENCIMENTO*/}
+        <section className="bg-white py-20 mt-15">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-4xl font-bold text-gray-900 mb-8 text-center">
+              Resolvemos o seu problema
+            </h2>
+            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+              <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow p-8 border border-gray-180">
+                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-6">
+                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">Gestão Simplificada</h3>
+                <p className="text-lg text-gray-600 leading-relaxed">
+                  Simplificamos a gestão da sua portaria com um sistema moderno e intuitivo. 
+                  Chega de processos manuais e controles desorganizados. Nossa solução integrada 
+                  traz eficiência e segurança para seu condomínio.
+                </p>
+              </div>
+
+              <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow p-8 border border-gray-180">
+                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-6">
+                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">Reconhecimento Avançado</h3>
+                <p className="text-lg text-gray-600 leading-relaxed">
+                  Com reconhecimento facial avançado e controle de acesso em tempo real, 
+                  garantimos que apenas pessoas autorizadas tenham acesso às dependências. 
+                  Monitore tudo através de uma interface amigável e responsiva.
+                </p>
+              </div>
+
+              <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow p-8 border border-gray-180">
+                <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mb-6">
+                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">Suporte Dedicado</h3>
+                <p className="text-lg text-gray-600 leading-relaxed">
+                  Nossa plataforma foi desenvolvida pensando nas necessidades reais de 
+                  síndicos, porteiros e moradores. Oferecemos atualizações constantes e 
+                  suporte dedicado para garantir sua total satisfação.
+                </p>
               </div>
             </div>
           </div>
@@ -230,29 +271,15 @@ export default function HomePage() {
         </section>
 
         {/* Final CTA Section */}
-        <section className="cta-gradient py-20">
-          <div className="max-w-4xl mx-auto text-center px-6">
-            <h2 className="text-4xl font-bold text-white mb-6">
+        <section className="cta-gradient p-5">
+          <div className="max-w-4xl mx-auto text-center mb-10 mt-10">
+            <h2 className="text-4xl font-bold text-white mb-10">
               Pronto para modernizar sua portaria?
             </h2>
             <p className="text-xl text-white/90 mb-10 leading-relaxed">
               Experimente agora o DoorsERP e descubra como a tecnologia pode transformar
               a gestão do seu condomínio.
             </p>
-            <div className="flex flex-col sm:flex-row gap-6 justify-center">
-              <a href="/login" className="bg-white text-green-600 font-semibold py-4 px-10 rounded-xl hover:bg-gray-50 transition-all duration-300 hover:shadow-xl inline-flex items-center justify-center">
-                Fazer Login
-                <svg className="ml-3 w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
-                </svg>
-              </a>
-              <a href="/face-recognition" className="bg-white/20 text-white font-semibold py-4 px-10 rounded-xl hover:bg-white/30 transition-all duration-300 backdrop-blur-md inline-flex items-center justify-center border border-white/30">
-                <svg className="mr-3 w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                </svg>
-                Testar Reconhecimento
-              </a>
-            </div>
           </div>
         </section>
 
