@@ -40,12 +40,6 @@ const adminMenuItems = [
     color: "text-purple-600"
   },
   {
-    title: "Reconhecimento Facial",
-    href: "/face-recognition",
-    icon: Camera,
-    color: "text-green-600"
-  },
-  {
     title: "Reconhecimento do Condomínio",
     href: "/condominium-recognition",
     icon: Shield,
@@ -162,7 +156,7 @@ export function Sidebar() {
   // Determine which menu items to show based on user role
   const getMenuItems = () => {
     if (!user) return []; // Não mostrar nenhum menu até carregar o usuário
-    
+
     if (user.isAdmin) {
       return adminMenuItems;
     } else {
@@ -289,7 +283,7 @@ export function Sidebar() {
           <LogOut className="w-5 h-5" />
           {!collapsed && <span className="font-medium">Sair</span>}
         </button>
-        
+
         {/* Botão de Recolher */}
         <button
           onClick={() => setCollapsed(!collapsed)}
