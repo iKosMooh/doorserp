@@ -1,6 +1,7 @@
 'use client'
 
 import Head from "next/head"
+import Image from "next/image"
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
@@ -39,11 +40,13 @@ export default function HomePage() {
           <nav className="max-w-7xl mx-auto px-6 py-4">
             <div className="flex justify-between items-center">
               <div className="flex items-center space-x-3">
-                <div className="w-2 h-10 bg-gradient-to-r from-green-500 to-orange-500 rounded-xl flex items-center justify-center">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                  </svg>
-                </div>
+                <Image 
+                  src="/logorbg.png" 
+                  alt="DoorsERP Logo" 
+                  width={40} 
+                  height={40}
+                  className="rounded-xl"
+                />
                 <span className="text-2xl font-bold text-gray-900">DoorsERP</span>
               </div>
 
@@ -182,6 +185,215 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* Tech Stack Section */}
+        <section className="py-20 bg-gradient-to-br from-gray-50 to-gray-100">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl font-bold text-gray-900 mb-4">
+                Tecnologias de Ponta
+              </h2>
+              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                Desenvolvido com as melhores e mais modernas tecnologias do mercado
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+              {/* Frontend Stack */}
+              <div className="bg-white p-8 rounded-3xl shadow-lg">
+                <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+                  <span className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center mr-3">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                  </span>
+                  Frontend Moderno
+                </h3>
+                <div className="space-y-4">
+                  <div className="flex items-start">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-3"></div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">Next.js 14 + TypeScript</h4>
+                      <p className="text-gray-600 text-sm">Framework React com renderização server-side, App Router e tipagem estática para máxima performance e segurança de código</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-3"></div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">Tailwind CSS</h4>
+                      <p className="text-gray-600 text-sm">Framework CSS utilitário para design responsivo e componentização eficiente</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-3"></div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">Face-api.js</h4>
+                      <p className="text-gray-600 text-sm">Biblioteca JavaScript para reconhecimento facial em tempo real usando TensorFlow.js</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-3"></div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">React Context API</h4>
+                      <p className="text-gray-600 text-sm">Gerenciamento de estado global para autenticação e seleção de condomínio</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Backend Stack */}
+              <div className="bg-white p-8 rounded-3xl shadow-lg">
+                <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+                  <span className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center mr-3">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
+                    </svg>
+                  </span>
+                  Backend Robusto
+                </h3>
+                <div className="space-y-4">
+                  <div className="flex items-start">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mt-2 mr-3"></div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">Next.js API Routes</h4>
+                      <p className="text-gray-600 text-sm">APIs RESTful serverless integradas ao Next.js para endpoints otimizados</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mt-2 mr-3"></div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">Prisma ORM</h4>
+                      <p className="text-gray-600 text-sm">ORM moderno type-safe para gerenciamento do MySQL com migrations automáticas e queries otimizadas</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mt-2 mr-3"></div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">bcryptjs + JWT</h4>
+                      <p className="text-gray-600 text-sm">Criptografia de senhas com hash seguro e autenticação via tokens JWT</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mt-2 mr-3"></div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">Node.js File System</h4>
+                      <p className="text-gray-600 text-sm">Gerenciamento de imagens de reconhecimento facial no sistema de arquivos</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Database Architecture */}
+            <div className="bg-white p-10 rounded-3xl shadow-lg">
+              <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+                <span className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center mr-3">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+                  </svg>
+                </span>
+                Arquitetura de Banco de Dados Híbrida
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="border-l-4 border-blue-500 pl-6">
+                  <h4 className="text-xl font-semibold text-gray-900 mb-3">MySQL (Relacional)</h4>
+                  <p className="text-gray-600 mb-4">
+                    Banco de dados principal gerenciado pelo Prisma ORM. Armazena toda a estrutura relacional do sistema com integridade referencial garantida.
+                  </p>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center text-gray-700">
+                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></span>
+                      Usuários, Moradores e Funcionários
+                    </div>
+                    <div className="flex items-center text-gray-700">
+                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></span>
+                      Condomínios, Unidades e Visitantes
+                    </div>
+                    <div className="flex items-center text-gray-700">
+                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></span>
+                      Transações Financeiras
+                    </div>
+                    <div className="flex items-center text-gray-700">
+                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></span>
+                      Configurações de Arduino
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-l-4 border-green-500 pl-6">
+                  <h4 className="text-xl font-semibold text-gray-900 mb-3">MongoDB (NoSQL)</h4>
+                  <p className="text-gray-600 mb-4">
+                    Banco não-relacional dedicado exclusivamente para logs de acesso. Otimizado para escrita massiva e consultas rápidas de eventos temporais.
+                  </p>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center text-gray-700">
+                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></span>
+                      Logs de entrada/saída em tempo real
+                    </div>
+                    <div className="flex items-center text-gray-700">
+                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></span>
+                      Histórico de reconhecimento facial
+                    </div>
+                    <div className="flex items-center text-gray-700">
+                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></span>
+                      Eventos de abertura de portões
+                    </div>
+                    <div className="flex items-center text-gray-700">
+                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></span>
+                      Auditoria de ações do sistema
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 p-6 bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl">
+                <h5 className="font-semibold text-gray-900 mb-2 flex items-center">
+                  <svg className="w-5 h-5 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  Por que essa arquitetura híbrida?
+                </h5>
+                <p className="text-gray-700 text-sm leading-relaxed">
+                  <strong className="text-gray-900">Performance otimizada:</strong> MySQL oferece ACID compliance e relacionamentos complexos para dados estruturados, 
+                  enquanto MongoDB fornece altíssima performance para inserção e leitura de logs sem afetar a base transacional. 
+                  Essa separação garante que milhares de eventos de acesso não sobrecarreguem o banco principal, mantendo o sistema 
+                  responsivo mesmo com alto volume de tráfego.
+                </p>
+              </div>
+            </div>
+
+            {/* IoT Integration */}
+            <div className="mt-8 bg-white p-10 rounded-3xl shadow-lg">
+              <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+                <span className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center mr-3">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                  </svg>
+                </span>
+                Integração IoT com Arduino
+              </h3>
+              <p className="text-gray-600 mb-4 leading-relaxed">
+                Sistema completo de comunicação serial com dispositivos Arduino para controle físico de portões, 
+                catracas e iluminação. Inclui monitor serial em tempo real e deploy remoto de código.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div className="bg-orange-50 p-4 rounded-xl">
+                  <h5 className="font-semibold text-gray-900 mb-2">Web Serial API</h5>
+                  <p className="text-gray-600">Comunicação direta browser-Arduino via porta serial</p>
+                </div>
+                <div className="bg-orange-50 p-4 rounded-xl">
+                  <h5 className="font-semibold text-gray-900 mb-2">Deploy OTA</h5>
+                  <p className="text-gray-600">Upload de código para Arduino direto pela interface web</p>
+                </div>
+                <div className="bg-orange-50 p-4 rounded-xl">
+                  <h5 className="font-semibold text-gray-900 mb-2">Monitor Serial</h5>
+                  <p className="text-gray-600">Debug em tempo real da comunicação com dispositivos</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Features Section */}
         <section id="features" className="py-20 bg-white">
           <div className="max-w-7xl mx-auto px-6">
@@ -288,11 +500,13 @@ export default function HomePage() {
           <div className="max-w-7xl mx-auto px-6">
             <div className="flex flex-col md:flex-row justify-between items-center gap-8 md:gap-0">
               <div className="flex items-center space-x-4">
-                <div className="bg-gradient-to-r from-green-500 to-orange-500 w-12 h-12 rounded-xl flex items-center justify-center">
-                  <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                  </svg>
-                </div>
+                <Image 
+                  src="/logo.png" 
+                  alt="DoorsERP Logo" 
+                  width={48} 
+                  height={48}
+                  className="rounded-xl"
+                />
                 <div>
                   <h3 className="text-2xl font-bold">DoorsERP</h3>
                   <p className="text-gray-400 text-sm">Sistema de Portaria Moderno</p>
