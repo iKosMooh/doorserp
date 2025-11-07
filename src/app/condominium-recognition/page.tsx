@@ -80,7 +80,7 @@ export default function CondominiumRecognitionPage() {
 
     // Estados para Arduino
     const [availablePorts, setAvailablePorts] = useState<{path: string, manufacturer?: string}[]>([])
-    const [selectedComPort, setSelectedComPort] = useState<string>('COM4')
+    const [selectedComPort, setSelectedComPort] = useState<string>('auto') // Auto-detectar por padrão
     const [isConnecting, setIsConnecting] = useState(false)
     const [arduinoStatus, setArduinoStatus] = useState<{connected: boolean, port?: string, error?: string}>({connected: false})    // Estados da câmera
     const [cameraStarted, setCameraStarted] = useState(false)
@@ -208,12 +208,16 @@ export default function CondominiumRecognitionPage() {
             const response = await fetch('/api/arduino?action=ports')
             const data = await response.json()
             
-            if (data.ports) {
+            if (data.ports && data.ports.length > 0) {
                 setAvailablePorts(data.ports)
                 console.log(`🔌 ${data.ports.length} portas COM encontradas:`, data.ports.map((p: {path: string}) => p.path))
+            } else {
+                setAvailablePorts([])
+                console.warn('⚠️ Nenhuma porta COM detectada. Conecte o Arduino via USB.')
             }
         } catch (error) {
             console.error('❌ Erro ao carregar portas:', error)
+            setAvailablePorts([])
         }
     }, [])
 
@@ -1161,6 +1165,10 @@ export default function CondominiumRecognitionPage() {
                     status: 'DENIED',
                     reason: unauthorizedReason
                 })
+
+                // Enviar comando FACE_REJECTED para Arduino (2 bips curtos + 1 longo)
+                console.log(`🔌 [${method}] Enviando comando FACE_REJECTED para: ${displayName}`)
+                await sendArduinoCommand('FACE_REJECTED')
 
                 // Countdown 3 segundos
                 let timeLeft = 5
@@ -2934,17 +2942,15 @@ export default function CondominiumRecognitionPage() {
                                                         disabled={isConnecting}
                                                     >
                                                         <option value="auto">Detectar Automaticamente</option>
-                                                        {availablePorts.map((port) => (
-                                                            <option key={port.path} value={port.path} className="bg-black text-white">
-                                                                {port.path} {port.manufacturer ? `(${port.manufacturer})` : ''}
-                                                            </option>
-                                                        ))}
-                                                        <option value="COM3">COM3</option>
-                                                        <option value="COM4">COM4</option>
-                                                        <option value="COM5">COM5</option>
-                                                        <option value="COM6">COM6</option>
-                                                        <option value="COM7">COM7</option>
-                                                        <option value="COM8">COM8</option>
+                                                        {availablePorts.length === 0 ? (
+                                                            <option value="" disabled>Nenhuma porta detectada - Conecte o Arduino via USB</option>
+                                                        ) : (
+                                                            availablePorts.map((port) => (
+                                                                <option key={port.path} value={port.path} className="bg-black text-white">
+                                                                    {port.path} {port.manufacturer ? `(${port.manufacturer})` : ''}
+                                                                </option>
+                                                            ))
+                                                        )}
                                                     </select>
                                                 </div>
 

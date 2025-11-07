@@ -25,6 +25,8 @@
     "@types/serialport": "^8.0.5",
     "@zxing/browser": "^0.1.5",
     "@zxing/library": "^0.21.3",
+    "arduino-cli": "^0.37.0",
+    "avrgirl-arduino": "^5.0.1",
     "bcryptjs": "^3.0.2",
     "chart.js": "^4.5.0",
     "class-variance-authority": "^0.7.1",

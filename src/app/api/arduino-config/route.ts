@@ -116,14 +116,47 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const condominiumId = searchParams.get('condominiumId')
 
+    // Se não tiver condominiumId, retorna dados mock para demonstração
     if (!condominiumId) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'condominiumId é obrigatório' 
+      const mockDevices = [
+        {
+          id: '1',
+          name: 'Arduino Cancela Principal',
+          location: 'Portaria A',
+          port: 'COM4',
+          connected: true,
+          lastSeen: new Date().toISOString(),
+          firmwareVersion: '1.2.0',
+          ipAddress: '192.168.1.100',
+          type: 'gate' as const
         },
-        { status: 400 }
-      )
+        {
+          id: '2',
+          name: 'Arduino Acesso Pedestre',
+          location: 'Portaria B',
+          port: 'COM5',
+          connected: false,
+          lastSeen: new Date(Date.now() - 3600000).toISOString(),
+          firmwareVersion: '1.1.0',
+          type: 'access' as const
+        },
+        {
+          id: '3',
+          name: 'Arduino LEDs Garagem',
+          location: 'Subsolo',
+          port: 'COM6',
+          connected: true,
+          lastSeen: new Date().toISOString(),
+          firmwareVersion: '1.0.5',
+          type: 'led' as const
+        }
+      ]
+
+      return NextResponse.json({
+        success: true,
+        devices: mockDevices,
+        count: mockDevices.length
+      })
     }
 
     const arduinoConfigs = await prisma.arduinoConfiguration.findMany({
@@ -136,8 +169,21 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    // Converte para o formato esperado pelo componente
+    const devices = arduinoConfigs.map(config => ({
+      id: config.id,
+      name: config.deviceName,
+      location: config.deviceLocation || 'Não especificado',
+      port: config.connectionPort,
+      connected: config.isOnline || false,
+      lastSeen: config.updatedAt.toISOString(),
+      firmwareVersion: config.deviceCode || 'N/A',
+      type: (config.deviceType?.toLowerCase() || 'sensor') as 'gate' | 'access' | 'led' | 'sensor'
+    }))
+
     return NextResponse.json({
       success: true,
+      devices,
       configs: arduinoConfigs,
       count: arduinoConfigs.length
     })

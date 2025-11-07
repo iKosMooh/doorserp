@@ -52,6 +52,10 @@ let isConnected = false
 let currentPort = 'COM4'
 let lastError = ''
 
+// Buffer para mensagens do Serial Monitor (últimas 100 mensagens)
+const serialBuffer: string[] = []
+const MAX_SERIAL_BUFFER = 100
+
 // Estados dos LEDs (backup para quando não há comunicação real)
 let ledStates = {
   led1: false, // Pino 13
@@ -327,11 +331,18 @@ async function conectarArduino(portaPath: string): Promise<boolean> {
     // Recebe dados do Arduino
     if (parser) {
       parser.on('data', (data: string) => {
-        console.log('📥 Arduino:', data.trim())
+        const trimmedData = data.trim()
+        console.log('📥 Arduino:', trimmedData)
+        
+        // Adiciona ao buffer do Serial Monitor
+        serialBuffer.push(trimmedData)
+        if (serialBuffer.length > MAX_SERIAL_BUFFER) {
+          serialBuffer.shift() // Remove a mensagem mais antiga
+        }
         
         // Tenta fazer parse se for JSON para atualizar estados
         try {
-          const jsonData = JSON.parse(data)
+          const jsonData = JSON.parse(trimmedData)
           if (jsonData.status) {
             ledStates = {
               led1: jsonData.status.pino13,
@@ -420,6 +431,13 @@ async function simularComando(comando: string): Promise<{ success: boolean; mess
     }
   }
   
+  if (comando.toUpperCase() === 'FACE_REJECTED') {
+    return { 
+      success: true, 
+      message: `Acesso negado - Buzzer acionado (simulação)` 
+    }
+  }
+  
   if (comando.toUpperCase() === 'CLOSE_GATE') {
     return { 
       success: true, 
@@ -489,6 +507,18 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const action = searchParams.get('action')
     const condominiumId = searchParams.get('condominiumId')
+
+    // Retorna mensagens do Serial Monitor
+    if (action === 'serial-messages') {
+      const messages = [...serialBuffer] // Cópia do buffer
+      console.log(`📤 GET /api/arduino?action=serial-messages - Retornando ${messages.length} mensagens:`, messages)
+      serialBuffer.length = 0 // Limpa o buffer após ler
+      return NextResponse.json({ 
+        success: true,
+        messages,
+        count: messages.length
+      })
+    }
 
     // Lista portas disponíveis
     if (action === 'ports') {
