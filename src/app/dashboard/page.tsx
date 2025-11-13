@@ -196,7 +196,7 @@ export default function Dashboard() {
               <CardTitle className="text-xs sm:text-sm font-medium">
                 Funcionários
               </CardTitle>
-              <UserCheck className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
+              <UserCheck className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground text-black" />
             </CardHeader>
             <CardContent>
               <div className="text-xl sm:text-2xl font-bold text-black">{data.stats.totalEmployees}</div>
@@ -211,7 +211,7 @@ export default function Dashboard() {
               <CardTitle className="text-xs sm:text-sm font-medium">
                 Unidades
               </CardTitle>
-              <Building className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
+              <Building className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground text-black" />
             </CardHeader>
             <CardContent>
               <div className="text-xl sm:text-2xl font-bold text-black">{data.stats.totalUnits}</div>
@@ -226,7 +226,7 @@ export default function Dashboard() {
               <CardTitle className="text-xs sm:text-sm font-medium">
                 Convidados
               </CardTitle>
-              <UserPlus className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
+              <UserPlus className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground text-black" />
             </CardHeader>
             <CardContent>
               <div className="text-xl sm:text-2xl font-bold text-black">{data.stats.totalGuests}</div>
