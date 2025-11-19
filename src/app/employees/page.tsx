@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Pagination } from "@/components/ui/pagination"
 import { formatCPF, formatPhone } from "@/lib/utils"
 import { Plus, Search, Edit, Trash2, Phone, Mail, UserCheck, Clock, Users, Briefcase, DollarSign } from "lucide-react"
+import { CreateEmployeeModal } from "@/components/CreateEmployeeModal"
 
 interface Employee {
   id: string
@@ -28,6 +29,7 @@ export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+  const [showCreateModal, setShowCreateModal] = useState(false)
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
@@ -110,8 +112,27 @@ export default function EmployeesPage() {
   }
 
   const handleAddNew = () => {
-    console.log("Adicionar novo funcionário")
-    // TODO: Implementar modal de adição
+    setShowCreateModal(true)
+  }
+
+  const handleCreateSuccess = () => {
+    const fetchEmployees = async () => {
+      try {
+        const limitParam = itemsPerPage === 0 ? 'all' : itemsPerPage.toString()
+        const response = await fetch(`/api/employees?page=${currentPage}&limit=${limitParam}`)
+        if (response.ok) {
+          const result = await response.json()
+          setEmployees(result.data || [])
+          if (result.pagination) {
+            setTotalItems(result.pagination.total)
+            setTotalPages(result.pagination.totalPages)
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao buscar funcionários:', error)
+      }
+    }
+    fetchEmployees()
   }
 
   if (loading) {
@@ -444,6 +465,12 @@ export default function EmployeesPage() {
           </CardContent>
         </Card>
       </div>
+
+      <CreateEmployeeModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={handleCreateSuccess}
+      />
     </MainLayout>
   )
 }

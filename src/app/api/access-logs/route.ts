@@ -141,11 +141,18 @@ function extractBuildingFromLocation(location: string | null): string | undefine
 }
 
 function mapStatus(status: string): string {
+  // Mapear status corretamente
   switch (status) {
-    case "APPROVED": return "APPROVED"
-    case "REJECTED": return "DENIED"
-    case "PENDING": return "DENIED"
-    default: return "DENIED"
+    case "APPROVED": 
+      return "APPROVED"
+    case "REJECTED": 
+    case "DENIED":
+      return "DENIED"
+    case "PENDING": 
+      return "PENDING"
+    default: 
+      // Se não houver um status válido, retornar PENDING ao invés de DENIED
+      return "PENDING"
   }
 }
 

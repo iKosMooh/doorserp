@@ -215,8 +215,41 @@ export default function AccessLogsPage() {
   const todayAccess = logsToFilter.filter(l => l.timestamp.startsWith(new Date().toISOString().split('T')[0])).length
 
   const handleExport = () => {
-    console.log("Exportar logs de acesso")
-    // TODO: Implementar exportação para Excel/PDF
+    try {
+      // Criar CSV com os logs filtrados
+      const headers = ['Data/Hora', 'Pessoa', 'Tipo', 'Acesso', 'Método', 'Local', 'Unidade', 'Status', 'Observações']
+      const csvRows = [
+        headers.join(','),
+        ...filteredLogs.map(log => [
+          new Date(log.timestamp).toLocaleString('pt-BR'),
+          `\"${log.personName}\"`,
+          getPersonTypeLabel(log.personType),
+          getAccessTypeLabel(log.accessType),
+          getMethodLabel(log.method),
+          `\"${log.location}\"`,
+          log.unitNumber ? `${log.building}-${log.unitNumber}` : '-',
+          getStatusLabel(log.status),
+          `\"${log.notes || '-'}\"`,
+        ].join(','))
+      ]
+      
+      const csvContent = csvRows.join('\n')
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      
+      link.setAttribute('href', url)
+      link.setAttribute('download', `logs_acesso_${new Date().toISOString().split('T')[0]}.csv`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      alert(`✅ ${filteredLogs.length} log(s) exportado(s) com sucesso!`)
+    } catch (error) {
+      console.error('Erro ao exportar logs:', error)
+      alert('❌ Erro ao exportar logs')
+    }
   }
 
   if (loading) {

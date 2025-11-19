@@ -107,12 +107,6 @@ const adminMenuItems = [
     color: "text-teal-600"
   },
   {
-    title: "Pessoas Reconhecidas",
-    href: "/recognized",
-    icon: FileText,
-    color: "text-teal-600"
-  },
-  {
     title: "Configurações",
     href: "/settings",
     icon: Settings,
@@ -303,10 +297,10 @@ export function Sidebar() {
           )}
         >
           {collapsed ? (
-            <ChevronRight className="w-5 h-5" />
+            <ChevronRight className="w-6 h-6" />
           ) : (
             <>
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-6 h-6" />
               <span className="font-medium">Recolher</span>
             </>
           )}

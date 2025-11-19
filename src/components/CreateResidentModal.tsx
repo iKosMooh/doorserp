@@ -54,6 +54,7 @@ export function CreateResidentModal({ isOpen, onClose, onSuccess }: CreateReside
   const [currentStep, setCurrentStep] = useState(1)
   const [units, setUnits] = useState<Unit[]>([])
   const [loadingUnits, setLoadingUnits] = useState(false)
+  const [blockFilter, setBlockFilter] = useState<string>('')
   
   // Form data
   const [formData, setFormData] = useState<FormData>({
@@ -626,6 +627,20 @@ export function CreateResidentModal({ isOpen, onClose, onSuccess }: CreateReside
 
       <div className="grid grid-cols-2 gap-4">
         <div className="col-span-2">
+          <label className="block text-sm font-medium mb-1 text-black">Filtrar por Bloco</label>
+          <select
+            value={blockFilter}
+            onChange={(e) => setBlockFilter(e.target.value)}
+            className="w-full p-2 border text-black border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-2"
+          >
+            <option value="">Todos os blocos</option>
+            {Array.from(new Set(units.map(u => u.block))).sort().map(block => (
+              <option key={block} value={block}>{block}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="col-span-2">
           <label className="block text-sm font-medium mb-1 text-black">Unidade *</label>
           {loadingUnits ? (
             <div className="p-2 text-gray-500">Carregando unidades...</div>
@@ -636,12 +651,23 @@ export function CreateResidentModal({ isOpen, onClose, onSuccess }: CreateReside
               className="w-full p-2 border text-black border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="">Selecione uma unidade</option>
-              {units.filter(unit => !unit.isOccupied).map(unit => (
-                <option key={unit.id} value={unit.id}>
-                  {unit.block} - Apt {unit.number}
-                </option>
+              {units
+                .filter(unit => !unit.isOccupied && (!blockFilter || unit.block === blockFilter))
+                .sort((a, b) => {
+                  if (a.block !== b.block) return a.block.localeCompare(b.block)
+                  return a.number.localeCompare(b.number)
+                })
+                .map(unit => (
+                  <option key={unit.id} value={unit.id}>
+                    {unit.block} - Apt {unit.number}
+                  </option>
               ))}
             </select>
+          )}
+          {blockFilter && (
+            <p className="text-xs text-gray-500 mt-1">
+              Mostrando apenas unidades do bloco {blockFilter}
+            </p>
           )}
         </div>
 
@@ -660,15 +686,26 @@ export function CreateResidentModal({ isOpen, onClose, onSuccess }: CreateReside
         </div>
 
         <div className="col-span-2">
-          <label className="block text-sm font-medium mb-1 text-black">Placas de Veículos</label>
+          <label className="block text-sm font-medium mb-1 text-black">Placas de Veículos (ABC-1234 ou ABC1D23)</label>
           {formData.vehiclePlates.map((plate, index) => (
             <div key={index} className="flex gap-2 mb-2">
               <input
                 type="text"
                 value={plate}
-                onChange={(e) => handleVehiclePlateChange(index, e.target.value)}
+                onChange={(e) => {
+                  let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '')
+                  // Formato antigo: ABC1234 ou ABC-1234
+                  // Formato Mercosul: ABC1D23
+                  if (value.length <= 7) {
+                    if (value.length > 3 && !value.includes('-')) {
+                      value = value.slice(0, 3) + '-' + value.slice(3)
+                    }
+                    handleVehiclePlateChange(index, value)
+                  }
+                }}
+                maxLength={8}
                 className="flex-1 px-4 py-3 text-black sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
-                placeholder="ABC-1234"
+                placeholder="ABC-1234 ou ABC-1D23"
               />
               {formData.vehiclePlates.length > 1 && (
                 <Button

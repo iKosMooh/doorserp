@@ -54,24 +54,38 @@ export default function FinancialPage() {
   })
 
   useEffect(() => {
+    let isMounted = true
+
     const fetchFinancialEntries = async () => {
       try {
         const response = await fetch('/api/financial')
         if (response.ok) {
           const data = await response.json()
-          setEntries(data)
+          if (isMounted) {
+            setEntries(data)
+          }
         } else {
           console.error('Erro ao buscar entradas financeiras:', response.statusText)
-          setEntries([])
+          if (isMounted) {
+            setEntries([])
+          }
         }
       } catch (error) {
         console.error('Erro ao buscar entradas financeiras:', error)
-        setEntries([])
+        if (isMounted) {
+          setEntries([])
+        }
       }
-      setLoading(false)
+      if (isMounted) {
+        setLoading(false)
+      }
     }
 
     fetchFinancialEntries()
+
+    return () => {
+      isMounted = false
+    }
   }, [])
 
   const filteredEntries = entries.filter(entry => {
