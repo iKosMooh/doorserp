@@ -46,6 +46,7 @@ export default function ResidentsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedResident, setSelectedResident] = useState<Resident | null>(null)
+  const [activeTab, setActiveTab] = useState<'residents' | 'vehicles'>('residents')
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
@@ -91,12 +92,44 @@ export default function ResidentsPage() {
     }
   }, [selectedCondominium, currentPage, itemsPerPage])
 
-  const filteredResidents = residents.filter(resident =>
-    resident.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    resident.user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    `${resident.unit.block}/${resident.unit.number}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    resident.user.document?.includes(searchTerm)
-  )
+  const filteredResidents = residents.filter(resident => {
+    const searchLower = searchTerm.toLowerCase().replace(/[^a-z0-9]/g, '')
+    
+    return (
+      resident.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      resident.user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      `${resident.unit.block}/${resident.unit.number}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      resident.user.document?.includes(searchTerm) ||
+      // Pesquisa por placa (remove hífens e espaços para comparação)
+      (resident.vehiclePlates && resident.vehiclePlates.some(plate => 
+        plate.toLowerCase().replace(/[^a-z0-9]/g, '').includes(searchLower)
+      ))
+    )
+  })
+
+  // Lista de veículos com informações do morador
+  const vehiclesList = residents.flatMap(resident => 
+    (resident.vehiclePlates || [])
+      .filter(plate => plate && plate.trim())
+      .map(plate => ({
+        plate,
+        residentName: resident.user.name,
+        residentId: resident.id,
+        unit: `${resident.unit.block}/${resident.unit.number}`,
+        isActive: resident.isActive
+      }))
+  ).sort((a, b) => a.plate.localeCompare(b.plate))
+
+  const filteredVehicles = vehiclesList.filter(vehicle => {
+    const searchLower = searchTerm.toLowerCase().replace(/[^a-z0-9]/g, '')
+    const plateLower = vehicle.plate.toLowerCase().replace(/[^a-z0-9]/g, '')
+    
+    return (
+      plateLower.includes(searchLower) ||
+      vehicle.residentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      vehicle.unit.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  })
 
   const handleEdit = (id: string) => {
     const resident = residents.find(r => r.id === id)
@@ -211,7 +244,7 @@ export default function ResidentsPage() {
           </div>
           <Button 
             onClick={() => setShowCreateModal(true)} 
-            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 min-h-[44px] px-6"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 min-h-[44px] px-6 bg-gradient-to-r from-green-500 to-orange-500 text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5"
           >
             <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
             Novo Morador
@@ -302,12 +335,50 @@ export default function ResidentsPage() {
           </Card>
         </div>
 
+        {/* Tabs */}
+        <div className="flex gap-2 border-b">
+          <button
+            onClick={() => setActiveTab('residents')}
+            className={`px-4 py-2 font-medium transition-colors ${
+              activeTab === 'residents'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Moradores
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('vehicles')}
+            className={`px-4 py-2 font-medium transition-colors ${
+              activeTab === 'vehicles'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h8M8 11h8M8 15h8" />
+              </svg>
+              Veículos ({vehiclesList.length})
+            </div>
+          </button>
+        </div>
+
         {/* Busca e filtros */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg sm:text-xl">Pesquisar Moradores</CardTitle>
+            <CardTitle className="text-lg sm:text-xl">
+              {activeTab === 'residents' ? 'Pesquisar Moradores' : 'Pesquisar Veículos'}
+            </CardTitle>
             <CardDescription className="text-sm sm:text-base">
-              Busque por nome, email, documento ou unidade
+              {activeTab === 'residents' 
+                ? 'Busque por nome, email, documento, unidade ou placa de veículo'
+                : 'Busque por placa, nome do morador ou unidade'
+              }
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -315,7 +386,10 @@ export default function ResidentsPage() {
               <Search className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground flex-shrink-0" />
               <input
                 type="text"
-                placeholder="Digite para pesquisar..."
+                placeholder={activeTab === 'residents' 
+                  ? "Digite nome, email, CPF, unidade ou placa..."
+                  : "Digite placa, nome ou unidade..."
+                }
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="flex-1 px-3 py-2.5 sm:py-2 text-base sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
@@ -325,15 +399,16 @@ export default function ResidentsPage() {
         </Card>
 
         {/* Lista de moradores */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg sm:text-xl">Lista de Moradores</CardTitle>
-            <CardDescription className="text-sm sm:text-base">
-              {filteredResidents.length} morador(es) encontrado(s)
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {filteredResidents.length === 0 ? (
+        {activeTab === 'residents' && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg sm:text-xl">Lista de Moradores</CardTitle>
+              <CardDescription className="text-sm sm:text-base">
+                {filteredResidents.length} morador(es) encontrado(s)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {filteredResidents.length === 0 ? (
               <div className="text-center py-12">
                 <UserX className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-4" />
                 <div className="text-sm sm:text-base text-gray-500">
@@ -544,9 +619,155 @@ export default function ResidentsPage() {
               </div>
             )}
           </>
-            )}
-          </CardContent>
-        </Card>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Lista de veículos */}
+        {activeTab === 'vehicles' && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg sm:text-xl">Lista de Veículos</CardTitle>
+              <CardDescription className="text-sm sm:text-base">
+                {filteredVehicles.length} veículo(s) encontrado(s)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {filteredVehicles.length === 0 ? (
+                <div className="text-center py-12">
+                  <svg className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div className="text-sm sm:text-base text-gray-500">
+                    {searchTerm 
+                      ? "Nenhum veículo encontrado com os filtros aplicados" 
+                      : "Nenhum veículo cadastrado"}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Desktop/Tablet: Tabela */}
+                  <div className="hidden md:block overflow-x-auto -mx-6 px-6">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Placa</TableHead>
+                          <TableHead>Morador</TableHead>
+                          <TableHead>Unidade</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredVehicles.map((vehicle, index) => (
+                          <TableRow key={`${vehicle.residentId}-${vehicle.plate}-${index}`}>
+                            <TableCell className="font-medium">
+                              <div className="flex items-center gap-2">
+                                <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span className="text-lg font-bold">{vehicle.plate}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <User className="h-4 w-4 text-muted-foreground" />
+                                {vehicle.residentName}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Home className="h-4 w-4 text-muted-foreground" />
+                                {vehicle.unit}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                                vehicle.isActive 
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-red-100 text-red-800'
+                              }`}>
+                                {vehicle.isActive ? 'Ativo' : 'Inativo'}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEdit(vehicle.residentId)}
+                                className="flex items-center gap-1"
+                              >
+                                <Edit className="h-3 w-3" />
+                                Editar Morador
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Mobile: Cards */}
+                  <div className="md:hidden space-y-4">
+                    {filteredVehicles.map((vehicle, index) => {
+                      const borderColor = vehicle.isActive 
+                        ? 'border-l-green-500' 
+                        : 'border-l-red-500'
+                      
+                      return (
+                        <Card key={`${vehicle.residentId}-${vehicle.plate}-${index}`} className={`border-l-4 ${borderColor}`}>
+                          <CardContent className="p-4 space-y-3">
+                            {/* Cabeçalho com placa e status */}
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <svg className="h-5 w-5 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span className="text-xl font-bold">{vehicle.plate}</span>
+                              </div>
+                              <span className={`px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
+                                vehicle.isActive 
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-red-100 text-red-800'
+                              }`}>
+                                {vehicle.isActive ? 'Ativo' : 'Inativo'}
+                              </span>
+                            </div>
+
+                            {/* Informações do morador e unidade */}
+                            <div className="space-y-2 text-sm">
+                              <div className="flex items-center gap-2">
+                                <User className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                                <span className="font-medium">{vehicle.residentName}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Home className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                                <span>{vehicle.unit}</span>
+                              </div>
+                            </div>
+
+                            {/* Ação */}
+                            <div className="pt-2 border-t">
+                              <Button
+                                variant="outline"
+                                onClick={() => handleEdit(vehicle.residentId)}
+                                className="w-full min-h-[44px]"
+                              >
+                                <Edit className="h-4 w-4 mr-1.5" />
+                                Editar Morador
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <CreateResidentModal
           isOpen={showCreateModal}

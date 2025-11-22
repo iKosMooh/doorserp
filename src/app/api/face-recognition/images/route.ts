@@ -15,14 +15,25 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Caminho para a pasta de labels do face-api
-    const labelsPath = join(process.cwd(), 'public', 'assets', 'lib', 'face-api', 'labels', folder)
+    // Determine the base path based on folder prefix
+    let basePath: string
+    let urlPrefix: string
     
-    console.log('Checking folder:', labelsPath)
+    if (folder.startsWith('guest_')) {
+      // Guest photos are stored in face-data
+      basePath = join(process.cwd(), 'public', 'face-data', folder)
+      urlPrefix = `/face-data/${folder}`
+    } else {
+      // Resident photos are stored in face-api labels
+      basePath = join(process.cwd(), 'public', 'assets', 'lib', 'face-api', 'labels', folder)
+      urlPrefix = `/assets/lib/face-api/labels/${folder}`
+    }
+    
+    console.log('Checking folder:', basePath)
 
     // Verificar se a pasta existe
-    if (!existsSync(labelsPath)) {
-      console.log('Folder does not exist:', labelsPath)
+    if (!existsSync(basePath)) {
+      console.log('Folder does not exist:', basePath)
       return NextResponse.json({
         success: true,
         images: [],
@@ -32,7 +43,7 @@ export async function GET(request: NextRequest) {
 
     try {
       // Listar arquivos na pasta
-      const files = await readdir(labelsPath)
+      const files = await readdir(basePath)
       console.log('Files found:', files)
       
       // Filtrar apenas imagens
@@ -44,7 +55,7 @@ export async function GET(request: NextRequest) {
       // Criar URLs para as imagens
       const images = imageFiles.map(file => ({
         name: file,
-        url: `/assets/lib/face-api/labels/${folder}/${file}`
+        url: `${urlPrefix}/${file}`
       }))
 
       console.log('Image URLs:', images)

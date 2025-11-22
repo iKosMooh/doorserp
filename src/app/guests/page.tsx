@@ -273,10 +273,10 @@ export default function GuestsPage() {
             </p>
           </div>
           <Button 
-            className="w-full sm:w-auto bg-green-600 hover:bg-green-700 min-h-[44px] px-6"
             onClick={() => setIsCreateModalOpen(true)}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 min-h-[44px] px-6"
           >
-            <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-black" />
+            <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
             Novo Convidado
           </Button>
         </div>
@@ -295,7 +295,7 @@ export default function GuestsPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium">Ativos</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium text-black">Ativos</CardTitle>
               <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
             </CardHeader>
             <CardContent>
@@ -333,7 +333,7 @@ export default function GuestsPage() {
         {/* Filtros e busca */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg sm:text-xl">Filtros</CardTitle>
+            <CardTitle className="text-lg sm:text-xl text-black">Filtros</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3 sm:space-y-4">
@@ -381,8 +381,8 @@ export default function GuestsPage() {
         {/* Lista de convidados */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg sm:text-xl">Lista de Convidados</CardTitle>
-            <CardDescription className="text-sm sm:text-base">
+            <CardTitle className="text-lg sm:text-xl text-black">Lista de Convidados</CardTitle>
+            <CardDescription className="text-sm sm:text-base text-black">
               {filteredGuests.length} convidado(s) encontrado(s)
             </CardDescription>
           </CardHeader>
@@ -417,14 +417,14 @@ export default function GuestsPage() {
                   <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Contato</TableHead>
-                    <TableHead>Convidado por</TableHead>
-                    <TableHead>Unidade</TableHead>
-                    <TableHead>Validade</TableHead>
-                    <TableHead>Acessos</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Ações</TableHead>
+                    <TableHead className="text-black">Nome</TableHead>
+                    <TableHead className="text-black">Contato</TableHead>
+                    <TableHead className="text-black">Convidado por</TableHead>
+                    <TableHead className="text-black">Unidade</TableHead>
+                    <TableHead className="text-black">Validade</TableHead>
+                    <TableHead className="text-black">Acessos</TableHead>
+                    <TableHead className="text-black">Status</TableHead>
+                    <TableHead className="text-black">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -434,52 +434,52 @@ export default function GuestsPage() {
                         <div className="flex items-center space-x-2">
                           <User className="h-4 w-4 text-gray-400" />
                           <div>
-                            <div className="font-medium">{guest.name}</div>
+                            <div className="font-medium text-black">{guest.name}</div>
                             {guest.document && (
                               <div className="text-sm text-gray-500">{formatDocument(guest.document)}</div>
                             )}
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-black">
                         <div className="space-y-1">
                           {guest.phone && (
-                            <div className="flex items-center text-sm">
+                            <div className="flex items-center text-sm text-black">
                               <Phone className="h-3 w-3 mr-1 text-gray-400" />
                               {formatPhone(guest.phone)}
                             </div>
                           )}
                           {guest.vehiclePlate && (
-                            <div className="flex items-center text-sm">
+                            <div className="flex items-center text-sm text-black">
                               <Car className="h-3 w-3 mr-1 text-gray-400" />
                               {guest.vehiclePlate}
                             </div>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-black">
                         {guest.invitedByResident.user.name}
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-center text-sm">
+                      <TableCell className="text-black">
+                        <div className="flex items-center text-sm text-black">
                           <Building className="h-3 w-3 mr-1 text-gray-400" />
                           {guest.invitedByResident.unit.block}/{guest.invitedByResident.unit.number}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-black">
                         <div className="space-y-1">
-                          <div className="flex items-center text-sm">
+                          <div className="flex items-center text-sm text-black">
                             <Calendar className="h-3 w-3 mr-1 text-gray-400" />
                             {new Date(guest.validFrom).toLocaleDateString('pt-BR')}
                           </div>
                           {guest.validUntil && (
-                            <div className="text-sm text-gray-500">
+                            <div className="text-sm text-black">
                               até {new Date(guest.validUntil).toLocaleDateString('pt-BR')}
                             </div>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-black">
                         <div className="text-sm">
                           {guest.currentEntries}/{guest.maxEntries}
                         </div>
@@ -529,9 +529,9 @@ export default function GuestsPage() {
                         <div className="flex items-center gap-2 min-w-0 flex-1">
                           <User className="h-5 w-5 text-gray-400 flex-shrink-0" />
                           <div className="min-w-0 flex-1">
-                            <div className="font-semibold text-base truncate">{guest.name}</div>
+                            <div className="font-semibold text-base text-black truncate">{guest.name}</div>
                             {guest.document && (
-                              <div className="text-sm text-gray-500">{formatDocument(guest.document)}</div>
+                              <div className="text-sm text-black">{formatDocument(guest.document)}</div>
                             )}
                           </div>
                         </div>
@@ -539,7 +539,7 @@ export default function GuestsPage() {
                       </div>
 
                       {/* Informações em grid */}
-                      <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="grid grid-cols-2 gap-3 text-sm text-black">
                         {guest.phone && (
                           <div className="flex items-center gap-1.5">
                             <Phone className="h-4 w-4 text-gray-400 flex-shrink-0" />

@@ -28,11 +28,11 @@ export async function GET(request: NextRequest) {
         id: employee.id,
         name: employee.user.name || 'Nome não informado',
         email: employee.user.email || '',
-        phone: '', // Campo não existe no schema atual
-        documentNumber: '', // Campo não existe no schema atual
+        phone: employee.user.phone || '',
+        documentNumber: employee.user.document || '',
         position: employee.position,
         department: employee.department || 'Não informado',
-        shift: 'FULL_TIME', // Campo não existe no schema atual, assumindo FULL_TIME
+        shift: 'FULL_TIME',
         salary: employee.salary ? Number(employee.salary) : 0,
         status: employee.isActive ? "ACTIVE" : "INACTIVE",
         hireDate: employee.hireDate.toISOString(),
@@ -68,11 +68,11 @@ export async function GET(request: NextRequest) {
       id: employee.id,
       name: employee.user.name || 'Nome não informado',
       email: employee.user.email || '',
-      phone: '', // Campo não existe no schema atual
-      documentNumber: '', // Campo não existe no schema atual
+      phone: employee.user.phone || '',
+      documentNumber: employee.user.document || '',
       position: employee.position,
       department: employee.department || 'Não informado',
-      shift: 'FULL_TIME', // Campo não existe no schema atual, assumindo FULL_TIME
+      shift: 'FULL_TIME',
       salary: employee.salary ? Number(employee.salary) : 0,
       status: employee.isActive ? "ACTIVE" : "INACTIVE",
       hireDate: employee.hireDate.toISOString(),

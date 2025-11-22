@@ -10,6 +10,7 @@
 !.yarn/releases
 !.yarn/versions
 /public/assets/lib/face-api/labels
+/public/face-data
 
 # testing
 /coverage

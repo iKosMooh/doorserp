@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
+import { useToast } from "@/components/ui/toast";
 import { 
   Building2,
   MapPin,
@@ -348,6 +349,7 @@ const BulkUnitCreationComponent: React.FC<BulkUnitCreationProps> = ({
 };
 
 export function CreateCondominiumModal({ isOpen, onClose, onSuccess }: CreateCondominiumModalProps) {
+  const { showToast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [createdCondominiumId, setCreatedCondominiumId] = useState<string | null>(null);
   
@@ -382,19 +384,17 @@ export function CreateCondominiumModal({ isOpen, onClose, onSuccess }: CreateCon
   });
   
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.name || !formData.address || !formData.city || !formData.state || !formData.zipCode) {
-      setError('Nome, endereço, cidade, estado e CEP são obrigatórios');
+      showToast('Nome, endereço, cidade, estado e CEP são obrigatórios', 'error');
       return;
     }
 
     try {
       setLoading(true);
-      setError(null);
 
       const response = await fetch('/api/condominiums', {
         method: 'POST',
@@ -415,14 +415,15 @@ export function CreateCondominiumModal({ isOpen, onClose, onSuccess }: CreateCon
       const result = await response.json();
       
       if (result.success && result.condominium?.id) {
+        showToast('Condomínio criado com sucesso!', 'success');
         setCreatedCondominiumId(result.condominium.id);
-        setCurrentStep(2); // Ir para a segunda etapa
+        setCurrentStep(2);
       } else {
         throw new Error(result.error || 'Erro ao obter ID do condomínio criado');
       }
     } catch (err) {
       console.error('Erro ao criar condomínio:', err);
-      setError(err instanceof Error ? err.message : 'Erro desconhecido');
+      showToast(err instanceof Error ? err.message : 'Erro desconhecido ao criar condomínio', 'error');
     } finally {
       setLoading(false);
     }
@@ -432,7 +433,7 @@ export function CreateCondominiumModal({ isOpen, onClose, onSuccess }: CreateCon
     e.preventDefault();
     
     if (!createdCondominiumId) {
-      setError('Erro: Condomínio não foi criado corretamente');
+      showToast('Erro: Condomínio não foi criado corretamente', 'error');
       return;
     }
 
@@ -440,42 +441,40 @@ export function CreateCondominiumModal({ isOpen, onClose, onSuccess }: CreateCon
     if (bulkCreation.enabled) {
       // Validar dados da criação em lote
       if (bulkCreation.towers.length === 0) {
-        setError('Adicione pelo menos uma torre/bloco');
+        showToast('Adicione pelo menos uma torre/bloco', 'warning');
         return;
       }
 
       for (const tower of bulkCreation.towers) {
         if (!tower.name || tower.floors <= 0 || tower.unitsPerFloor <= 0) {
-          setError('Preencha todos os campos obrigatórios das torres');
+          showToast('Preencha todos os campos obrigatórios das torres', 'warning');
           return;
         }
       }
     } else {
       // Validar dados da criação individual
       if (!unitData.block || !unitData.number) {
-        setError('Bloco e número são obrigatórios');
+        showToast('Bloco e número são obrigatórios', 'warning');
         return;
       }
     }
 
     try {
       setLoading(true);
-      setError(null);
 
       if (bulkCreation.enabled) {
-        // Criar múltiplas unidades
         await createBulkUnits();
+        showToast('Unidades criadas em lote com sucesso!', 'success');
       } else {
-        // Criar unidade individual
         await createSingleUnit();
+        showToast('Unidade criada com sucesso!', 'success');
       }
 
-      // Sucesso total - condomínio e unidade(s) criados
       onSuccess();
       handleClose();
     } catch (err) {
       console.error('Erro ao criar unidades:', err);
-      setError(err instanceof Error ? err.message : 'Erro de conexão. Tente novamente.');
+      showToast(err instanceof Error ? err.message : 'Erro de conexão ao criar unidades', 'error');
     } finally {
       setLoading(false);
     }
@@ -589,7 +588,6 @@ export function CreateCondominiumModal({ isOpen, onClose, onSuccess }: CreateCon
         unitType: 'APARTMENT',
         monthlyFee: '0'
       });
-      setError(null);
       onClose();
     }
   };
@@ -676,12 +674,6 @@ export function CreateCondominiumModal({ isOpen, onClose, onSuccess }: CreateCon
           }
         </p>
       </div>
-
-      {error && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-lg mb-6">
-          <p className="text-sm text-red-600">{error}</p>
-        </div>
-      )}
 
       {/* Etapa 1: Cadastro do Condomínio */}
       {currentStep === 1 && (

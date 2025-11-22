@@ -5,6 +5,7 @@ import Image from "next/image"
 import { useCondominium } from "@/contexts/CondominiumContext"
 import { Modal } from "@/components/ui/modal"
 import { Button } from "@/components/ui/button"
+import { formatCPFInput, formatPhoneInput } from "@/lib/utils"
 import { 
   User, 
   Camera, 
@@ -511,22 +512,7 @@ export function CreateResidentModal({ isOpen, onClose, onSuccess }: CreateReside
             <input
               type="tel"
               value={formData.phone}
-              onChange={(e) => {
-                const value = e.target.value.replace(/\D/g, '')
-                let formatted = value
-                if (value.length === 11) {
-                  formatted = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
-                } else if (value.length === 10) {
-                  formatted = value.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3')
-                } else if (value.length <= 2) {
-                  formatted = value
-                } else if (value.length <= 7) {
-                  formatted = value.replace(/(\d{2})(\d+)/, '($1) $2')
-                } else if (value.length <= 10) {
-                  formatted = value.replace(/(\d{2})(\d{4})(\d+)/, '($1) $2-$3')
-                }
-                handleInputChange('phone', formatted)
-              }}
+              onChange={(e) => handleInputChange('phone', formatPhoneInput(e.target.value))}
               className="w-full pl-8 px-4 py-3 sm:py-2 text-black border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
               placeholder="(00) 00000-0000"
               maxLength={15}
@@ -556,13 +542,9 @@ export function CreateResidentModal({ isOpen, onClose, onSuccess }: CreateReside
               type="text"
               value={formData.document}
               onChange={(e) => {
-                const value = e.target.value.replace(/\D/g, '')
-                let formatted = value
-                if (formData.documentType === 'CPF' && value.length === 11) {
-                  formatted = value.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
-                } else {
-                  formatted = value
-                }
+                const formatted = formData.documentType === 'CPF' 
+                  ? formatCPFInput(e.target.value)
+                  : e.target.value
                 handleInputChange('document', formatted)
               }}
               className="w-full pl-8 px-4 py-3 sm:py-2 border text-black border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
@@ -592,22 +574,7 @@ export function CreateResidentModal({ isOpen, onClose, onSuccess }: CreateReside
             <input
               type="tel"
               value={formData.emergencyContact}
-              onChange={(e) => {
-                const value = e.target.value.replace(/\D/g, '')
-                let formatted = value
-                if (value.length === 11) {
-                  formatted = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
-                } else if (value.length === 10) {
-                  formatted = value.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3')
-                } else if (value.length <= 2) {
-                  formatted = value
-                } else if (value.length <= 7) {
-                  formatted = value.replace(/(\d{2})(\d+)/, '($1) $2')
-                } else if (value.length <= 10) {
-                  formatted = value.replace(/(\d{2})(\d{4})(\d+)/, '($1) $2-$3')
-                }
-                handleInputChange('emergencyContact', formatted)
-              }}
+              onChange={(e) => handleInputChange('emergencyContact', formatPhoneInput(e.target.value))}
               className="w-full pl-8 px-4 py-3 text-black sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
               placeholder="(00) 00000-0000"
               maxLength={15}
@@ -686,25 +653,33 @@ export function CreateResidentModal({ isOpen, onClose, onSuccess }: CreateReside
         </div>
 
         <div className="col-span-2">
-          <label className="block text-sm font-medium mb-1 text-black">Placas de Veículos (ABC-1234 ou ABC1D23)</label>
+          <label className="block text-sm font-medium mb-1 text-black">Placas de Veículos</label>
+          <p className="text-xs text-gray-500 mb-2">Formato antigo: ABC-1234 | Mercosul: ABC-1D23 ou ABC1D23</p>
           {formData.vehiclePlates.map((plate, index) => (
             <div key={index} className="flex gap-2 mb-2">
               <input
                 type="text"
                 value={plate}
                 onChange={(e) => {
-                  let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '')
-                  // Formato antigo: ABC1234 ou ABC-1234
-                  // Formato Mercosul: ABC1D23
-                  if (value.length <= 7) {
-                    if (value.length > 3 && !value.includes('-')) {
-                      value = value.slice(0, 3) + '-' + value.slice(3)
+                  let value = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '')
+                  
+                  // Remove hífens temporariamente para processamento
+                  const clean = value.replace(/-/g, '')
+                  
+                  // Limita a 7 caracteres (sem o hífen)
+                  if (clean.length <= 7) {
+                    let formatted = clean
+                    
+                    // Adiciona hífen automaticamente após 3 caracteres
+                    if (clean.length > 3) {
+                      formatted = clean.slice(0, 3) + '-' + clean.slice(3)
                     }
-                    handleVehiclePlateChange(index, value)
+                    
+                    handleVehiclePlateChange(index, formatted)
                   }
                 }}
                 maxLength={8}
-                className="flex-1 px-4 py-3 text-black sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
+                className="flex-1 px-4 py-3 text-black sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm uppercase"
                 placeholder="ABC-1234 ou ABC-1D23"
               />
               {formData.vehiclePlates.length > 1 && (

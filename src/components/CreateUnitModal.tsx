@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import { Modal } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
 import { useCondominium } from '@/contexts/CondominiumContext'
+import { useToast } from '@/components/ui/toast'
 import { Plus, Building } from 'lucide-react'
 
 interface CreateUnitModalProps {
@@ -14,8 +15,8 @@ interface CreateUnitModalProps {
 
 export function CreateUnitModal({ isOpen, onClose, onSuccess }: CreateUnitModalProps) {
   const { selectedCondominium } = useCondominium()
+  const { showToast } = useToast()
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   
   const [formData, setFormData] = useState({
     block: '',
@@ -41,12 +42,11 @@ export function CreateUnitModal({ isOpen, onClose, onSuccess }: CreateUnitModalP
     e.preventDefault()
     
     if (!selectedCondominium) {
-      setError('Nenhum condomínio selecionado')
+      showToast('Nenhum condomínio selecionado', 'error')
       return
     }
 
     setLoading(true)
-    setError(null)
 
     try {
       const submitData = {
@@ -73,6 +73,7 @@ export function CreateUnitModal({ isOpen, onClose, onSuccess }: CreateUnitModalP
       const result = await response.json()
 
       if (result.success) {
+        showToast('Unidade cadastrada com sucesso!', 'success')
         setFormData({
           block: '',
           number: '',
@@ -87,11 +88,11 @@ export function CreateUnitModal({ isOpen, onClose, onSuccess }: CreateUnitModalP
         onSuccess()
         onClose()
       } else {
-        setError(result.error || 'Erro ao cadastrar unidade')
+        showToast(result.error || 'Erro ao cadastrar unidade', 'error')
       }
     } catch (err) {
       console.error('Erro ao cadastrar unidade:', err)
-      setError('Erro de conexão. Tente novamente.')
+      showToast('Erro de conexão. Tente novamente.', 'error')
     } finally {
       setLoading(false)
     }
@@ -110,7 +111,6 @@ export function CreateUnitModal({ isOpen, onClose, onSuccess }: CreateUnitModalP
         unitType: 'APARTMENT',
         monthlyFee: '0'
       })
-      setError(null)
       onClose()
     }
   }
@@ -118,12 +118,6 @@ export function CreateUnitModal({ isOpen, onClose, onSuccess }: CreateUnitModalP
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Nova Unidade">
       <form onSubmit={handleSubmit} className="space-y-6">
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
-            {error}
-          </div>
-        )}
-
         <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-md">
           <div className="flex items-center gap-2">
             <Building className="h-4 w-4 text-blue-600" />

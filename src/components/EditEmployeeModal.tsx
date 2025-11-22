@@ -1,34 +1,63 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Modal } from "@/components/ui/modal"
 import { Button } from "@/components/ui/button"
-import { useCondominium } from "@/contexts/CondominiumContext"
 import { useToast } from "@/components/ui/toast"
-import { formatCPFInput, formatPhoneInput, unformatCPF, unformatPhone } from "@/lib/utils"
+import { formatCPFInput, formatPhoneInput } from "@/lib/utils"
 
-interface CreateEmployeeModalProps {
+interface Employee {
+  id: string
+  name: string
+  email: string
+  phone: string
+  documentNumber: string
+  position: string
+  department: string
+  shift: "MORNING" | "AFTERNOON" | "NIGHT" | "FULL_TIME"
+  salary: number
+  hireDate: string
+}
+
+interface EditEmployeeModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
+  employee: Employee
 }
 
-export function CreateEmployeeModal({ isOpen, onClose, onSuccess }: CreateEmployeeModalProps) {
-  const { selectedCondominium } = useCondominium()
+export function EditEmployeeModal({ isOpen, onClose, onSuccess, employee }: EditEmployeeModalProps) {
   const { showToast } = useToast()
   const [loading, setLoading] = useState(false)
   
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    documentNumber: '',
-    position: '',
-    department: '',
-    shift: 'FULL_TIME',
-    salary: '',
-    hireDate: new Date().toISOString().split('T')[0]
+    name: employee.name,
+    email: employee.email,
+    phone: employee.phone,
+    documentNumber: employee.documentNumber,
+    position: employee.position,
+    department: employee.department,
+    shift: employee.shift,
+    salary: employee.salary.toString(),
+    hireDate: new Date(employee.hireDate).toISOString().split('T')[0]
   })
+
+  useEffect(() => {
+    if (employee) {
+      console.log('[EditEmployeeModal] Carregando dados do funcionário:', employee)
+      setFormData({
+        name: employee.name,
+        email: employee.email,
+        phone: formatPhoneInput(employee.phone || ''),
+        documentNumber: formatCPFInput(employee.documentNumber || ''),
+        position: employee.position,
+        department: employee.department,
+        shift: employee.shift,
+        salary: employee.salary.toString(),
+        hireDate: new Date(employee.hireDate).toISOString().split('T')[0]
+      })
+    }
+  }, [employee])
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -73,176 +102,142 @@ export function CreateEmployeeModal({ isOpen, onClose, onSuccess }: CreateEmploy
       return
     }
 
-    if (!selectedCondominium?.id) {
-      showToast('Nenhum condomínio selecionado', 'error')
-      return
-    }
-
     setLoading(true)
 
     try {
-      const response = await fetch('/api/employees', {
-        method: 'POST',
+      console.log('[EditEmployeeModal] Enviando dados:', formData)
+      console.log('[EditEmployeeModal] URL:', `/api/employees/${employee.id}`)
+      
+      const response = await fetch(`/api/employees/${employee.id}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           ...formData,
-          condominiumId: selectedCondominium.id,
           salary: parseFloat(formData.salary)
         }),
       })
 
+      console.log('[EditEmployeeModal] Response status:', response.status)
       const data = await response.json()
+      console.log('[EditEmployeeModal] Response data:', data)
 
       if (!response.ok) {
-        throw new Error(data.error || 'Erro ao criar funcionário')
+        throw new Error(data.error || 'Erro ao atualizar funcionário')
       }
 
-      // Reset form
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        documentNumber: '',
-        position: '',
-        department: '',
-        shift: 'FULL_TIME',
-        salary: '',
-        hireDate: new Date().toISOString().split('T')[0]
-      })
-      
-      showToast('Funcionário criado com sucesso!', 'success')
+      showToast('Funcionário atualizado com sucesso!', 'success')
       onSuccess()
       onClose()
+      
     } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Erro ao criar funcionário', 'error')
+      console.error('[EditEmployeeModal] Erro:', error)
+      showToast(error instanceof Error ? error.message : 'Erro ao atualizar funcionário', 'error')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleClose = () => {
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      documentNumber: '',
-      position: '',
-      department: '',
-      shift: 'FULL_TIME',
-      salary: '',
-      hireDate: new Date().toISOString().split('T')[0]
-    })
-    onClose()
-  }
-
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Novo Funcionário">
+    <Modal isOpen={isOpen} onClose={onClose} title="Editar Funcionário">
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Nome */}
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-2">
               Nome Completo *
             </label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
-              required
-              className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
-              placeholder="Nome completo do funcionário"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+              placeholder="Nome do funcionário"
+              disabled={loading}
             />
           </div>
 
-          {/* Email */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-900 mb-2">
               Email *
             </label>
             <input
               type="email"
               value={formData.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
-              required
-              className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
               placeholder="email@exemplo.com"
+              disabled={loading}
             />
           </div>
 
-          {/* Telefone */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-900 mb-2">
               Telefone *
             </label>
             <input
               type="tel"
               value={formData.phone}
               onChange={(e) => handleInputChange('phone', formatPhoneInput(e.target.value))}
-              required
-              className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
               placeholder="(00) 00000-0000"
               maxLength={15}
+              disabled={loading}
             />
           </div>
 
-          {/* CPF */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-900 mb-2">
               CPF *
             </label>
             <input
               type="text"
               value={formData.documentNumber}
               onChange={(e) => handleInputChange('documentNumber', formatCPFInput(e.target.value))}
-              required
-              className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
               placeholder="000.000.000-00"
               maxLength={14}
+              disabled={loading}
             />
           </div>
 
-          {/* Cargo */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-900 mb-2">
               Cargo *
             </label>
             <input
               type="text"
               value={formData.position}
               onChange={(e) => handleInputChange('position', e.target.value)}
-              required
-              className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
               placeholder="Ex: Porteiro, Zelador, Síndico"
+              disabled={loading}
             />
           </div>
 
-          {/* Departamento */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-900 mb-2">
               Departamento *
             </label>
             <input
               type="text"
               value={formData.department}
               onChange={(e) => handleInputChange('department', e.target.value)}
-              required
-              className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
-              placeholder="Ex: Portaria, Manutenção, Administração"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+              placeholder="Ex: Segurança, Limpeza, Administração"
+              disabled={loading}
             />
           </div>
 
-          {/* Turno */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-900 mb-2">
               Turno *
             </label>
             <select
               value={formData.shift}
               onChange={(e) => handleInputChange('shift', e.target.value)}
-              required
-              className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+              disabled={loading}
             >
               <option value="MORNING">Manhã</option>
               <option value="AFTERNOON">Tarde</option>
@@ -251,55 +246,50 @@ export function CreateEmployeeModal({ isOpen, onClose, onSuccess }: CreateEmploy
             </select>
           </div>
 
-          {/* Salário */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-900 mb-2">
               Salário (R$) *
             </label>
             <input
               type="number"
               step="0.01"
-              min="0"
               value={formData.salary}
               onChange={(e) => handleInputChange('salary', e.target.value)}
-              required
-              className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
               placeholder="0.00"
+              disabled={loading}
             />
           </div>
 
-          {/* Data de Admissão */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-900 mb-2">
               Data de Admissão *
             </label>
             <input
               type="date"
               value={formData.hireDate}
               onChange={(e) => handleInputChange('hireDate', e.target.value)}
-              required
-              className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+              disabled={loading}
             />
           </div>
         </div>
 
-        {/* Botões */}
-        <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t">
+        <div className="flex justify-end gap-3 pt-4 border-t">
           <Button
             type="button"
-            onClick={handleClose}
+            onClick={onClose}
             variant="outline"
             disabled={loading}
-            className="min-h-[44px] w-full sm:w-auto order-2 sm:order-1"
           >
             Cancelar
           </Button>
           <Button
             type="submit"
             disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700 min-h-[44px] w-full sm:w-auto order-1 sm:order-2"
+            className="bg-blue-600 hover:bg-blue-700"
           >
-            {loading ? 'Criando...' : 'Criar Funcionário'}
+            {loading ? 'Salvando...' : 'Salvar Alterações'}
           </Button>
         </div>
       </form>

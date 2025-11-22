@@ -89,22 +89,10 @@ const adminMenuItems = [
     color: "text-yellow-600"
   },
   {
-    title: "Deploy Arduino",
-    href: "/arduino-deploy",
-    icon: Zap,
-    color: "text-amber-600"
-  },
-  {
     title: "Cadastro Arduino",
     href: "/arduino-register",
     icon: Settings,
     color: "text-blue-600"
-  },
-  {
-    title: "Serial Monitor",
-    href: "/serial-monitor",
-    icon: Activity,
-    color: "text-teal-600"
   },
   {
     title: "Configurações",
@@ -174,7 +162,7 @@ export function Sidebar() {
       collapsed ? "w-16" : "w-64"
     )}>
       {/* Header */}
-      <div className="p-4 border-b border-gray-200">
+      <Link href="/" className="block p-4 border-b border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer">
         <div className="flex items-center justify-between">
           {!collapsed && (
             <div className="flex items-center space-x-3">
@@ -201,7 +189,7 @@ export function Sidebar() {
             />
           )}
         </div>
-      </div>
+      </Link>
 
       {/* Seletor de Condomínio */}
       <div className="p-4 border-b border-gray-100">

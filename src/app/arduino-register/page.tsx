@@ -336,17 +336,17 @@ export default function ArduinoRegisterPage() {
                   <Button
                     onClick={loadAvailablePorts}
                     variant="outline"
-                    size="sm"
+                    className="flex items-center justify-center gap-2 min-h-[44px] px-6"
                   >
-                    <RefreshCw className="w-4 h-4 mr-2" />
+                    <RefreshCw className="w-4 h-4" />
                     Atualizar Portas
                   </Button>
                   <Button
                     onClick={scanForArduinos}
                     disabled={isScanning || availablePorts.length === 0}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="flex items-center justify-center gap-2 min-h-[44px] px-6"
                   >
-                    <Search className="w-4 h-4 mr-2" />
+                    <Search className="w-4 h-4" />
                     {isScanning ? 'Escaneando...' : 'Detectar Arduinos'}
                   </Button>
                 </div>
@@ -578,15 +578,16 @@ export default function ArduinoRegisterPage() {
                   setSelectedArduino(null)
                 }}
                 variant="outline"
+                className="flex items-center justify-center gap-2 min-h-[44px] px-6"
               >
                 Limpar Formulário
               </Button>
               <Button
                 onClick={saveArduinoConfiguration}
                 disabled={isSaving || !formData.deviceName || !formData.connectionPort}
-                className="bg-green-600 hover:bg-green-700"
+                className="flex items-center justify-center gap-2 min-h-[44px] px-6"
               >
-                <Save className="w-4 h-4 mr-2" />
+                <Save className="w-4 h-4" />
                 {isSaving ? 'Salvando...' : 'Cadastrar Arduino'}
               </Button>
             </div>

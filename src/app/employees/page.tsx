@@ -9,6 +9,9 @@ import { Pagination } from "@/components/ui/pagination"
 import { formatCPF, formatPhone } from "@/lib/utils"
 import { Plus, Search, Edit, Trash2, Phone, Mail, UserCheck, Clock, Users, Briefcase, DollarSign } from "lucide-react"
 import { CreateEmployeeModal } from "@/components/CreateEmployeeModal"
+import { EditEmployeeModal } from "@/components/EditEmployeeModal"
+import { ConfirmDeleteModal } from "@/components/ConfirmDeleteModal"
+import { useToast } from "@/components/ui/toast"
 
 interface Employee {
   id: string
@@ -26,10 +29,15 @@ interface Employee {
 }
 
 export default function EmployeesPage() {
+  const { showToast } = useToast()
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
@@ -101,14 +109,39 @@ export default function EmployeesPage() {
     }
   }
 
-  const handleEdit = (id: string) => {
-    console.log("Editar funcionário:", id)
-    // TODO: Implementar modal de edição
+  const handleEdit = (employee: Employee) => {
+    setSelectedEmployee(employee)
+    setShowEditModal(true)
   }
 
-  const handleDelete = (id: string) => {
-    console.log("Excluir funcionário:", id)
-    // TODO: Implementar confirmação e exclusão
+  const handleDelete = (employee: Employee) => {
+    setSelectedEmployee(employee)
+    setShowDeleteModal(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!selectedEmployee) return
+
+    setDeleteLoading(true)
+    try {
+      const response = await fetch(`/api/employees/${selectedEmployee.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Erro ao excluir funcionário')
+      }
+
+      showToast('Funcionário excluído com sucesso!', 'success')
+      setShowDeleteModal(false)
+      setSelectedEmployee(null)
+      handleCreateSuccess() // Recarregar lista
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Erro ao excluir funcionário', 'error')
+    } finally {
+      setDeleteLoading(false)
+    }
   }
 
   const handleAddNew = () => {
@@ -338,7 +371,7 @@ export default function EmployeesPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleEdit(employee.id)}
+                          onClick={() => handleEdit(employee)}
                           className="flex items-center gap-1"
                         >
                           <Edit className="h-3 w-3" />
@@ -347,7 +380,7 @@ export default function EmployeesPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleDelete(employee.id)}
+                          onClick={() => handleDelete(employee)}
                           className="flex items-center gap-1 text-red-600 hover:text-red-700"
                         >
                           <Trash2 className="h-3 w-3" />
@@ -423,7 +456,7 @@ export default function EmployeesPage() {
                     <div className="flex gap-2 pt-2 border-t">
                       <Button
                         variant="outline"
-                        onClick={() => handleEdit(employee.id)}
+                        onClick={() => handleEdit(employee)}
                         className="flex-1 min-h-[44px]"
                       >
                         <Edit className="h-4 w-4 mr-1.5" />
@@ -431,7 +464,7 @@ export default function EmployeesPage() {
                       </Button>
                       <Button
                         variant="outline"
-                        onClick={() => handleDelete(employee.id)}
+                        onClick={() => handleDelete(employee)}
                         className="flex-1 text-red-600 hover:text-red-700 min-h-[44px]"
                       >
                         <Trash2 className="h-4 w-4 mr-1.5" />
@@ -471,6 +504,33 @@ export default function EmployeesPage() {
         onClose={() => setShowCreateModal(false)}
         onSuccess={handleCreateSuccess}
       />
+
+      {selectedEmployee && (
+        <EditEmployeeModal
+          isOpen={showEditModal}
+          onClose={() => {
+            setShowEditModal(false)
+            setSelectedEmployee(null)
+          }}
+          onSuccess={handleCreateSuccess}
+          employee={selectedEmployee}
+        />
+      )}
+
+      {selectedEmployee && (
+        <ConfirmDeleteModal
+          isOpen={showDeleteModal}
+          onClose={() => {
+            setShowDeleteModal(false)
+            setSelectedEmployee(null)
+          }}
+          onConfirm={confirmDelete}
+          title="Excluir Funcionário"
+          message="Tem certeza que deseja excluir este funcionário?"
+          itemName={selectedEmployee.name}
+          loading={deleteLoading}
+        />
+      )}
     </MainLayout>
   )
 }

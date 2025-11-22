@@ -284,7 +284,10 @@ export default function ResidentManagementPage() {
                 Erro ao carregar dados
               </div>
               <p className="text-gray-600 mb-4">{error}</p>
-              <Button onClick={fetchUnitsData}>
+              <Button 
+                onClick={fetchUnitsData}
+                className="flex items-center justify-center gap-2 min-h-[44px] px-6 bg-blue-600 hover:bg-blue-700 text-white"
+              >
                 Tentar Novamente
               </Button>
             </div>
@@ -314,9 +317,9 @@ export default function ResidentManagementPage() {
             {isAdmin && (
               <Button
                 onClick={() => setIsCreateResidentModalOpen(true)}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="flex items-center justify-center gap-2 min-h-[44px] px-6 bg-gradient-to-r from-green-500 to-orange-500 text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5"
               >
-                <PlusIcon className="h-5 w-5 mr-2" />
+                <PlusIcon className="h-5 w-5" />
                 Novo Morador
               </Button>
             )}
@@ -453,10 +456,9 @@ export default function ResidentManagementPage() {
                         {isAdmin && (
                           <Button
                             onClick={() => handleCreateGuestForUnit(unitData)}
-                            className="bg-green-600 hover:bg-green-700 text-white"
-                            size="sm"
+                            className="flex items-center justify-center gap-2 min-h-[44px] px-4 bg-green-600 hover:bg-green-700 text-white"
                           >
-                            <PlusIcon className="h-4 w-4 mr-1" />
+                            <PlusIcon className="h-4 w-4" />
                             Convidado
                           </Button>
                         )}
@@ -464,17 +466,16 @@ export default function ResidentManagementPage() {
                         <Button
                           onClick={() => toggleUnitExpansion(unitKey)}
                           variant="outline"
-                          size="sm"
-                          className="flex items-center"
+                          className="flex items-center justify-center gap-2 min-h-[44px] px-4"
                         >
                           {isExpanded ? (
                             <>
-                              <ChevronUpIcon className="h-4 w-4 mr-1" />
+                              <ChevronUpIcon className="h-4 w-4" />
                               Ocultar
                             </>
                           ) : (
                             <>
-                              <ChevronDownIcon className="h-4 w-4 mr-1" />
+                              <ChevronDownIcon className="h-4 w-4" />
                               Expandir
                             </>
                           )}
@@ -541,8 +542,7 @@ export default function ResidentManagementPage() {
                                     <Button
                                       onClick={() => handleEditResident(resident)}
                                       variant="outline"
-                                      size="sm"
-                                      className="ml-4"
+                                      className="flex items-center justify-center gap-2 min-h-[44px] px-4 ml-4"
                                     >
                                       Editar
                                     </Button>
@@ -580,8 +580,7 @@ export default function ResidentManagementPage() {
                                     <Button
                                       onClick={() => handleEditGuest(guest)}
                                       variant="outline"
-                                      size="sm"
-                                      className="text-xs px-2 py-1 h-6"
+                                      className="flex items-center justify-center min-h-[32px] px-3 text-xs"
                                     >
                                       Editar
                                     </Button>

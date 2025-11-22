@@ -308,20 +308,28 @@ export default function FinancialPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={() => setShowCharts(!showCharts)} variant="outline" className="flex-1 sm:flex-none min-h-[44px] px-4">
-              <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+            <Button 
+              onClick={() => setShowCharts(!showCharts)} 
+              variant="outline" 
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 min-h-[44px] px-6"
+            >
+              <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5" />
               <span className="hidden sm:inline">Gráficos</span>
             </Button>
-            <Button onClick={handleExport} variant="outline" className="flex-1 sm:flex-none min-h-[44px] px-4">
-              <Download className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+            <Button 
+              onClick={handleExport} 
+              variant="outline" 
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 min-h-[44px] px-6"
+            >
+              <Download className="h-4 w-4 sm:h-5 sm:w-5" />
               <span className="hidden sm:inline">Exportar</span>
             </Button>
             <Button 
               onClick={() => setShowRecurringModal(true)} 
               variant="outline" 
-              className="flex-1 sm:flex-none min-h-[44px] px-4 border-blue-600 text-blue-600 hover:bg-blue-50"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 min-h-[44px] px-6 border-blue-600 text-blue-600 hover:bg-blue-50"
             >
-              <RefreshCw className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+              <RefreshCw className="h-4 w-4 sm:h-5 sm:w-5" />
               <span className="hidden sm:inline">Mensalidades</span>
             </Button>
             <Button onClick={handleAddNew} className="flex-1 sm:flex-none min-h-[44px] px-4 bg-green-600 hover:bg-green-700">

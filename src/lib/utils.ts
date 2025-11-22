@@ -82,3 +82,66 @@ export function formatDocument(document: string | null | undefined): string {
   // Caso contrário, retorna como está
   return document
 }
+
+/**
+ * Formata CPF enquanto o usuário digita
+ * @param value - Valor do input
+ * @returns Valor formatado para CPF
+ */
+export function formatCPFInput(value: string): string {
+  // Remove tudo que não é número
+  const numbers = value.replace(/\D/g, '')
+  
+  // Limita a 11 dígitos
+  const limited = numbers.slice(0, 11)
+  
+  // Aplica máscara progressiva
+  if (limited.length <= 3) return limited
+  if (limited.length <= 6) return limited.replace(/(\d{3})(\d{0,3})/, '$1.$2')
+  if (limited.length <= 9) return limited.replace(/(\d{3})(\d{3})(\d{0,3})/, '$1.$2.$3')
+  return limited.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, '$1.$2.$3-$4')
+}
+
+/**
+ * Formata telefone enquanto o usuário digita
+ * @param value - Valor do input
+ * @returns Valor formatado para telefone
+ */
+export function formatPhoneInput(value: string): string {
+  // Remove tudo que não é número
+  const numbers = value.replace(/\D/g, '')
+  
+  // Limita a 11 dígitos (DDD + 9 dígitos)
+  const limited = numbers.slice(0, 11)
+  
+  // Aplica máscara progressiva
+  if (limited.length <= 2) return limited
+  if (limited.length <= 6) {
+    // (XX) XXXX
+    return limited.replace(/(\d{2})(\d{0,4})/, '($1) $2')
+  }
+  if (limited.length <= 10) {
+    // (XX) XXXX-XXXX
+    return limited.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3')
+  }
+  // (XX) XXXXX-XXXX
+  return limited.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3')
+}
+
+/**
+ * Remove formatação de CPF
+ * @param cpf - CPF formatado
+ * @returns Apenas números
+ */
+export function unformatCPF(cpf: string): string {
+  return cpf.replace(/\D/g, '')
+}
+
+/**
+ * Remove formatação de telefone
+ * @param phone - Telefone formatado
+ * @returns Apenas números
+ */
+export function unformatPhone(phone: string): string {
+  return phone.replace(/\D/g, '')
+}

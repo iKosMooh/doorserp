@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Modal } from "@/components/ui/modal"
 import { Button } from "@/components/ui/button"
+import { useToast } from "@/components/ui/toast"
 import { DollarSign, Calendar, RefreshCw, TrendingUp } from "lucide-react"
 
 interface RecurringRevenueModalProps {
@@ -20,9 +21,8 @@ export function RecurringRevenueModal({
   userId,
   onSuccess 
 }: RecurringRevenueModalProps) {
+  const { showToast } = useToast()
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'generate' | 'update'>('generate')
   
   // Generate tab
@@ -42,8 +42,6 @@ export function RecurringRevenueModal({
   const handleGenerate = async () => {
     try {
       setLoading(true)
-      setError(null)
-      setSuccess(null)
 
       const response = await fetch('/api/financial/recurring', {
         method: 'POST',
@@ -58,17 +56,17 @@ export function RecurringRevenueModal({
       const result = await response.json()
 
       if (result.success) {
-        setSuccess(`✅ ${result.message}. Total: R$ ${result.data.totalAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)
+        showToast(`${result.message}. Total: R$ ${result.data.totalAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 'success', 5000)
         setTimeout(() => {
           onSuccess()
           onClose()
-        }, 2000)
+        }, 1500)
       } else {
-        setError(result.error || 'Erro ao gerar receitas')
+        showToast(result.error || 'Erro ao gerar receitas', 'error')
       }
     } catch (err) {
       console.error('Erro:', err)
-      setError('Erro ao gerar receitas recorrentes')
+      showToast('Erro ao gerar receitas recorrentes', 'error')
     } finally {
       setLoading(false)
     }
@@ -77,11 +75,9 @@ export function RecurringRevenueModal({
   const handleUpdate = async () => {
     try {
       setLoading(true)
-      setError(null)
-      setSuccess(null)
 
       if (!newAmount || parseFloat(newAmount) <= 0) {
-        setError('Digite um valor válido')
+        showToast('Digite um valor válido', 'warning')
         setLoading(false)
         return
       }
@@ -101,17 +97,17 @@ export function RecurringRevenueModal({
       const result = await response.json()
 
       if (result.success) {
-        setSuccess(`✅ ${result.message}`)
+        showToast(result.message, 'success', 5000)
         setTimeout(() => {
           onSuccess()
           onClose()
-        }, 2000)
+        }, 1500)
       } else {
-        setError(result.error || 'Erro ao atualizar valores')
+        showToast(result.error || 'Erro ao atualizar valores', 'error')
       }
     } catch (err) {
       console.error('Erro:', err)
-      setError('Erro ao atualizar valores')
+      showToast('Erro ao atualizar valores', 'error')
     } finally {
       setLoading(false)
     }
@@ -176,18 +172,6 @@ export function RecurringRevenueModal({
                 Selecione o mês para qual as receitas serão geradas
               </p>
             </div>
-
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-                {error}
-              </div>
-            )}
-
-            {success && (
-              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
-                {success}
-              </div>
-            )}
 
             <div className="flex gap-3 pt-4">
               <Button
@@ -295,18 +279,6 @@ export function RecurringRevenueModal({
                   : 'O valor base (monthlyFee) de todas as unidades ativas será atualizado'}
               </p>
             </div>
-
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-                {error}
-              </div>
-            )}
-
-            {success && (
-              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
-                {success}
-              </div>
-            )}
 
             <div className="flex gap-3 pt-4">
               <Button

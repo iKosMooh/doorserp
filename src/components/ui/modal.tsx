@@ -14,14 +14,14 @@ export function Modal({ isOpen, onClose, children, title }: ModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
+      {/* Backdrop - Fundo translúcido embaçado */}
       <div 
-        className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/30 backdrop-blur-md"
         onClick={onClose}
       />
       
       {/* Modal Content */}
-      <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-auto">
+      <div className="relative bg-white rounded-lg shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-auto">
         {title && (
           <div className="px-6 py-4 border-b border-gray-200">
             <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
@@ -31,7 +31,7 @@ export function Modal({ isOpen, onClose, children, title }: ModalProps) {
           onClick={onClose}
           className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors z-10"
         >
-          <X className="h-5 w-5" />
+          <X className="h-5 w-5 text-gray-700" />
         </button>
         <div className={title ? "p-6" : ""}>
           {children}

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { X, Download, Share2, Copy, Check } from 'lucide-react';
 import { formatCPF } from '@/lib/utils';
+import { useToast } from '@/components/ui/toast';
 
 interface ResidentQRCodeModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ interface ResidentQRCodeModalProps {
 }
 
 export default function ResidentQRCodeModal({ isOpen, onClose, resident }: ResidentQRCodeModalProps) {
+  const { showToast } = useToast();
   const qrCodeRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
 
@@ -58,7 +60,7 @@ export default function ResidentQRCodeModal({ isOpen, onClose, resident }: Resid
       });
     } catch (error) {
       console.error('Erro ao gerar QR Code:', error);
-      alert('Erro ao gerar QR Code');
+      showToast('Erro ao gerar QR Code', 'error');
     }
   };
 
@@ -97,13 +99,13 @@ export default function ResidentQRCodeModal({ isOpen, onClose, resident }: Resid
           });
         } else {
           // Fallback: copiar para área de transferência ou download
-          alert('Compartilhamento não suportado neste navegador. Use o botão de download.');
+          showToast('Compartilhamento não suportado neste navegador. Use o botão de download.', 'info');
           handleDownload();
         }
       }, 'image/png');
     } catch (error) {
       console.error('Erro ao compartilhar:', error);
-      alert('Erro ao compartilhar QR Code');
+      showToast('Erro ao compartilhar QR Code', 'error');
     }
   };
 

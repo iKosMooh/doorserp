@@ -5,6 +5,8 @@ import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { CameraIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
+import { useToast } from '@/components/ui/toast';
+import { formatCPFInput, formatPhoneInput } from '@/lib/utils';
 
 interface Unit {
   id: string;
@@ -34,6 +36,7 @@ interface CreateGuestModalProps {
 }
 
 export default function CreateGuestModal({ isOpen, onClose, resident, unit, residents = [] }: CreateGuestModalProps) {
+  const { showToast } = useToast()
   // Determine the unit and available residents
   const currentUnit = unit || resident?.unit;
   const availableResidents = residents.length > 0 ? residents : (resident ? [resident] : []);
@@ -340,12 +343,13 @@ export default function CreateGuestModal({ isOpen, onClose, resident, unit, resi
       }
 
       if (data.success) {
-        alert(`Convidado criado com sucesso!\nCódigo de acesso: ${data.guest.accessCode}`);
+        showToast(`Convidado criado com sucesso! Código de acesso: ${data.guest.accessCode}`, 'success', 8000)
         onClose();
       } else {
         setError(data.message || 'Erro desconhecido');
       }
     } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Erro ao criar convidado', 'error')
       setError(error instanceof Error ? error.message : 'Erro desconhecido');
     } finally {
       setLoading(false);
@@ -437,14 +441,7 @@ export default function CreateGuestModal({ isOpen, onClose, resident, unit, resi
               type="text"
               name="document"
               value={formData.document}
-              onChange={(e) => {
-                const value = e.target.value.replace(/\D/g, '')
-                let formatted = value
-                if (value.length === 11) {
-                  formatted = value.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
-                }
-                setFormData({ ...formData, document: formatted })
-              }}
+              onChange={(e) => setFormData({ ...formData, document: formatCPFInput(e.target.value) })}
               className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
               placeholder="000.000.000-00"
               maxLength={14}
@@ -460,22 +457,7 @@ export default function CreateGuestModal({ isOpen, onClose, resident, unit, resi
               type="tel"
               name="phone"
               value={formData.phone}
-              onChange={(e) => {
-                const value = e.target.value.replace(/\D/g, '')
-                let formatted = value
-                if (value.length === 11) {
-                  formatted = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
-                } else if (value.length === 10) {
-                  formatted = value.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3')
-                } else if (value.length <= 2) {
-                  formatted = value
-                } else if (value.length <= 7) {
-                  formatted = value.replace(/(\d{2})(\d+)/, '($1) $2')
-                } else if (value.length <= 10) {
-                  formatted = value.replace(/(\d{2})(\d{4})(\d+)/, '($1) $2-$3')
-                }
-                setFormData({ ...formData, phone: formatted })
-              }}
+              onChange={(e) => setFormData({ ...formData, phone: formatPhoneInput(e.target.value) })}
               className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
               placeholder="(00) 00000-0000"
               maxLength={15}

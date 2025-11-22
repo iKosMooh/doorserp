@@ -3,6 +3,7 @@
 import React, { useState, useRef, useCallback, useEffect } from "react"
 import { Modal } from "@/components/ui/modal"
 import { Button } from "@/components/ui/button"
+import { formatCPFInput, formatPhoneInput } from "@/lib/utils"
 import { 
   User, 
   Camera, 
@@ -724,7 +725,7 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
   // Render functions (similar to CreateResidentModal but adapted for editing)
   const renderStep1 = () => (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold flex items-center gap-2">
+      <h3 className="text-lg font-semibold text-black flex items-center gap-2">
         <User className="w-5 h-5" />
         Dados Pessoais
       </h3>
@@ -763,22 +764,7 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
           <input
             type="tel"
             value={formData.phone}
-            onChange={(e) => {
-              const value = e.target.value.replace(/\D/g, '')
-              let formatted = value
-              if (value.length === 11) {
-                formatted = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
-              } else if (value.length === 10) {
-                formatted = value.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3')
-              } else if (value.length <= 2) {
-                formatted = value
-              } else if (value.length <= 7) {
-                formatted = value.replace(/(\d{2})(\d+)/, '($1) $2')
-              } else if (value.length <= 10) {
-                formatted = value.replace(/(\d{2})(\d{4})(\d+)/, '($1) $2-$3')
-              }
-              handleInputChange('phone', formatted)
-            }}
+            onChange={(e) => handleInputChange('phone', formatPhoneInput(e.target.value))}
             className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
             placeholder="(00) 00000-0000"
             maxLength={15}
@@ -843,22 +829,7 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
           <input
             type="tel"
             value={formData.emergencyContact}
-            onChange={(e) => {
-              const value = e.target.value.replace(/\D/g, '')
-              let formatted = value
-              if (value.length === 11) {
-                formatted = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
-              } else if (value.length === 10) {
-                formatted = value.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3')
-              } else if (value.length <= 2) {
-                formatted = value
-              } else if (value.length <= 7) {
-                formatted = value.replace(/(\d{2})(\d+)/, '($1) $2')
-              } else if (value.length <= 10) {
-                formatted = value.replace(/(\d{2})(\d{4})(\d+)/, '($1) $2-$3')
-              }
-              handleInputChange('emergencyContact', formatted)
-            }}
+            onChange={(e) => handleInputChange('emergencyContact', formatPhoneInput(e.target.value))}
             className="w-full px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
             placeholder="(00) 00000-0000"
             maxLength={15}
@@ -882,7 +853,7 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
 
   const renderStep2 = () => (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold flex items-center gap-2">
+      <h3 className="text-lg font-semibold text-black flex items-center gap-2">
         <Building className="w-5 h-5" />
         Unidade e Relacionamento
       </h3>
@@ -933,14 +904,33 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
         <label className="block text-sm font-medium mb-2">
           Placas de Veículos
         </label>
+        <p className="text-xs text-gray-500 mb-2">Formato antigo: ABC-1234 | Mercosul: ABC-1D23 ou ABC1D23</p>
         {formData.vehiclePlates.map((plate, index) => (
           <div key={index} className="flex items-center space-x-2 mb-2">
             <input
               type="text"
               value={plate}
-              onChange={(e) => handleVehiclePlateChange(index, e.target.value)}
-              className="flex-1 px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm"
-              placeholder="ABC-1234"
+              onChange={(e) => {
+                let value = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '')
+                
+                // Remove hífens temporariamente para processamento
+                const clean = value.replace(/-/g, '')
+                
+                // Limita a 7 caracteres (sem o hífen)
+                if (clean.length <= 7) {
+                  let formatted = clean
+                  
+                  // Adiciona hífen automaticamente após 3 caracteres
+                  if (clean.length > 3) {
+                    formatted = clean.slice(0, 3) + '-' + clean.slice(3)
+                  }
+                  
+                  handleVehiclePlateChange(index, formatted)
+                }
+              }}
+              className="flex-1 px-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base sm:text-sm uppercase"
+              placeholder="ABC-1234 ou ABC-1D23"
+              maxLength={8}
             />
             {formData.vehiclePlates.length > 1 && (
               <Button
@@ -982,7 +972,7 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
 
     return (
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-black flex items-center gap-2">
           <Camera className="w-5 h-5" />
           Reconhecimento Facial
         </h3>

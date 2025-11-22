@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { CondominiumProvider } from "@/contexts/CondominiumContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ToastProvider } from "@/components/ui/toast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,17 +30,19 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-gradient-to-br from-slate-50 via-white to-orange-50 font-sans antialiased`}
       >
-        <AuthProvider>
-          <CondominiumProvider>
-            <div className="min-h-screen relative">
-              {/* Background decorativo */}
-              <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-transparent to-orange-500/5 pointer-events-none" />
-              <div className="relative z-10">
-                {children}
+        <ToastProvider>
+          <AuthProvider>
+            <CondominiumProvider>
+              <div className="min-h-screen relative">
+                {/* Background decorativo */}
+                <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-transparent to-orange-500/5 pointer-events-none" />
+                <div className="relative z-10">
+                  {children}
+                </div>
               </div>
-            </div>
-          </CondominiumProvider>
-        </AuthProvider>
+            </CondominiumProvider>
+          </AuthProvider>
+        </ToastProvider>
       </body>
     </html>
   );

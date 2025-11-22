@@ -35,7 +35,7 @@ async function getAuthenticatedUser(request: NextRequest) {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getAuthenticatedUser(request);
@@ -43,7 +43,7 @@ export async function GET(
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    const guestId = params.id;
+    const { id: guestId } = await params;
 
     // Buscar convidado
     const guest = await prisma.guest.findUnique({
@@ -155,7 +155,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getAuthenticatedUser(request);
@@ -163,8 +163,21 @@ export async function PUT(
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    const guestId = params.id;
-    const body = await request.json();
+    const { id: guestId } = await params;
+    
+    // Parse FormData
+    const formData = await request.formData();
+    
+    // Extract fields
+    const name = formData.get('name') as string;
+    const document = formData.get('document') as string;
+    const phone = formData.get('phone') as string;
+    const validFrom = formData.get('validFrom') as string;
+    const validUntil = formData.get('validUntil') as string;
+    const maxEntries = formData.get('maxEntries') as string;
+    const observations = formData.get('observations') as string;
+    const isActive = formData.get('isActive') === 'true';
+    const faceRecognitionEnabled = formData.get('faceRecognitionEnabled') === 'true';
 
     // Verificar se o convidado existe
     const existingGuest = await prisma.guest.findUnique({
@@ -201,18 +214,6 @@ export async function PUT(
     }
 
     // Validar dados
-    const {
-      name,
-      document,
-      phone,
-      validFrom,
-      validUntil,
-      maxEntries,
-      observations,
-      isActive,
-      faceRecognitionEnabled
-    } = body;
-
     if (!name || !validFrom || !validUntil) {
       return NextResponse.json(
         { success: false, message: 'Nome e datas de validade são obrigatórios' },
@@ -230,11 +231,82 @@ export async function PUT(
       );
     }
 
-    if (maxEntries < 1) {
+    if (parseInt(maxEntries) < 1) {
       return NextResponse.json(
         { success: false, message: 'Número máximo de entradas deve ser pelo menos 1' },
         { status: 400 }
       );
+    }
+
+    // Process face images if face recognition is enabled
+    let faceRecognitionFolder = existingGuest.faceRecognitionFolder;
+    
+    if (faceRecognitionEnabled) {
+      const faceImages: File[] = [];
+      
+      // Collect all face images from FormData
+      for (let i = 0; i < 20; i++) {
+        const file = formData.get(`faceImage_${i}`) as File | null;
+        if (file) {
+          faceImages.push(file);
+        }
+      }
+
+      // Only process images if new ones were uploaded
+      if (faceImages.length > 0) {
+        const fs = await import('fs').then(m => m.promises);
+        const path = await import('path');
+        
+        // Create unique folder name for this guest's photos
+        const folderName = `guest_${existingGuest.accessCode}_${Date.now()}`;
+        const folderPath = path.join(process.cwd(), 'public', 'face-data', folderName);
+        
+        try {
+          // Create directory if it doesn't exist
+          await fs.mkdir(folderPath, { recursive: true });
+          
+          // Save all images
+          for (let i = 0; i < faceImages.length; i++) {
+            const file = faceImages[i];
+            const buffer = Buffer.from(await file.arrayBuffer());
+            const fileName = `image_${i + 1}.jpg`;
+            await fs.writeFile(path.join(folderPath, fileName), buffer);
+          }
+          
+          // Delete old folder if it exists
+          if (existingGuest.faceRecognitionFolder) {
+            const oldFolderPath = path.join(process.cwd(), 'public', 'face-data', existingGuest.faceRecognitionFolder);
+            try {
+              await fs.rm(oldFolderPath, { recursive: true, force: true });
+            } catch (err) {
+              console.error('Erro ao deletar pasta antiga:', err);
+            }
+          }
+          
+          faceRecognitionFolder = folderName;
+          console.log(`📸 ${faceImages.length} fotos salvas para convidado ${existingGuest.name} na pasta ${folderName}`);
+        } catch (error) {
+          console.error('Erro ao salvar imagens:', error);
+          return NextResponse.json(
+            { success: false, message: 'Erro ao salvar fotos' },
+            { status: 500 }
+          );
+        }
+      }
+    } else {
+      // If face recognition is disabled, delete the folder if it exists
+      if (existingGuest.faceRecognitionFolder) {
+        try {
+          const fs = await import('fs').then(m => m.promises);
+          const path = await import('path');
+          const oldFolderPath = path.join(process.cwd(), 'public', 'face-data', existingGuest.faceRecognitionFolder);
+          await fs.rm(oldFolderPath, { recursive: true, force: true });
+          console.log(`🗑️ Pasta de fotos deletada para convidado ${existingGuest.name}`);
+        } catch (err) {
+          console.error('Erro ao deletar pasta:', err);
+        }
+        faceRecognitionFolder = null;
+      }
     }
 
     // Atualizar convidado
@@ -247,9 +319,10 @@ export async function PUT(
         validFrom: startDate,
         validUntil: endDate,
         maxEntries: parseInt(maxEntries),
-        notes: observations?.trim() || null, // Usar 'notes' ao invés de 'observations'
+        notes: observations?.trim() || null,
         isActive: Boolean(isActive),
         faceRecognitionEnabled: Boolean(faceRecognitionEnabled),
+        faceRecognitionFolder: faceRecognitionFolder,
         updatedAt: new Date()
       },
       include: {
@@ -287,9 +360,10 @@ export async function PUT(
         validUntil: updatedGuest.validUntil,
         maxEntries: updatedGuest.maxEntries,
         currentEntries: updatedGuest.currentEntries,
-        observations: updatedGuest.notes, // Usar 'notes' ao invés de 'observations'
+        observations: updatedGuest.notes,
         isActive: updatedGuest.isActive,
         faceRecognitionEnabled: updatedGuest.faceRecognitionEnabled,
+        faceRecognitionFolder: updatedGuest.faceRecognitionFolder,
         invitedBy: updatedGuest.invitedByResident.user.name,
         unit: `${updatedGuest.invitedByResident.unit.block}${updatedGuest.invitedByResident.unit.number}`
       }
@@ -306,7 +380,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getAuthenticatedUser(request);
@@ -314,7 +388,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    const guestId = params.id;
+    const { id: guestId } = await params;
 
     // Verificar se o convidado existe
     const existingGuest = await prisma.guest.findUnique({

@@ -9,26 +9,6 @@ import { useAuth } from "@/contexts/AuthContext"
 export default function HomePage() {
   const { user, isLoading } = useAuth()
   const router = useRouter()
-
-  useEffect(() => {
-    if (!isLoading && user) {
-      // Redirecionar baseado no tipo de usuário
-      if (user.isAdmin) {
-        router.push('/dashboard')
-      } else {
-        router.push('/resident-dashboard')
-      }
-    }
-  }, [user, isLoading, router])
-
-  // Se está carregando ou usuário logado, mostrar loading
-  if (isLoading || user) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-lg">Carregando...</div>
-      </div>
-    )
-  }
   return (
     <>
       <Head>
@@ -51,9 +31,18 @@ export default function HomePage() {
               </div>
 
               <div className="flex items-center space-x-4">
-                <a href="/login" className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors">
-                  Fazer Login
-                </a>
+                {user ? (
+                  <a 
+                    href={user.isAdmin ? "/dashboard" : "/resident-dashboard"} 
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors"
+                  >
+                    Ir para o Sistema
+                  </a>
+                ) : (
+                  <a href="/login" className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors">
+                    Fazer Login
+                  </a>
+                )}
               </div>
             </div>
           </nav>
@@ -125,6 +114,90 @@ export default function HomePage() {
                       <p className="text-sm text-gray-600">Integração com dispositivos IoT</p>
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* About DoorsERP Section */}
+        <section className="py-20 bg-white">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+              <div className="order-2 lg:order-1">
+                <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-8 rounded-3xl">
+                  <div className="aspect-video bg-white rounded-2xl shadow-lg flex items-center justify-center">
+                    <svg className="w-32 h-32 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="space-y-6 order-1 lg:order-2">
+                <div className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Sobre o DoorsERP
+                </div>
+                
+                <h2 className="text-4xl font-bold text-gray-900 leading-tight">
+                  O que é o <span className="text-blue-600">DoorsERP</span>?
+                </h2>
+                
+                <p className="text-lg text-gray-600 leading-relaxed">
+                  O <strong className="text-gray-900">DoorsERP</strong> é um sistema ERP (Enterprise Resource Planning) 
+                  completo e moderno, desenvolvido especificamente para <strong className="text-gray-900">gestão de condomínios e portarias</strong>. 
+                  Nossa plataforma integra tecnologias de ponta como reconhecimento facial, controle de acesso IoT e gestão financeira 
+                  em uma única solução intuitiva.
+                </p>
+                
+                <div className="space-y-4">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-1">Gestão Centralizada</h3>
+                      <p className="text-gray-600">Todos os módulos integrados: moradores, funcionários, unidades, financeiro e controle de acesso.</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-1">Interface Moderna e Intuitiva</h3>
+                      <p className="text-gray-600">Design responsivo com <strong>notificações toast</strong> não-intrusivas, substituindo alertas tradicionais por feedback visual elegante e profissional.</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-1">Segurança e Confiabilidade</h3>
+                      <p className="text-gray-600">Autenticação JWT, criptografia bcrypt, tratamento de erros completo e logs detalhados para auditoria.</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-2xl border-l-4 border-green-500">
+                  <p className="text-sm text-gray-700 leading-relaxed">
+                    <strong className="text-gray-900">🎉 Sistema de Notificações Toast:</strong> Todas as operações do sistema agora utilizam 
+                    <strong className="text-blue-600"> notificações toast modernas</strong> em vez de alerts tradicionais. 
+                    Feedback visual elegante com 4 tipos (sucesso, erro, aviso, info), auto-dismiss configurável, 
+                    animações suaves e possibilidade de empilhamento - proporcionando uma experiência de usuário profissional e não-intrusiva.
+                  </p>
                 </div>
               </div>
             </div>

@@ -7,7 +7,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button"
 import { Pagination } from "@/components/ui/pagination"
 import { CreateUnitModal } from "@/components/CreateUnitModal"
+import { UpdateUnitFeeModal } from "@/components/UpdateUnitFeeModal"
+import { UpdateAllFeeModal } from "@/components/UpdateAllFeeModal"
 import { useCondominium } from "@/contexts/CondominiumContext"
+import { useAuth } from "@/contexts/AuthContext"
+import { useToast } from "@/components/ui/toast"
 import { 
   Building, 
   Users, 
@@ -47,6 +51,8 @@ interface Unit {
 
 export default function UnitsPage() {
   const { selectedCondominium, loading: condominiumLoading } = useCondominium()
+  const { user } = useAuth()
+  const { showToast } = useToast()
   const [units, setUnits] = useState<Unit[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -163,28 +169,6 @@ export default function UnitsPage() {
     setShowEditModal(true)
   }
 
-  const handleUpdateFee = async (unitId: string, newFee: number) => {
-    try {
-      const response = await fetch(`/api/units/${unitId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ monthlyFee: newFee })
-      })
-
-      if (!response.ok) {
-        throw new Error('Erro ao atualizar taxa')
-      }
-
-      // Recarregar unidades
-      if (selectedCondominium?.id) {
-        fetchUnits(selectedCondominium.id, currentPage, itemsPerPage)
-      }
-    } catch (error) {
-      console.error('Erro ao atualizar taxa:', error)
-      alert('Erro ao atualizar taxa da unidade')
-    }
-  }
-
   if (condominiumLoading) {
     return (
       <MainLayout>
@@ -222,17 +206,17 @@ export default function UnitsPage() {
           <div className="flex gap-2">
             <Button 
               variant="outline"
-              className="w-full sm:w-auto min-h-[44px] px-6"
               onClick={() => setShowUpdateFeeModal(true)}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 min-h-[44px] px-6"
             >
-              <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-black" />
+              <DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
               Atualizar Taxa
             </Button>
             <Button 
-              className="w-full sm:w-auto bg-green-600 hover:bg-green-700 min-h-[44px] px-6"
               onClick={() => setShowCreateModal(true)}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 min-h-[44px] px-6"
             >
-              <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-black" />
+              <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
               Nova Unidade
             </Button>
           </div>
@@ -574,6 +558,33 @@ export default function UnitsPage() {
           onSuccess={handleCreateSuccess}
         />
 
+        {selectedUnit && (
+          <UpdateUnitFeeModal
+            isOpen={showEditModal}
+            onClose={() => {
+              setShowEditModal(false)
+              setSelectedUnit(null)
+            }}
+            onSuccess={handleCreateSuccess}
+            unit={{
+              id: selectedUnit.id,
+              block: selectedUnit.block,
+              number: selectedUnit.number,
+              monthlyFee: selectedUnit.monthlyFee
+            }}
+          />
+        )}
+
+        {selectedCondominium && user && (
+          <UpdateAllFeeModal
+            isOpen={showUpdateFeeModal}
+            onClose={() => setShowUpdateFeeModal(false)}
+            onSuccess={handleCreateSuccess}
+            condominiumId={selectedCondominium.id}
+            userId={user.id}
+          />
+        )}
+
         {/* Modal de Visualização */}
         {showViewModal && selectedUnit && (
           <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -672,161 +683,14 @@ export default function UnitsPage() {
           </div>
         )}
 
-        {/* Modal de Edição */}
-        {showEditModal && selectedUnit && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg max-w-md w-full">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-black">Editar Taxa Mensal</h2>
-                  <Button variant="outline" size="sm" onClick={() => setShowEditModal(false)}>
-                    ✕
-                  </Button>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Unidade: {selectedUnit.block}/{selectedUnit.number}
-                    </label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        defaultValue={Number(selectedUnit.monthlyFee)}
-                        id="newFee"
-                        className="w-full pl-10 pr-3 text-black py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => setShowEditModal(false)}
-                    >
-                      Cancelar
-                    </Button>
-                    <Button
-                      className="flex-1"
-                      onClick={() => {
-                        const input = document.getElementById('newFee') as HTMLInputElement
-                        const newFee = parseFloat(input.value)
-                        if (newFee && newFee > 0) {
-                          handleUpdateFee(selectedUnit.id, newFee)
-                          setShowEditModal(false)
-                        } else {
-                          alert('Digite um valor válido')
-                        }
-                      }}
-                    >
-                      Salvar
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Modal de Atualização em Massa */}
-        {showUpdateFeeModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg max-w-md w-full">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-black">Atualizar Taxa em Massa</h2>
-                  <Button variant="outline" size="sm" onClick={() => setShowUpdateFeeModal(false)}>
-                    ✕
-                  </Button>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <p className="text-sm text-yellow-800">
-                      Esta ação atualizará a taxa mensal de <strong>todas as unidades ativas</strong> deste condomínio.
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Nova Taxa Mensal (R$)
-                    </label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        id="massUpdateFee"
-                        placeholder="0,00"
-                        className="w-full pl-10 pr-3 py-2 text-black border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => setShowUpdateFeeModal(false)}
-                    >
-                      Cancelar
-                    </Button>
-                    <Button
-                      className="flex-1"
-                      onClick={async () => {
-                        const input = document.getElementById('massUpdateFee') as HTMLInputElement
-                        const newFee = parseFloat(input.value)
-                        
-                        if (!newFee || newFee <= 0) {
-                          alert('Digite um valor válido')
-                          return
-                        }
-
-                        if (!confirm(`Confirma atualizar a taxa de todas as unidades ativas para R$ ${newFee.toFixed(2)}?`)) {
-                          return
-                        }
-
-                        try {
-                          const response = await fetch('/api/financial/recurring', {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              condominiumId: selectedCondominium?.id,
-                              newAmount: newFee,
-                              updateType: 'units',
-                              userId: 'system' // TODO: pegar do auth context
-                            })
-                          })
-
-                          const result = await response.json()
-
-                          if (result.success) {
-                            alert(`✅ ${result.message}`)
-                            setShowUpdateFeeModal(false)
-                            if (selectedCondominium?.id) {
-                              fetchUnits(selectedCondominium.id, currentPage, itemsPerPage)
-                            }
-                          } else {
-                            alert(`❌ ${result.error}`)
-                          }
-                        } catch (error) {
-                          console.error('Erro ao atualizar taxas:', error)
-                          alert('Erro ao atualizar taxas em massa')
-                        }
-                      }}
-                    >
-                      Atualizar Todas
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+        {selectedCondominium && user && (
+          <UpdateAllFeeModal
+            isOpen={showUpdateFeeModal}
+            onClose={() => setShowUpdateFeeModal(false)}
+            onSuccess={handleCreateSuccess}
+            condominiumId={selectedCondominium.id}
+            userId={user.id}
+          />
         )}
       </div>
     </MainLayout>
