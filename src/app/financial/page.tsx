@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { RecurringRevenueModal } from "@/components/RecurringRevenueModal"
 import { useCondominium } from "@/contexts/CondominiumContext"
 import { useAuth } from "@/contexts/AuthContext"
+import { useToast } from "@/components/ui/toast"
 import { Plus, Search, Edit, Trash2, TrendingUp, TrendingDown, DollarSign, Calendar, Filter, Download, BarChart3, Activity, X, Check, RefreshCw } from "lucide-react"
 import { BarChart, Bar, PieChart as RechartsPie, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import * as XLSX from 'xlsx'
@@ -30,6 +31,7 @@ interface FinancialEntry {
 export default function FinancialPage() {
   const { selectedCondominium } = useCondominium()
   const { user } = useAuth()
+  const { showToast } = useToast()
   const [entries, setEntries] = useState<FinancialEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -150,13 +152,13 @@ export default function FinancialPage() {
       
       if (response.ok) {
         setEntries(entries.filter(e => e.id !== id))
-        alert('✅ Entrada excluída com sucesso!')
+        showToast('Entrada excluída com sucesso!', 'success')
       } else {
-        alert('❌ Erro ao excluir entrada')
+        showToast('Erro ao excluir entrada', 'error')
       }
     } catch (error) {
       console.error('Erro ao excluir:', error)
-      alert('❌ Erro ao excluir entrada')
+      showToast('Erro ao excluir entrada', 'error')
     }
   }
 
@@ -211,14 +213,14 @@ export default function FinancialPage() {
         
         setShowAddModal(false)
         setShowEditModal(false)
-        alert(`✅ Entrada ${selectedEntry ? 'atualizada' : 'criada'} com sucesso!`)
+        showToast(`Entrada ${selectedEntry ? 'atualizada' : 'criada'} com sucesso!`, 'success')
       } else {
         const errorData = await response.json()
-        alert(`❌ Erro ao salvar entrada: ${errorData.error || 'Erro desconhecido'}`)
+        showToast(`Erro ao salvar entrada: ${errorData.error || 'Erro desconhecido'}`, 'error')
       }
     } catch (error) {
       console.error('Erro ao salvar:', error)
-      alert('❌ Erro ao salvar entrada')
+      showToast('Erro ao salvar entrada', 'error')
     }
   }
 
@@ -332,8 +334,8 @@ export default function FinancialPage() {
               <RefreshCw className="h-4 w-4 sm:h-5 sm:w-5" />
               <span className="hidden sm:inline">Mensalidades</span>
             </Button>
-            <Button onClick={handleAddNew} className="flex-1 sm:flex-none min-h-[44px] px-4 bg-green-600 hover:bg-green-700">
-              <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+            <Button onClick={handleAddNew} className="flex-1 sm:flex-none flex items-center justify-center gap-2 min-h-[44px] px-6 bg-gradient-to-r from-green-500 to-orange-500 text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5">
+              <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
               Nova Entrada
             </Button>
           </div>
@@ -722,10 +724,10 @@ export default function FinancialPage() {
 
         {/* Modal Add/Edit */}
         {(showAddModal || showEditModal) && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
-                <h2 className="text-xl sm:text-2xl font-bold">
+                <h2 className="text-xl sm:text-2xl font-bold text-black">
                   {selectedEntry ? 'Editar Entrada' : 'Nova Entrada Financeira'}
                 </h2>
                 <button
@@ -742,24 +744,24 @@ export default function FinancialPage() {
               <form onSubmit={handleSubmit} className="p-6 space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="sm:col-span-2">
-                    <label className="block text-sm font-medium mb-2">Descrição *</label>
+                    <label className="block text-sm font-medium text-black mb-2">Descrição *</label>
                     <input
                       type="text"
                       required
                       value={formData.description}
                       onChange={(e) => setFormData({...formData, description: e.target.value})}
-                      className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 min-h-[44px] text-base"
+                      className="w-full px-4 py-3 text-black border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base"
                       placeholder="Ex: Taxas condominiais - Janeiro"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-2">Tipo *</label>
+                    <label className="block text-sm font-medium text-black mb-2">Tipo *</label>
                     <select
                       required
                       value={formData.type}
                       onChange={(e) => setFormData({...formData, type: e.target.value as 'INCOME' | 'EXPENSE'})}
-                      className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 min-h-[44px] text-base"
+                      className="w-full px-4 py-3 text-black border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base"
                     >
                       <option value="INCOME">Receita</option>
                       <option value="EXPENSE">Despesa</option>
@@ -767,70 +769,70 @@ export default function FinancialPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-2">Valor (R$) *</label>
+                    <label className="block text-sm font-medium text-black mb-2">Valor (R$) *</label>
                     <input
                       type="number"
                       step="0.01"
                       required
                       value={formData.amount}
                       onChange={(e) => setFormData({...formData, amount: e.target.value})}
-                      className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 min-h-[44px] text-base"
+                      className="w-full px-4 py-3 text-black border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base"
                       placeholder="0,00"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-2">Categoria *</label>
+                    <label className="block text-sm font-medium text-black mb-2">Categoria *</label>
                     <input
                       type="text"
                       required
                       value={formData.category}
                       onChange={(e) => setFormData({...formData, category: e.target.value})}
-                      className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 min-h-[44px] text-base"
+                      className="w-full px-4 py-3 text-black border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base"
                       placeholder="Ex: Condomínio, Manutenção, Limpeza"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-2">Data de Vencimento *</label>
+                    <label className="block text-sm font-medium text-black mb-2">Data de Vencimento *</label>
                     <input
                       type="date"
                       required
                       value={formData.dueDate}
                       onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
-                      className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 min-h-[44px] text-base"
+                      className="w-full px-4 py-3 text-black border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-2">Bloco</label>
+                    <label className="block text-sm font-medium text-black mb-2">Bloco</label>
                     <input
                       type="text"
                       value={formData.building}
                       onChange={(e) => setFormData({...formData, building: e.target.value})}
-                      className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 min-h-[44px] text-base"
+                      className="w-full px-4 py-3 text-black border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base"
                       placeholder="Ex: A, B, C"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-2">Número da Unidade</label>
+                    <label className="block text-sm font-medium text-black mb-2">Número da Unidade</label>
                     <input
                       type="text"
                       value={formData.unitNumber}
                       onChange={(e) => setFormData({...formData, unitNumber: e.target.value})}
-                      className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 min-h-[44px] text-base"
+                      className="w-full px-4 py-3 text-black border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base"
                       placeholder="Ex: 101, 202"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-2">Status *</label>
+                    <label className="block text-sm font-medium text-black mb-2">Status *</label>
                     <select
                       required
                       value={formData.status}
                       onChange={(e) => setFormData({...formData, status: e.target.value as 'PENDING' | 'PAID' | 'OVERDUE' | 'CANCELLED'})}
-                      className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 min-h-[44px] text-base"
+                      className="w-full px-4 py-3 text-black border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px] text-base"
                     >
                       <option value="PENDING">Pendente</option>
                       <option value="PAID">Pago</option>
@@ -848,15 +850,15 @@ export default function FinancialPage() {
                       setShowAddModal(false)
                       setShowEditModal(false)
                     }}
-                    className="w-full sm:w-auto min-h-[44px] px-6"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 min-h-[44px] px-6"
                   >
                     Cancelar
                   </Button>
                   <Button
                     type="submit"
-                    className="w-full sm:flex-1 bg-green-600 hover:bg-green-700 min-h-[44px] px-6"
+                    className="w-full sm:flex-1 flex items-center justify-center gap-2 min-h-[44px] px-6 bg-gradient-to-r from-green-500 to-orange-500 text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5"
                   >
-                    <Check className="h-5 w-5 mr-2" />
+                    <Check className="h-5 w-5" />
                     {selectedEntry ? 'Atualizar' : 'Criar'} Entrada
                   </Button>
                 </div>

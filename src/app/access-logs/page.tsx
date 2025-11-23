@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Pagination } from "@/components/ui/pagination"
 import { Search, Download, LogIn, LogOut, Shield, Users, Clock, Calendar, Activity } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
+import { useToast } from "@/components/ui/toast"
 
 interface AccessLog {
   id: string
@@ -43,7 +44,8 @@ interface Resident {
 
 export default function AccessLogsPage() {
   const { user } = useAuth()
-  const [logs, setLogs] = useState<AccessLog[]>([])
+  const { showToast } = useToast()
+  const [logs, setLogs] = useState<AccessLog[]>([]))
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState<"ALL" | "RESIDENT" | "EMPLOYEE" | "GUEST">("ALL")
@@ -245,10 +247,10 @@ export default function AccessLogsPage() {
       link.click()
       document.body.removeChild(link)
       
-      alert(`✅ ${filteredLogs.length} log(s) exportado(s) com sucesso!`)
+      showToast(`${filteredLogs.length} log(s) exportado(s) com sucesso!`, 'success')
     } catch (error) {
       console.error('Erro ao exportar logs:', error)
-      alert('❌ Erro ao exportar logs')
+      showToast('Erro ao exportar logs', 'error')
     }
   }
 
