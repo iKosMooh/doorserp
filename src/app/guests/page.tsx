@@ -180,8 +180,21 @@ export default function GuestsPage() {
 
   const isGuestActive = (guest: Guest) => {
     if (!guest.isActive) return false
-    if (!guest.validUntil) return true
-    return new Date(guest.validUntil) > new Date()
+    
+    const now = new Date()
+    const validFrom = new Date(guest.validFrom)
+    const validUntil = guest.validUntil ? new Date(guest.validUntil) : null
+    
+    // Se ainda não chegou a data de início, considera como ativo (aguardando)
+    if (validFrom > now) return true
+    
+    // Verifica se está expirado
+    if (validUntil && validUntil < now) return false
+    
+    // Verifica se ainda tem entradas disponíveis
+    if (guest.currentEntries >= guest.maxEntries) return false
+    
+    return true
   }
 
   const filteredGuests = guests?.filter(guest => {
@@ -210,7 +223,31 @@ export default function GuestsPage() {
       )
     }
 
-    if (!guest.validUntil) {
+    const now = new Date()
+    const validFrom = new Date(guest.validFrom)
+    const validUntil = guest.validUntil ? new Date(guest.validUntil) : null
+
+    // Aguardando início
+    if (validFrom > now) {
+      return (
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+          <Clock className="w-3 h-3 mr-1" />
+          Aguardando Início
+        </span>
+      )
+    }
+
+    // Sem limite de data
+    if (!validUntil) {
+      // Verifica se tem entradas disponíveis
+      if (guest.currentEntries >= guest.maxEntries) {
+        return (
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+            <XCircle className="w-3 h-3 mr-1" />
+            Esgotado
+          </span>
+        )
+      }
       return (
         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
           <CheckCircle className="w-3 h-3 mr-1" />
@@ -219,9 +256,8 @@ export default function GuestsPage() {
       )
     }
 
-    const isExpired = new Date(guest.validUntil) <= new Date()
-    
-    if (isExpired) {
+    // Expirado por data
+    if (validUntil < now) {
       return (
         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
           <XCircle className="w-3 h-3 mr-1" />
@@ -230,6 +266,17 @@ export default function GuestsPage() {
       )
     }
 
+    // Esgotado por entradas
+    if (guest.currentEntries >= guest.maxEntries) {
+      return (
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+          <XCircle className="w-3 h-3 mr-1" />
+          Esgotado
+        </span>
+      )
+    }
+
+    // Ativo
     return (
       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
         <CheckCircle className="w-3 h-3 mr-1" />

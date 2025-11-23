@@ -26,6 +26,9 @@ import {
 } from "lucide-react";
 import { CondominiumSelector } from "@/components/CondominiumSelector";
 import { useAuth } from "@/contexts/AuthContext";
+import { Modal } from "@/components/ui/modal";
+import { Button } from "@/components/ui/button";
+import { AlertCircle } from "lucide-react";
 
 const adminMenuItems = [
   {
@@ -132,6 +135,7 @@ const residentMenuItems = [
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
@@ -150,16 +154,15 @@ export function Sidebar() {
   const menuItems = getMenuItems();
 
   const handleLogout = async () => {
-    if (confirm('Tem certeza que deseja sair?')) {
-      await logout();
-      router.push('/login');
-    }
+    setShowLogoutModal(false);
+    await logout();
+    router.push('/login');
   };
 
   const SidebarContent = () => (
     <div className={cn(
       "h-full flex flex-col bg-white border-r border-gray-200 transition-all duration-300",
-      collapsed ? "w-16" : "w-64"
+      collapsed ? "w-20" : "w-64"
     )}>
       {/* Header */}
       <Link href="/" className="block p-4 border-b border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer">
@@ -264,7 +267,7 @@ export function Sidebar() {
       <div className="p-4 border-t border-gray-200 space-y-2">
         {/* Botão de Logout */}
         <button
-          onClick={handleLogout}
+          onClick={() => setShowLogoutModal(true)}
           className={cn(
             "w-full flex items-center rounded-xl p-3",
             "text-red-600 hover:text-red-700 hover:bg-red-50 transition-all duration-200",
@@ -279,8 +282,8 @@ export function Sidebar() {
         <button
           onClick={() => setCollapsed(!collapsed)}
           className={cn(
-            "w-full flex items-center justify-center p-3 rounded-xl",
-            "text-gray-600 hover:text-green-600 hover:bg-green-50 transition-all duration-200",
+            "w-full flex items-center justify-center p-3 rounded-xl min-h-[44px]",
+            "text-gray-900 bg-gray-100 hover:text-green-600 hover:bg-green-100 transition-all duration-200 border border-gray-300",
             collapsed ? "px-3" : "space-x-3"
           )}
         >
@@ -324,6 +327,51 @@ export function Sidebar() {
           </div>
         </div>
       )}
+
+      {/* Modal de Logout */}
+      <Modal isOpen={showLogoutModal} onClose={() => setShowLogoutModal(false)}>
+        <div className="p-6">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="flex-shrink-0">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                <AlertCircle className="h-6 w-6 text-red-600" />
+              </div>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-black mb-1">
+                Confirmar Logout
+              </h3>
+              <p className="text-sm text-gray-600">
+                Tem certeza que deseja sair do sistema?
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+            <p className="text-sm text-yellow-800">
+              <strong>⚠️ Atenção:</strong> Você será desconectado e precisará fazer login novamente para acessar o sistema.
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              onClick={() => setShowLogoutModal(false)}
+              variant="outline"
+              className="flex items-center justify-center gap-2 min-h-[44px] px-6"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={handleLogout}
+              className="flex items-center justify-center gap-2 min-h-[44px] px-6 bg-red-600 hover:bg-red-700 text-white"
+            >
+              Confirmar Saída
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </>
   );
 }

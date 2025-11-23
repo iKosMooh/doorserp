@@ -239,7 +239,31 @@ export default function ResidentManagementPage() {
     const validFrom = new Date(guest.validFrom);
     const validUntil = new Date(guest.validUntil);
     
-    return now >= validFrom && now <= validUntil && guest.currentEntries < guest.maxEntries;
+    // Se ainda não chegou a data de início, considera como ativo (aguardando)
+    if (now < validFrom) return true;
+    
+    // Verifica se está dentro do período válido e tem entradas disponíveis
+    return now <= validUntil && guest.currentEntries < guest.maxEntries;
+  };
+
+  const getGuestStatus = (guest: Guest) => {
+    if (!guest.isActive) return { label: 'Inativo', color: 'text-gray-600' };
+    
+    const now = new Date();
+    const validFrom = new Date(guest.validFrom);
+    const validUntil = new Date(guest.validUntil);
+    
+    // Aguardando início
+    if (now < validFrom) return { label: 'Aguardando Início', color: 'text-blue-600' };
+    
+    // Expirado por data
+    if (now > validUntil) return { label: 'Expirado', color: 'text-red-600' };
+    
+    // Esgotado por entradas
+    if (guest.currentEntries >= guest.maxEntries) return { label: 'Esgotado', color: 'text-orange-600' };
+    
+    // Ativo
+    return { label: 'Ativo', color: 'text-green-600' };
   };
 
   const getRelationshipTypeLabel = (type: string) => {
@@ -600,10 +624,8 @@ export default function ResidentManagementPage() {
                                       Reconhecimento Facial
                                     </div>
                                   )}
-                                  <div className={`font-medium ${
-                                    isGuestActive(guest) ? 'text-green-600' : 'text-red-600'
-                                  }`}>
-                                    {isGuestActive(guest) ? 'Ativo' : 'Expirado/Esgotado'}
+                                  <div className={`font-medium ${getGuestStatus(guest).color}`}>
+                                    {getGuestStatus(guest).label}
                                   </div>
                                 </div>
                               </div>
