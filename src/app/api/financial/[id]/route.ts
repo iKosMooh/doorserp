@@ -5,10 +5,10 @@ import { PaymentStatus, Prisma } from "@prisma/client"
 // PUT - Atualizar entrada financeira
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params
+    const { id } = await params
     const body = await request.json()
     const { 
       description,
@@ -153,10 +153,10 @@ export async function PUT(
 // DELETE - Excluir entrada financeira
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params
+    const { id } = await params
 
     // Verificar se a entrada existe
     const existingEntry = await prisma.financialEntry.findUnique({
@@ -192,10 +192,10 @@ export async function DELETE(
 // PATCH - Atualizar status da entrada
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params
+    const { id } = await params
     const body = await request.json()
     const { status, paymentDate } = body
 

@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     // Calcular status e tempo restante para cada visitante
     const guestsWithStatus = guests.map(guest => {
       const now = new Date()
-      const timeRemainingMs = guest.validUntil.getTime() - now.getTime()
+      const timeRemainingMs = guest.validUntil ? guest.validUntil.getTime() - now.getTime() : 0
       const minutesRemaining = Math.max(0, Math.floor(timeRemainingMs / (1000 * 60)))
       
       let status = 'active'
@@ -258,6 +258,13 @@ export async function PUT(request: NextRequest) {
         success: false,
         message: 'Visitante não encontrado ou inativo'
       }, { status: 404 })
+    }
+
+    if (!guest.validUntil) {
+      return NextResponse.json({
+        success: false,
+        message: 'Visitante não possui data de validade definida'
+      }, { status: 400 })
     }
 
     // Estender tempo de acesso

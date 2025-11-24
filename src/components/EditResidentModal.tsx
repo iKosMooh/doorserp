@@ -911,7 +911,7 @@ export function EditResidentModal({ isOpen, onClose, onSuccess, resident, condom
               type="text"
               value={plate}
               onChange={(e) => {
-                let value = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '')
+                const value = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '')
                 
                 // Remove hífens temporariamente para processamento
                 const clean = value.replace(/-/g, '')

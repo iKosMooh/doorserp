@@ -211,16 +211,16 @@ function extractPersonNameFromNotes(notes: string | null): string | null {
   if (!notes) return null
   
   // Tentar extrair do reconhecimento facial
-  let match = notes.match(/Reconhecimento facial: ([^(]+)/)
-  if (match) return match[1].trim()
+  const matchFacial = notes.match(/Reconhecimento facial: ([^(]+)/)
+  if (matchFacial) return matchFacial[1].trim()
   
   // Tentar extrair do código QR
-  match = notes.match(/Acesso por código QR: (.+)/)
-  if (match) return match[1].trim()
+  const matchQR = notes.match(/Acesso por código QR: (.+)/)
+  if (matchQR) return matchQR[1].trim()
   
   // Tentar extrair padrão genérico de nome seguido de parenteses
-  match = notes.match(/^([^(]+)\s*\(/)
-  if (match) return match[1].trim()
+  const matchGeneric = notes.match(/^([^(]+)\s*\(/)
+  if (matchGeneric) return matchGeneric[1].trim()
   
   return null
 }
@@ -266,7 +266,7 @@ function extractBuildingFromLocation(location: string | null): string | undefine
   if (!location) return undefined
   
   // Tentar padrão "Prédio X" ou "Bloco X"
-  let match = location.match(/(?:Prédio|Bloco)\s+([A-Z\d]+)/i)
+  const match = location.match(/(?:Prédio|Bloco)\s+([A-Z\d]+)/i)
   if (match) return match[1].toUpperCase()
   
   return undefined

@@ -996,7 +996,6 @@ export default function SettingsPage() {
               setDeletingCondominium(null)
             }}
             title="Confirmar Exclusão"
-            maxWidth="max-w-2xl"
           >
             <div className="space-y-4">
               <div className="flex items-start space-x-3 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -1006,7 +1005,7 @@ export default function SettingsPage() {
                     Atenção: Esta ação não pode ser desfeita!
                   </h3>
                   <p className="text-red-800 mb-3">
-                    Tem certeza que deseja excluir o condomínio <strong>"{deletingCondominium.name}"</strong>?
+                    Tem certeza que deseja excluir o condomínio <strong>&quot;{deletingCondominium.name}&quot;</strong>?
                   </p>
                   <div className="text-sm text-red-700">
                     <p className="font-semibold mb-2">Esta ação irá excluir PERMANENTEMENTE:</p>

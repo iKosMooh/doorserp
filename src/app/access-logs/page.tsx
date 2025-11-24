@@ -45,7 +45,7 @@ interface Resident {
 export default function AccessLogsPage() {
   const { user } = useAuth()
   const { showToast } = useToast()
-  const [logs, setLogs] = useState<AccessLog[]>([]))
+  const [logs, setLogs] = useState<AccessLog[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState<"ALL" | "RESIDENT" | "EMPLOYEE" | "GUEST">("ALL")

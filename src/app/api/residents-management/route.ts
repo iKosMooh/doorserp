@@ -259,7 +259,6 @@ export async function POST(request: NextRequest) {
 
     // Se não existe, criar novo usuário
     if (!targetUser) {
-      const bcrypt = require('bcryptjs');
       const defaultPassword = Math.random().toString(36).slice(-8);
       const hashedPassword = await bcrypt.hash(defaultPassword, 12);
 

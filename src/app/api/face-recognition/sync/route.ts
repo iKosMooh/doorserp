@@ -56,7 +56,7 @@ export async function GET() {
       guestsProcessed: 0,
       foldersCreated: 0,
       foldersRemoved: 0,
-      errors: []
+      errors: [] as string[]
     }
 
     // Processar usuários
@@ -159,7 +159,7 @@ Esta pasta contém os modelos de treinamento temporários para reconhecimento fa
 
 ## Informações:
 - **PASTA TEMPORÁRIA** - Será removida automaticamente após expiração
-- Visitante válido até: ${guest.validUntil.toLocaleString('pt-BR')}
+- Visitante válido até: ${guest.validUntil ? guest.validUntil.toLocaleString('pt-BR') : 'Sem data de expiração'}
 - ID do visitante: ${guest.id}
 - Criado em: ${new Date().toLocaleDateString('pt-BR')}
 
