@@ -413,7 +413,7 @@ async function main() {
         accessMethod: 'FACIAL_RECOGNITION',
         status: 'APPROVED',
         entryExit: 'ENTRY',
-        location: `Portaria Principal - Bloco ${units[0].block}`,
+        location: `Portaria Principal - Bloco ${units[0].block} - Apt ${units[0].number}`,
         notes: `Reconhecimento facial: ${morador1User.name} (95.5% confiança)`,
         timestamp: twoHoursAgo
       }
@@ -427,7 +427,7 @@ async function main() {
         accessMethod: 'FACIAL_RECOGNITION',
         status: 'APPROVED',
         entryExit: 'ENTRY',
-        location: `Portaria Principal - Bloco ${units[5].block}`,
+        location: `Portaria Principal - Bloco ${units[5].block} - Apt ${units[5].number}`,
         notes: `Reconhecimento facial: ${morador2User.name} (92.3% confiança)`,
         timestamp: oneHourAgo
       }
@@ -436,11 +436,12 @@ async function main() {
     await prisma.accessLog.create({
       data: {
         condominiumId: condominium.id,
+        guestId: guest.id,
         accessType: 'GUEST',
         accessMethod: 'ACCESS_CODE',
         status: 'APPROVED',
         entryExit: 'ENTRY',
-        location: `Portaria Principal - Bloco ${units[0].block}`,
+        location: `Portaria Principal - Bloco ${units[0].block} - Apt ${units[0].number}`,
         notes: `Acesso por código QR: ${guest.name}`,
         timestamp: now
       }

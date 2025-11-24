@@ -217,11 +217,22 @@ export default function ResidentDashboard() {
   };
 
   const isGuestActive = (guest: Guest) => {
+    if (!guest.isActive) return false;
+    
     const now = new Date();
     const validFrom = new Date(guest.validFrom);
-    const validUntil = new Date(guest.validUntil);
+    const validUntil = guest.validUntil ? new Date(guest.validUntil) : null;
     
-    return now >= validFrom && now <= validUntil && guest.currentEntries < guest.maxEntries && guest.isActive;
+    // Se ainda não começou a validade, considera como ativo (Aguardando Início)
+    if (validFrom > now) return true;
+    
+    // Se expirou, não é ativo
+    if (validUntil && validUntil < now) return false;
+    
+    // Se esgotou as entradas, não é ativo
+    if (guest.currentEntries >= guest.maxEntries) return false;
+    
+    return true;
   };
 
   const getActiveGuests = () => {

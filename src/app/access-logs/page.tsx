@@ -65,11 +65,11 @@ export default function AccessLogsPage() {
     const fetchResidentData = async () => {
       if (user && !user.isAdmin) {
         try {
-          const response = await fetch(`/api/residents?userId=${user.id}`)
+          const response = await fetch('/api/residents-management')
           if (response.ok) {
             const data = await response.json()
-            if (data.length > 0) {
-              setResident(data[0])
+            if (data.success && data.residents && data.residents.length > 0) {
+              setResident(data.residents[0])
             }
           }
         } catch (error) {

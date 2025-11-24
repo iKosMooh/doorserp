@@ -32,11 +32,57 @@ export async function GET(request: NextRequest) {
     if (limit === undefined) {
       const logs = await prisma.accessLog.findMany({
         where: whereClause,
-        orderBy
+        orderBy,
+        include: {
+          user: {
+            include: {
+              residents: {
+                include: {
+                  unit: true
+                }
+              }
+            }
+          },
+          guest: {
+            include: {
+              invitedByResident: {
+                include: {
+                  unit: true
+                }
+              }
+            }
+          }
+        }
       })
 
       const formattedLogs = logs.map((log) => {
-        const personName = extractPersonNameFromNotes(log.notes) || "Usuário Desconhecido"
+        // Extrair nome da pessoa: primeiro tenta user, depois guest, depois notes
+        let personName = "Usuário Desconhecido"
+        let unitNumber: string | undefined
+        let building: string | undefined
+        
+        if (log.user) {
+          personName = log.user.name
+          // Pegar unidade do primeiro resident associado
+          if (log.user.residents && log.user.residents.length > 0) {
+            const resident = log.user.residents[0]
+            unitNumber = resident.unit.number
+            building = resident.unit.block
+          }
+        } else if (log.guest) {
+          personName = log.guest.name
+          // Pegar unidade do morador que convidou
+          if (log.guest.invitedByResident?.unit) {
+            unitNumber = log.guest.invitedByResident.unit.number
+            building = log.guest.invitedByResident.unit.block
+          }
+        } else {
+          // Tentar extrair das notes como fallback
+          personName = extractPersonNameFromNotes(log.notes) || "Usuário Desconhecido"
+          unitNumber = extractUnitFromLocation(log.location)
+          building = extractBuildingFromLocation(log.location)
+        }
+        
         const status = mapStatus(log.status)
         
         return {
@@ -45,12 +91,12 @@ export async function GET(request: NextRequest) {
           personName,
           personType: log.accessType as "RESIDENT" | "EMPLOYEE" | "GUEST",
           accessType: log.entryExit === "EXIT" ? "EXIT" : "ENTRY" as "ENTRY" | "EXIT",
-          method: extractMethodFromNotes(log.notes) || "FACIAL_RECOGNITION" as "FACIAL_RECOGNITION" | "KEY_CARD" | "MANUAL",
+          method: extractMethodFromNotes(log.notes) || mapAccessMethod(log.accessMethod),
           location: log.location || "Portaria Principal",
           status: status as "APPROVED" | "DENIED" | "FORCED",
           notes: log.notes,
-          unitNumber: extractUnitFromLocation(log.location),
-          building: extractBuildingFromLocation(log.location)
+          unitNumber,
+          building
         }
       })
 
@@ -73,13 +119,59 @@ export async function GET(request: NextRequest) {
         where: whereClause,
         skip,
         take: limit,
-        orderBy
+        orderBy,
+        include: {
+          user: {
+            include: {
+              residents: {
+                include: {
+                  unit: true
+                }
+              }
+            }
+          },
+          guest: {
+            include: {
+              invitedByResident: {
+                include: {
+                  unit: true
+                }
+              }
+            }
+          }
+        }
       }),
       prisma.accessLog.count({ where: whereClause })
     ])
 
     const formattedLogs = logs.map((log) => {
-      const personName = extractPersonNameFromNotes(log.notes) || "Usuário Desconhecido"
+      // Extrair nome da pessoa: primeiro tenta user, depois guest, depois notes
+      let personName = "Usuário Desconhecido"
+      let unitNumber: string | undefined
+      let building: string | undefined
+      
+      if (log.user) {
+        personName = log.user.name
+        // Pegar unidade do primeiro resident associado
+        if (log.user.residents && log.user.residents.length > 0) {
+          const resident = log.user.residents[0]
+          unitNumber = resident.unit.number
+          building = resident.unit.block
+        }
+      } else if (log.guest) {
+        personName = log.guest.name
+        // Pegar unidade do morador que convidou
+        if (log.guest.invitedByResident?.unit) {
+          unitNumber = log.guest.invitedByResident.unit.number
+          building = log.guest.invitedByResident.unit.block
+        }
+      } else {
+        // Tentar extrair das notes como fallback
+        personName = extractPersonNameFromNotes(log.notes) || "Usuário Desconhecido"
+        unitNumber = extractUnitFromLocation(log.location)
+        building = extractBuildingFromLocation(log.location)
+      }
+      
       const status = mapStatus(log.status)
       
       return {
@@ -88,12 +180,12 @@ export async function GET(request: NextRequest) {
         personName,
         personType: log.accessType as "RESIDENT" | "EMPLOYEE" | "GUEST",
         accessType: log.entryExit === "EXIT" ? "EXIT" : "ENTRY" as "ENTRY" | "EXIT",
-        method: extractMethodFromNotes(log.notes) || "FACIAL_RECOGNITION" as "FACIAL_RECOGNITION" | "KEY_CARD" | "MANUAL",
+        method: extractMethodFromNotes(log.notes) || mapAccessMethod(log.accessMethod),
         location: log.location || "Portaria Principal",
         status: status as "APPROVED" | "DENIED" | "FORCED",
         notes: log.notes,
-        unitNumber: extractUnitFromLocation(log.location),
-        building: extractBuildingFromLocation(log.location)
+        unitNumber,
+        building
       }
     })
 
@@ -117,27 +209,67 @@ export async function GET(request: NextRequest) {
 
 function extractPersonNameFromNotes(notes: string | null): string | null {
   if (!notes) return null
-  const match = notes.match(/Reconhecimento facial: ([^(]+)/)
-  return match ? match[1].trim() : null
+  
+  // Tentar extrair do reconhecimento facial
+  let match = notes.match(/Reconhecimento facial: ([^(]+)/)
+  if (match) return match[1].trim()
+  
+  // Tentar extrair do código QR
+  match = notes.match(/Acesso por código QR: (.+)/)
+  if (match) return match[1].trim()
+  
+  // Tentar extrair padrão genérico de nome seguido de parenteses
+  match = notes.match(/^([^(]+)\s*\(/)
+  if (match) return match[1].trim()
+  
+  return null
 }
 
 function extractMethodFromNotes(notes: string | null): string {
   if (!notes) return "FACIAL_RECOGNITION"
   if (notes.includes("Reconhecimento facial")) return "FACIAL_RECOGNITION"
   if (notes.includes("Cartão")) return "KEY_CARD"
-  return "MANUAL"
+  if (notes.includes("código QR") || notes.includes("QR Code")) return "MANUAL"
+  return "FACIAL_RECOGNITION"
+}
+
+function mapAccessMethod(accessMethod: string): string {
+  const methodMap: { [key: string]: string } = {
+    'FACIAL_RECOGNITION': 'Reconhecimento Facial',
+    'ACCESS_CARD': 'Cartão',
+    'ACCESS_CODE': 'Código de Acesso',
+    'MANUAL': 'Manual',
+    'EMERGENCY': 'Emergência'
+  }
+  return methodMap[accessMethod] || 'Reconhecimento Facial'
 }
 
 function extractUnitFromLocation(location: string | null): string | undefined {
   if (!location) return undefined
-  const match = location.match(/Unidade (\d+)/)
-  return match ? match[1] : undefined
+  
+  // Tentar padrão "Apt XXX" ou "Apto XXX" (mais comum)
+  let match = location.match(/Apt\.?\s+(\d+)/i)
+  if (match) return match[1]
+  
+  // Tentar padrão "Unidade XXX"
+  match = location.match(/Unidade\s+(\d+)/i)
+  if (match) return match[1]
+  
+  // Tentar padrão de número após hífen (ex: "- 101")
+  match = location.match(/[^\d](\d{3,4})(?:\s|$)/)
+  if (match) return match[1]
+  
+  return undefined
 }
 
 function extractBuildingFromLocation(location: string | null): string | undefined {
   if (!location) return undefined
-  const match = location.match(/Prédio ([A-Z])/)
-  return match ? match[1] : undefined
+  
+  // Tentar padrão "Prédio X" ou "Bloco X"
+  let match = location.match(/(?:Prédio|Bloco)\s+([A-Z\d]+)/i)
+  if (match) return match[1].toUpperCase()
+  
+  return undefined
 }
 
 function mapStatus(status: string): string {

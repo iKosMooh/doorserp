@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { MainLayout } from "@/components/main-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useToast } from "@/components/ui/toast"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { CreateCondominiumModal } from "@/components/CreateCondominiumModal"
@@ -24,8 +25,10 @@ import {
   XCircle,
   Crown,
   Key,
-  User
+  User,
+  AlertCircle
 } from "lucide-react"
+import { Modal } from "@/components/ui/modal"
 
 interface CondominiumData {
   id: string
@@ -56,12 +59,15 @@ interface CondominiumData {
 export default function SettingsPage() {
   const { selectedCondominium, condominiums, loading: condominiumLoading, refreshCondominiums } = useCondominium()
   const { user } = useAuth()
+  const { showToast } = useToast()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [viewingCondominium, setViewingCondominium] = useState<CondominiumData | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deletingCondominium, setDeletingCondominium] = useState<{ id: string; name: string } | null>(null)
   
   // Estados para mudança de senha
   const [showPasswordForm, setShowPasswordForm] = useState(false)
@@ -190,19 +196,22 @@ export default function SettingsPage() {
     }
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     const condominium = condominiums.find(c => c.id === id)
     if (!condominium) return
 
-    if (!confirm(`Tem certeza que deseja excluir o condomínio "${condominium.name}"?\n\n⚠️ ATENÇÃO: Esta ação irá excluir PERMANENTEMENTE:\n• Todas as unidades\n• Todos os moradores\n• Todos os funcionários\n• Todos os hóspedes\n• Todos os logs de acesso\n• Todas as configurações\n• Todas as labels de reconhecimento facial\n\nEsta ação NÃO PODE ser desfeita!`)) {
-      return
-    }
+    setDeletingCondominium({ id, name: condominium.name })
+    setShowDeleteModal(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!deletingCondominium) return
 
     try {
       setLoading(true)
       setError(null)
       
-      const response = await fetch(`/api/condominiums/${id}`, {
+      const response = await fetch(`/api/condominiums/${deletingCondominium.id}`, {
         method: 'DELETE'
       })
 
@@ -213,13 +222,15 @@ export default function SettingsPage() {
       }
 
       await refreshCondominiums()
-      alert(`✅ ${result.message}`)
+      showToast(result.message, 'success')
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido'
       setError(errorMessage)
-      alert(`❌ Erro: ${errorMessage}`)
+      showToast(`Erro: ${errorMessage}`, 'error')
     } finally {
       setLoading(false)
+      setShowDeleteModal(false)
+      setDeletingCondominium(null)
     }
   }
 
@@ -378,7 +389,7 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-500">Nome</label>
-                  <p className="font-semibold">{viewingCondominium.name}</p>
+                  <p className="font-semibold text-black">{viewingCondominium.name}</p>
                 </div>
                 {viewingCondominium.cnpj && (
                   <div className="space-y-2">
@@ -388,41 +399,41 @@ export default function SettingsPage() {
                 )}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-500">Endereço</label>
-                  <p>{viewingCondominium.address}</p>
+                  <p className="text-black">{viewingCondominium.address}</p>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-500">Cidade</label>
-                  <p>{viewingCondominium.city}</p>
+                  <p className="text-black">{viewingCondominium.city}</p>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-500">Estado</label>
-                  <p>{viewingCondominium.state}</p>
+                  <p className="text-black">{viewingCondominium.state}</p>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-500">CEP</label>
-                  <p>{viewingCondominium.zipCode}</p>
+                  <p className="text-black">{viewingCondominium.zipCode}</p>
                 </div>
                 {viewingCondominium.phone && (
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-500">Telefone</label>
-                    <p>{formatPhone(viewingCondominium.phone)}</p>
+                    <p className="text-black">{formatPhone(viewingCondominium.phone)}</p>
                   </div>
                 )}
                 {viewingCondominium.email && (
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-500">Email</label>
-                    <p>{viewingCondominium.email}</p>
+                    <p className="text-black">{viewingCondominium.email}</p>
                   </div>
                 )}
                 {viewingCondominium.adminContact && (
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-500">Contato Admin</label>
-                    <p>{viewingCondominium.adminContact}</p>
+                    <p className="text-black">{viewingCondominium.adminContact}</p>
                   </div>
                 )}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-500">Total de Unidades</label>
-                  <p>{viewingCondominium.totalUnits}</p>
+                  <p className="text-black">{viewingCondominium.totalUnits}</p>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-500">Plano</label>
@@ -458,7 +469,7 @@ export default function SettingsPage() {
               {/* Estatísticas do condomínio */}
               {viewingCondominium._count && (
                 <div className="mt-6 pt-6 border-t">
-                  <h4 className="font-semibold mb-4">Estatísticas</h4>
+                  <h4 className="font-semibold mb-4 text-black">Estatísticas</h4>
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                     <div className="text-center p-3 bg-blue-50 rounded-lg">
                       <div className="text-2xl font-bold text-blue-600">{viewingCondominium._count.units}</div>
@@ -853,20 +864,20 @@ export default function SettingsPage() {
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow className="text-black">
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Localização</TableHead>
-                    <TableHead>Contato</TableHead>
-                    <TableHead>Unidades</TableHead>
-                    <TableHead>Plano</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Ações</TableHead>
+                  <TableRow>
+                    <TableHead className="text-black">Nome</TableHead>
+                    <TableHead className="text-black">Localização</TableHead>
+                    <TableHead className="text-black">Contato</TableHead>
+                    <TableHead className="text-black">Unidades</TableHead>
+                    <TableHead className="text-black">Plano</TableHead>
+                    <TableHead className="text-black">Status</TableHead>
+                    <TableHead className="text-black">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {condominiums.map((condominium) => (
                     <TableRow key={condominium.id}>
-                      <TableCell>
+                      <TableCell className="text-black">
                         <div className="flex items-center space-x-2">
                           <Building2 className="h-4 w-4 text-gray-400" />
                           <div>
@@ -877,13 +888,13 @@ export default function SettingsPage() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-black">
                         <div className="flex items-center text-sm">
                           <MapPin className="h-3 w-3 mr-1 text-gray-400" />
                           {condominium.city}, {condominium.state}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-black">
                         <div className="space-y-1">
                           {condominium.phone && (
                             <div className="flex items-center text-sm">
@@ -899,13 +910,13 @@ export default function SettingsPage() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-black">
                         <div className="flex items-center text-sm">
                           <Users className="h-3 w-3 mr-1 text-gray-400" />
                           {condominium.totalUnits}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-black">
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                           getSubscriptionLabel(condominium.subscriptionPlan).color
                         }`}>
@@ -913,7 +924,7 @@ export default function SettingsPage() {
                           {getSubscriptionLabel(condominium.subscriptionPlan).label}
                         </span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-black">
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                           condominium.isActive
                             ? 'bg-green-100 text-green-800'
@@ -932,7 +943,7 @@ export default function SettingsPage() {
                           )}
                         </span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-black">
                         <div className="flex space-x-2">
                           <Button 
                             variant="outline" 
@@ -975,6 +986,65 @@ export default function SettingsPage() {
           onClose={() => setShowCreateModal(false)}
           onSuccess={handleCreateCondominiumSuccess}
         />
+
+        {/* Modal de Confirmação de Exclusão */}
+        {showDeleteModal && deletingCondominium && (
+          <Modal
+            isOpen={showDeleteModal}
+            onClose={() => {
+              setShowDeleteModal(false)
+              setDeletingCondominium(null)
+            }}
+            title="Confirmar Exclusão"
+            maxWidth="max-w-2xl"
+          >
+            <div className="space-y-4">
+              <div className="flex items-start space-x-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <AlertCircle className="h-6 w-6 text-red-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-red-900 mb-2">
+                    Atenção: Esta ação não pode ser desfeita!
+                  </h3>
+                  <p className="text-red-800 mb-3">
+                    Tem certeza que deseja excluir o condomínio <strong>"{deletingCondominium.name}"</strong>?
+                  </p>
+                  <div className="text-sm text-red-700">
+                    <p className="font-semibold mb-2">Esta ação irá excluir PERMANENTEMENTE:</p>
+                    <ul className="list-disc list-inside space-y-1 ml-2">
+                      <li>Todas as unidades</li>
+                      <li>Todos os moradores</li>
+                      <li>Todos os funcionários</li>
+                      <li>Todos os hóspedes</li>
+                      <li>Todos os logs de acesso</li>
+                      <li>Todas as configurações</li>
+                      <li>Todas as labels de reconhecimento facial</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowDeleteModal(false)
+                    setDeletingCondominium(null)
+                  }}
+                  disabled={loading}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={confirmDelete}
+                  disabled={loading}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  {loading ? 'Excluindo...' : 'Confirmar Exclusão'}
+                </Button>
+              </div>
+            </div>
+          </Modal>
+        )}
       </div>
     </MainLayout>
   )
