@@ -777,15 +777,16 @@ export function EditGuestModal({ isOpen, onClose, onSuccess, guest }: EditGuestM
               </button>
             </div>
 
+            {/* Seletor de Câmera - Sempre visível quando há múltiplas câmeras */}
             {cameras.length > 1 && (
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-black mb-2">
-                  Selecionar Câmera
+              <div className="mb-4 space-y-2">
+                <label className="block text-sm font-medium text-black">
+                  📹 Selecionar Câmera
                 </label>
                 <select
                   value={selectedCamera}
                   onChange={(e) => setSelectedCamera(e.target.value)}
-                  className="w-full px-4 py-2 text-black border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 text-black border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                 >
                   {cameras.map((camera, index) => (
                     <option key={camera.deviceId} value={camera.deviceId}>
@@ -793,6 +794,18 @@ export function EditGuestModal({ isOpen, onClose, onSuccess, guest }: EditGuestM
                     </option>
                   ))}
                 </select>
+                <p className="text-xs text-gray-500">
+                  ✅ Câmera ativa - você pode trocar a qualquer momento
+                </p>
+              </div>
+            )}
+
+            {/* Informação quando há apenas uma câmera */}
+            {cameras.length === 1 && (
+              <div className="mb-4 bg-blue-50 border border-blue-200 rounded-md p-3">
+                <p className="text-sm text-blue-700">
+                  📹 <strong>1 câmera</strong> detectada: {cameras[0].label || 'Câmera padrão'}
+                </p>
               </div>
             )}
 

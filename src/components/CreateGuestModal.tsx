@@ -146,6 +146,11 @@ export default function CreateGuestModal({ isOpen, onClose, resident, unit, resi
     try {
       console.log('🎥 Iniciando câmera...', { selectedCameraId, isMobile });
       
+      // Parar stream anterior se existir
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      
       const constraints: MediaStreamConstraints = {
         video: {
           width: { ideal: 640 },
@@ -158,37 +163,39 @@ export default function CreateGuestModal({ isOpen, onClose, resident, unit, resi
       console.log('📹 Constraints:', constraints);
       const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
       console.log('✅ Stream obtido:', mediaStream);
+      console.log('📊 Stream info:', {
+        active: mediaStream.active,
+        tracks: mediaStream.getTracks().length,
+        videoTracks: mediaStream.getVideoTracks().map(t => ({ 
+          id: t.id, 
+          label: t.label, 
+          enabled: t.enabled, 
+          readyState: t.readyState 
+        }))
+      });
       
+      // Definir stream e mostrar câmera (useEffect vai aplicar ao vídeo)
       setStream(mediaStream);
       setShowCamera(true);
       
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-        console.log('🎬 Video srcObject definido');
-        
-        // Garantir que o vídeo comece a tocar
-        videoRef.current.onloadedmetadata = () => {
-          console.log('📺 Metadata carregado, iniciando reprodução...');
-          videoRef.current?.play().catch(err => {
-            console.error('Erro ao iniciar reprodução:', err);
-          });
-        };
-      }
     } catch (error) {
       console.error('❌ Erro ao acessar câmera:', error);
-      setError('Erro ao acessar câmera. Verifique as permissões.');
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      setError(`Erro ao acessar câmera: ${errorMessage}. Verifique as permissões.`);
     }
   };
 
   // Função para trocar câmera
   const switchCamera = async (deviceId: string) => {
+    console.log('🔄 Trocando câmera para:', deviceId);
     setSelectedCameraId(deviceId);
     
-    if (showCamera) {
+    if (showCamera && stream) {
       // Parar câmera atual
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
+      stream.getTracks().forEach(track => {
+        console.log('⏹️ Parando track:', track.label);
+        track.stop();
+      });
       
       // Iniciar nova câmera
       try {
@@ -201,16 +208,27 @@ export default function CreateGuestModal({ isOpen, onClose, resident, unit, resi
           }
         };
 
+        console.log('📹 Novas constraints:', constraints);
         const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log('✅ Nova câmera obtida');
+        console.log('📊 Novo stream info:', {
+          active: mediaStream.active,
+          tracks: mediaStream.getTracks().length,
+          videoTracks: mediaStream.getVideoTracks().map(t => ({ 
+            id: t.id, 
+            label: t.label, 
+            enabled: t.enabled, 
+            readyState: t.readyState 
+          }))
+        });
         
+        // Atualizar stream (useEffect vai aplicar ao vídeo)
         setStream(mediaStream);
         
-        if (videoRef.current) {
-          videoRef.current.srcObject = mediaStream;
-        }
       } catch (error) {
-        console.error('Erro ao trocar câmera:', error);
-        setError('Erro ao trocar câmera.');
+        console.error('❌ Erro ao trocar câmera:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+        setError(`Erro ao trocar câmera: ${errorMessage}`);
       }
     }
   };
@@ -262,6 +280,52 @@ export default function CreateGuestModal({ isOpen, onClose, resident, unit, resi
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
+
+  // Garantir que o stream seja aplicado ao vídeo quando disponível
+  useEffect(() => {
+    const applyStreamToVideo = async () => {
+      if (stream && videoRef.current && showCamera) {
+        console.log('🎥 [useEffect] Aplicando stream ao elemento video');
+        
+        try {
+          // Definir srcObject
+          videoRef.current.srcObject = stream;
+          
+          // Aguardar um momento para o vídeo processar
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          // Forçar play
+          if (videoRef.current.paused) {
+            console.log('📺 [useEffect] Vídeo pausado, tentando reproduzir...');
+            try {
+              await videoRef.current.play();
+              console.log('✅ [useEffect] Vídeo reproduzindo após aplicar stream');
+            } catch (playError) {
+              console.error('❌ [useEffect] Erro ao reproduzir após aplicar stream:', playError);
+              
+              // Tentar novamente após delay
+              setTimeout(async () => {
+                if (videoRef.current) {
+                  try {
+                    await videoRef.current.play();
+                    console.log('✅ [useEffect] Vídeo reproduzindo na segunda tentativa');
+                  } catch (retryError) {
+                    console.error('❌ [useEffect] Falha na segunda tentativa:', retryError);
+                  }
+                }
+              }, 200);
+            }
+          } else {
+            console.log('✅ [useEffect] Vídeo já está reproduzindo');
+          }
+        } catch (error) {
+          console.error('❌ [useEffect] Erro ao aplicar stream:', error);
+        }
+      }
+    };
+    
+    applyStreamToVideo();
+  }, [stream, showCamera]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -565,16 +629,17 @@ export default function CreateGuestModal({ isOpen, onClose, resident, unit, resi
                 </div>
               )}
 
-              {/* Seleção de Câmera */}
-              {availableCameras.length > 1 && !showCamera && (
+              {/* Seleção de Câmera - Sempre visível quando há múltiplas câmeras */}
+              {availableCameras.length > 1 && (
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">
-                    Câmera {isMobile ? '(Detectado: Mobile)' : '(Detectado: Desktop)'}
+                    📹 Selecionar Câmera {isMobile ? '(Detectado: Mobile)' : '(Detectado: Desktop)'}
                   </label>
                   <select
                     value={selectedCameraId}
-                    onChange={(e) => setSelectedCameraId(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    onChange={(e) => switchCamera(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                    disabled={!showCamera && faceImages.length === 0}
                   >
                     {availableCameras.map((camera, index) => (
                       <option key={camera.deviceId} value={camera.deviceId}>
@@ -582,16 +647,28 @@ export default function CreateGuestModal({ isOpen, onClose, resident, unit, resi
                       </option>
                     ))}
                   </select>
+                  <p className="text-xs text-gray-500">
+                    {showCamera ? '✅ Câmera ativa - você pode trocar a qualquer momento' : '⏸️ Abra a câmera para começar a captura'}
+                  </p>
+                </div>
+              )}
+
+              {/* Informação quando há apenas uma câmera */}
+              {availableCameras.length === 1 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                  <p className="text-sm text-blue-700">
+                    📹 <strong>1 câmera</strong> detectada: {availableCameras[0].label || 'Câmera padrão'}
+                  </p>
                 </div>
               )}
 
               {/* Câmera com Preview */}
               {showCamera && (
                 <div className="space-y-4">
-                  <div className="relative bg-black rounded-md min-h-[360px] flex items-center justify-center">
+                  <div className="relative bg-black rounded-md min-h-[360px] flex items-center justify-center overflow-hidden">
                     {/* Indicador de carregamento */}
                     {!stream && (
-                      <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="absolute inset-0 flex items-center justify-center z-10">
                         <div className="text-white text-center">
                           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
                           <p>Carregando câmera...</p>
@@ -604,11 +681,27 @@ export default function CreateGuestModal({ isOpen, onClose, resident, unit, resi
                       autoPlay
                       playsInline
                       muted
-                      style={{ width: '100%', maxWidth: '640px', margin: '0 auto', display: stream ? 'block' : 'none' }}
-                      className="rounded-md border-2 border-blue-300 shadow-lg"
+                      className={`rounded-md border-2 border-blue-300 shadow-lg max-w-full h-auto ${!stream ? 'opacity-0' : 'opacity-100'}`}
+                      style={{ width: '100%', maxWidth: '640px', margin: '0 auto' }}
+                      onLoadedMetadata={(e) => {
+                        console.log('📺 onLoadedMetadata disparado');
+                        const videoElement = e.currentTarget;
+                        videoElement.play().catch(err => {
+                          console.error('❌ Erro no onLoadedMetadata play:', err);
+                        });
+                      }}
                       onCanPlay={(e) => {
-                        console.log('🎬 Video can play');
-                        e.currentTarget.play().catch(err => console.error('Play error:', err));
+                        console.log('🎬 onCanPlay disparado');
+                        const videoElement = e.currentTarget;
+                        videoElement.play().catch(err => {
+                          console.error('❌ Erro no onCanPlay play:', err);
+                        });
+                      }}
+                      onPlay={() => {
+                        console.log('▶️ Vídeo está reproduzindo');
+                      }}
+                      onError={(e) => {
+                        console.error('❌ Erro no elemento video:', e);
                       }}
                     />
                     

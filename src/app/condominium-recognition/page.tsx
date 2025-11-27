@@ -691,9 +691,14 @@ export default function CondominiumRecognitionPage() {
                                 console.log(`💾 Descritores salvos em cache para ${person.name}`)
                             }
                         } else {
-                            // Adicionar à lista de usuários sem imagens
-                            usersWithoutImages.push(`${person.name} (${person.type === 'RESIDENT' ? 'Morador' : person.type === 'EMPLOYEE' ? 'Funcionário' : 'Convidado'})`)
-                            console.log(`⚠️ Nenhuma imagem válida encontrada para ${person.name}`)
+                            // Adicionar à lista de usuários sem imagens APENAS SE NÃO FOR CONVIDADO
+                            // Convidados podem usar QR Code como alternativa, não é erro
+                            if (person.type !== 'GUEST') {
+                                usersWithoutImages.push(`${person.name} (${person.type === 'RESIDENT' ? 'Morador' : 'Funcionário'})`)
+                                console.log(`⚠️ Nenhuma imagem válida encontrada para ${person.name}`)
+                            } else {
+                                console.log(`ℹ️ Convidado ${person.name} sem imagens - pode usar QR Code como alternativa`)
+                            }
                         }
                     }
 
@@ -991,7 +996,8 @@ export default function CondominiumRecognitionPage() {
                         if (!currentResident.isActive) {
                             isAuthorized = false
                             unauthorizedReason = 'Não autorizado: Morador inativo, fale na portaria.'
-                        } else if (currentResident.user && currentResident.user.faceRecognitionEnabled === false) {
+                        } else if (method === 'FACIAL_RECOGNITION' && currentResident.user && currentResident.user.faceRecognitionEnabled === false) {
+                            // Só verificar reconhecimento facial se o método for FACIAL_RECOGNITION
                             isAuthorized = false
                             unauthorizedReason = 'Não autorizado: Reconhecimento facial desabilitado, fale na portaria.'
                         } else {
@@ -1034,7 +1040,8 @@ export default function CondominiumRecognitionPage() {
                         if (!currentEmployee.isActive) {
                             isAuthorized = false
                             unauthorizedReason = 'Não autorizado: Funcionário inativo, fale na portaria.'
-                        } else if (currentEmployee.user && currentEmployee.user.faceRecognitionEnabled === false) {
+                        } else if (method === 'FACIAL_RECOGNITION' && currentEmployee.user && currentEmployee.user.faceRecognitionEnabled === false) {
+                            // Só verificar reconhecimento facial se o método for FACIAL_RECOGNITION
                             isAuthorized = false
                             unauthorizedReason = 'Não autorizado: Reconhecimento facial desabilitado, fale na portaria.'
                         } else {
