@@ -45,6 +45,7 @@ enum EstadoCancela {
 };
 
 EstadoCancela estadoAtual = FECHADO;
+EstadoCancela estadoAnterior = FECHADO; // Novo: para detectar mudança de estado
 
 // Variáveis de controle
 unsigned long tempoUltimaAbertura = 0;
@@ -94,6 +95,31 @@ void loop() {
   
   // Verificar presença de veículo
   veiculoPresente = detectarVeiculo();
+  
+  // Atualizar servo apenas se estado mudou
+  if (estadoAtual != estadoAnterior) {
+    switch (estadoAtual) {
+      case FECHADO:
+        servoMotor.write(0);
+        anguloAtual = 0;
+        delay(100); // Pequeno delay para estabilizar
+        servoMotor.detach(); // Desanexar para evitar vibração quando parado
+        break;
+      case ABRINDO:
+        servoMotor.attach(SERVO_PIN); // Reanexar antes de mover
+        // Servo já movido em abrirCancela
+        break;
+      case ABERTO:
+        servoMotor.write(90);
+        anguloAtual = 90;
+        break;
+      case FECHANDO:
+        servoMotor.write(90);
+        anguloAtual = 90;
+        break;
+    }
+    estadoAnterior = estadoAtual;
+  }
   
   // Máquina de estados
   switch (estadoAtual) {
@@ -156,6 +182,7 @@ void bipAprovado() {
 
 void abrirCancela() {
   if (estadoAtual == FECHADO || estadoAtual == FECHANDO) {
+    servoMotor.attach(SERVO_PIN); // Garantir que está anexado
     // Servo sempre começa em 0° e abre até 90° em passos
     for (int ang = 0; ang <= 90; ang += 3) {
       servoMotor.write(ang);
@@ -205,11 +232,7 @@ void estadoFechado() {
   digitalWrite(LED_VERDE, LOW);
   digitalWrite(LED_AZUL, LOW);
   
-  // Cancela em 0°
-  if (anguloAtual != 0) {
-    servoMotor.write(0);
-    anguloAtual = 0;
-  }
+  // Cancela em 0° (movimento já feito na mudança de estado)
 }
 
 void estadoAbrindo() {
@@ -223,11 +246,7 @@ void estadoAbrindo() {
   digitalWrite(LED_VERMELHO, LOW);
   digitalWrite(LED_AZUL, LOW);
   
-  // Mover servo para 90° (aberto)
-  if (anguloAtual != 90) {
-    servoMotor.write(90);
-    anguloAtual = 90;
-  }
+  // Servo já movido para 90° em abrirCancela
   
   // Transição para ABERTO após movimento completo (sem delay bloqueante)
   if (millis() - tempoInicioAbrindo >= TEMPO_MOVIMENTO_SERVO) {
@@ -243,11 +262,7 @@ void estadoAberto() {
   digitalWrite(LED_VERDE, HIGH);
   digitalWrite(LED_AZUL, LOW);
   
-  // Cancela em 90°
-  if (anguloAtual != 90) {
-    servoMotor.write(90);
-    anguloAtual = 90;
-  }
+  // Cancela em 90° (movimento já feito na mudança de estado)
   
   // Verificar se deve fechar (10s sem veículo)
   if (millis() - tempoUltimaAbertura >= TEMPO_ABERTO) {
@@ -263,11 +278,7 @@ void estadoFechando() {
   digitalWrite(LED_VERDE, LOW);
   digitalWrite(LED_AZUL, HIGH);
   
-  // Manter cancela aberta (90°) durante o estado FECHANDO
-  if (anguloAtual != 90) {
-    servoMotor.write(90);
-    anguloAtual = 90;
-  }
+  // Cancela mantida aberta (90°) durante o estado FECHANDO (movimento já feito na mudança de estado)
   
   // Se veículo presente, não fecha e faz beeps
   if (veiculoPresente) {
