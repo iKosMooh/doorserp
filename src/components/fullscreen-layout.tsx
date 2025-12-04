@@ -4,7 +4,7 @@ interface FullscreenLayoutProps {
 
 export function FullscreenLayout({ children }: FullscreenLayoutProps) {
   return (
-    <div className="h-screen w-screen overflow-hidden bg-black">
+    <div className="fixed inset-0 w-screen h-screen overflow-hidden bg-transparent">
       {children}
     </div>
   )

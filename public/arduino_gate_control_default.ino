@@ -258,10 +258,16 @@ void estadoAberto() {
 }
 
 void estadoFechando() {
-  // LED Azul aceso
+  // LED Azul aceso (alerta, como amarelo de semáforo)
   digitalWrite(LED_VERMELHO, LOW);
   digitalWrite(LED_VERDE, LOW);
   digitalWrite(LED_AZUL, HIGH);
+  
+  // Manter cancela aberta (90°) durante o estado FECHANDO
+  if (anguloAtual != 90) {
+    servoMotor.write(90);
+    anguloAtual = 90;
+  }
   
   // Se veículo presente, não fecha e faz beeps
   if (veiculoPresente) {
@@ -272,24 +278,13 @@ void estadoFechando() {
       Serial.println("WARNING:VEHICLE_DETECTED");
     }
     
-    // Manter cancela aberta
-    if (anguloAtual != 90) {
-      servoMotor.write(90);
-      anguloAtual = 90;
-    }
-    
     // Resetar timer de fechamento
     tempoInicioFechando = millis();
     return; // Não fecha enquanto houver veículo
   }
   
-  // Fechar cancela
-  if (anguloAtual != 0) {
-    servoMotor.write(0);
-    anguloAtual = 0;
-  }
-  
   // Transição para FECHADO após 10s (sem delay bloqueante)
+  // O servo será fechado apenas no estado FECHADO
   if (millis() - tempoInicioFechando >= TEMPO_FECHANDO) {
     estadoAtual = FECHADO;
     Serial.println("STATUS:CLOSED");

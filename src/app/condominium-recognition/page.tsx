@@ -82,7 +82,8 @@ export default function CondominiumRecognitionPage() {
     const [availablePorts, setAvailablePorts] = useState<{path: string, manufacturer?: string}[]>([])
     const [selectedComPort, setSelectedComPort] = useState<string>('auto') // Auto-detectar por padrão
     const [isConnecting, setIsConnecting] = useState(false)
-    const [arduinoStatus, setArduinoStatus] = useState<{connected: boolean, port?: string, error?: string}>({connected: false})    // Estados da câmera
+    const [arduinoStatus, setArduinoStatus] = useState<{connected: boolean, port?: string, error?: string}>({connected: false})
+    const [gateStatus, setGateStatus] = useState<'waiting' | 'opening' | 'open' | 'closing' | 'closed'>('waiting') // Status da cancela    // Estados da câmera
     const [cameraStarted, setCameraStarted] = useState(false)
     const [cameraStream, setCameraStream] = useState<MediaStream | null>(null)
     const [detectionStatus, setDetectionStatus] = useState<'idle' | 'detecting' | 'recognized' | 'paused' | 'unauthorized' | 'processing'>('idle')
@@ -808,6 +809,14 @@ export default function CondominiumRecognitionPage() {
                 console.log(`✅ Comando enviado com sucesso: ${command} (${data.mode || 'unknown'})`)
                 setCommandSent(true)
                 setTimeout(() => setCommandSent(false), 5000)
+                
+                // Atualizar status da cancela baseado no comando
+                if (command === 'FACE_RECOGNIZED' || command === 'OPEN_GATE') {
+                    setGateStatus('opening')
+                } else if (command === 'CLOSE_GATE') {
+                    setGateStatus('closing')
+                }
+                
                 return true
             } else {
                 console.log(`❌ Erro ao enviar comando: ${data.error}`)
@@ -1264,6 +1273,8 @@ export default function CondominiumRecognitionPage() {
                         if (method === 'QR_CODE') {
                             lastQrCodeRef.current = null
                         }
+                        // Resetar status da cancela para waiting
+                        setGateStatus('waiting')
                     }
                 }, 1000)
 
@@ -1334,6 +1345,12 @@ export default function CondominiumRecognitionPage() {
 
     // Validar e processar QR Code (usa função unificada)
     const validateAndProcessQRCode = useCallback(async (qrData: string) => {
+        // Verificar se a cancela permite novos comandos
+        if (gateStatus !== 'waiting' && gateStatus !== 'closed') {
+            console.log(`🚫 Cancela não permite novos comandos. Status atual: ${gateStatus}`)
+            return
+        }
+
         try {
             // PROTEÇÃO ANTI-LOOP: Ignorar se for o mesmo QR Code nos últimos 5 segundos
             const now = Date.now()
@@ -1374,12 +1391,18 @@ export default function CondominiumRecognitionPage() {
         } catch (error) {
             console.error('❌ [QR] Erro ao processar QR Code:', error)
         }
-    }, [validateAndProcessAccess])
+    }, [validateAndProcessAccess, gateStatus])
 
     // ==================== FIM DAS FUNÇÕES DE QR CODE ====================
 
     // Detecção facial
     const detectFaces = useCallback(async () => {
+        // Verificar se a cancela permite novos comandos
+        if (gateStatus !== 'waiting' && gateStatus !== 'closed') {
+            console.log(`🚫 Cancela não permite novos comandos. Status atual: ${gateStatus}`)
+            return
+        }
+
         // Verificação DUPLA de pausa: state e ref para máxima segurança
         if (isPaused || isManuallyPaused || isManuallyPausedRef.current) {
             console.log('⏸️ Detecção pausada', { 
@@ -2081,7 +2104,7 @@ export default function CondominiumRecognitionPage() {
             console.error('❌ Erro na detecção:', error)
             setDetectionStatus('idle')
         }
-    }, [faceApiLoaded, labels, cameraStarted, cameraStream, isPaused, isManuallyPaused, saveAccessLog, sendArduinoCommand, residents, lastUnknownFaceTime, clearCache, lastDetection, selectedCondominium])
+    }, [faceApiLoaded, labels, cameraStarted, cameraStream, isPaused, isManuallyPaused, saveAccessLog, sendArduinoCommand, residents, lastUnknownFaceTime, clearCache, lastDetection, selectedCondominium, gateStatus])
 
     // Loop de detecção
     const startDetection = useCallback(() => {
@@ -3105,6 +3128,18 @@ export default function CondominiumRecognitionPage() {
                         {cameraStarted && (
                             <div className="absolute bottom-4 left-4 right-4">
                                 <div className="bg-black/70 backdrop-blur-sm text-white px-4 py-2 rounded-lg text-sm">
+                                    {/* Mensagem quando cancela não permite comandos */}
+                                    {(gateStatus === 'opening' || gateStatus === 'open' || gateStatus === 'closing') && (
+                                        <div className="text-center mb-2">
+                                            <div className="text-lg font-semibold text-orange-300">
+                                                🚫 JÁ ABERTO - AGUARDE O FECHAMENTO DA CANCELA
+                                            </div>
+                                            <div className="text-sm text-orange-200 mt-1">
+                                                Status atual: {gateStatus === 'opening' ? 'Abrindo' : gateStatus === 'open' ? 'Aberta' : 'Fechando'}
+                                            </div>
+                                        </div>
+                                    )}
+                                    
                                     {commandSent && (
                                         <div className="text-green-300 font-medium mb-1">
                                             ✓ Comando enviado para o Arduino
