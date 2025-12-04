@@ -142,6 +142,13 @@ void processSerialCommands() {
 // Adiciona comando à fila
 void addCommandToQueue(String command) {
   command.toUpperCase();
+  command.trim(); // Remove espaços em branco
+  
+  // VERIFICAÇÃO CRÍTICA: Ignora comandos vazios
+  if (command.length() == 0) {
+    Serial.println("AVISO: Comando vazio ignorado");
+    return;
+  }
   
   // FACE_REJECTED não entra na fila - executa imediatamente apenas o som
   if (command == "FACE_REJECTED") {
@@ -204,8 +211,11 @@ void processCommandQueue() {
 void executeCommand(String command) {
   Serial.print("DEBUG: Executando comando: '");
   Serial.print(command);
-  Serial.println("'");
+  Serial.print("' (tamanho: ");
+  Serial.print(command.length());
+  Serial.println(" bytes)");
   
+  // Comandos principais
   if (command == "FACE_RECOGNIZED" || command == "OPEN_GATE") {
     playApprovedSound(); // 2 bips curtos
     if (currentState == FECHADO) {
@@ -229,9 +239,162 @@ void executeCommand(String command) {
   else if (command == "PING") {
     Serial.println("PONG");
   }
+  // COMANDOS DE TESTE - Para diagnóstico de componentes
+  else if (command == "TEST_SERVO") {
+    // Testa servo movendo 0° → 90° → 0°
+    Serial.println("TEST: Testando servo motor...");
+    gateServo.write(0);
+    Serial.println("TEST: Servo em 0°");
+    delay(1000);
+    gateServo.write(90);
+    Serial.println("TEST: Servo em 90°");
+    delay(1000);
+    gateServo.write(0);
+    Serial.println("TEST: Servo retornou a 0° - Teste completo!");
+  }
+  else if (command == "TEST_LED_RED") {
+    // Testa LED vermelho
+    Serial.println("TEST: LED Vermelho ON por 2s");
+    digitalWrite(LED_VERMELHO, HIGH);
+    digitalWrite(LED_VERDE, LOW);
+    digitalWrite(LED_AZUL, LOW);
+    delay(2000);
+    setLEDState(currentState); // Restaura estado atual
+    Serial.println("TEST: LED Vermelho OFF - Teste completo!");
+  }
+  else if (command == "TEST_LED_GREEN") {
+    // Testa LED verde
+    Serial.println("TEST: LED Verde ON por 2s");
+    digitalWrite(LED_VERMELHO, LOW);
+    digitalWrite(LED_VERDE, HIGH);
+    digitalWrite(LED_AZUL, LOW);
+    delay(2000);
+    setLEDState(currentState);
+    Serial.println("TEST: LED Verde OFF - Teste completo!");
+  }
+  else if (command == "TEST_LED_BLUE") {
+    // Testa LED azul
+    Serial.println("TEST: LED Azul ON por 2s");
+    digitalWrite(LED_VERMELHO, LOW);
+    digitalWrite(LED_VERDE, LOW);
+    digitalWrite(LED_AZUL, HIGH);
+    delay(2000);
+    setLEDState(currentState);
+    Serial.println("TEST: LED Azul OFF - Teste completo!");
+  }
+  else if (command == "TEST_LED_ALL") {
+    // Testa todos os LEDs em sequência
+    Serial.println("TEST: Testando todos os LEDs (R→G→B)");
+    digitalWrite(LED_VERMELHO, HIGH); digitalWrite(LED_VERDE, LOW); digitalWrite(LED_AZUL, LOW);
+    delay(800);
+    digitalWrite(LED_VERMELHO, LOW); digitalWrite(LED_VERDE, HIGH); digitalWrite(LED_AZUL, LOW);
+    delay(800);
+    digitalWrite(LED_VERMELHO, LOW); digitalWrite(LED_VERDE, LOW); digitalWrite(LED_AZUL, HIGH);
+    delay(800);
+    setLEDState(currentState);
+    Serial.println("TEST: Todos os LEDs testados - Teste completo!");
+  }
+  else if (command == "TEST_BUZZER") {
+    // Testa buzzer com 3 tons diferentes
+    Serial.println("TEST: Testando buzzer (3 tons)");
+    tone(BUZZER_PIN, 1000, 300); // Tom baixo
+    delay(400);
+    tone(BUZZER_PIN, 1500, 300); // Tom médio
+    delay(400);
+    tone(BUZZER_PIN, 2000, 300); // Tom alto
+    delay(400);
+    Serial.println("TEST: Buzzer testado - Teste completo!");
+  }
+  else if (command == "TEST_SENSOR") {
+    // Testa sensor ultrassônico com 5 leituras
+    Serial.println("TEST: Testando sensor HC-SR04 (5 leituras)");
+    for (int i = 0; i < 5; i++) {
+      digitalWrite(TRIG_PIN, LOW);
+      delayMicroseconds(2);
+      digitalWrite(TRIG_PIN, HIGH);
+      delayMicroseconds(10);
+      digitalWrite(TRIG_PIN, LOW);
+      long duration = pulseIn(ECHO_PIN, HIGH, 30000);
+      int distance = (duration * 0.034) / 2;
+      Serial.print("TEST: Leitura ");
+      Serial.print(i + 1);
+      Serial.print(": ");
+      Serial.print(distance);
+      Serial.println(" cm");
+      delay(500);
+    }
+    Serial.println("TEST: Sensor testado - Teste completo!");
+  }
+  else if (command == "TEST_ALL") {
+    // Testa todos os componentes em sequência
+    Serial.println("TEST: INICIANDO TESTE COMPLETO DE TODOS OS COMPONENTES");
+    Serial.println("============================================");
+    
+    // 1. Servo
+    Serial.println("[1/5] Testando Servo Motor...");
+    gateServo.write(0); delay(500);
+    gateServo.write(90); delay(500);
+    gateServo.write(0); delay(500);
+    Serial.println("✓ Servo OK");
+    
+    // 2. LED Vermelho
+    Serial.println("[2/5] Testando LED RGB - Vermelho...");
+    digitalWrite(LED_VERMELHO, HIGH); digitalWrite(LED_VERDE, LOW); digitalWrite(LED_AZUL, LOW);
+    delay(700);
+    Serial.println("✓ LED Vermelho OK");
+    
+    // 3. LED Verde
+    Serial.println("[3/5] Testando LED RGB - Verde...");
+    digitalWrite(LED_VERMELHO, LOW); digitalWrite(LED_VERDE, HIGH); digitalWrite(LED_AZUL, LOW);
+    delay(700);
+    Serial.println("✓ LED Verde OK");
+    
+    // 4. LED Azul
+    Serial.println("[4/5] Testando LED RGB - Azul...");
+    digitalWrite(LED_VERMELHO, LOW); digitalWrite(LED_VERDE, LOW); digitalWrite(LED_AZUL, HIGH);
+    delay(700);
+    Serial.println("✓ LED Azul OK");
+    
+    // 5. Buzzer
+    Serial.println("[5/5] Testando Buzzer...");
+    tone(BUZZER_PIN, 1500, 200); delay(300);
+    tone(BUZZER_PIN, 2000, 200); delay(300);
+    Serial.println("✓ Buzzer OK");
+    
+    // 6. Sensor
+    Serial.println("[6/6] Testando Sensor HC-SR04...");
+    digitalWrite(TRIG_PIN, LOW); delayMicroseconds(2);
+    digitalWrite(TRIG_PIN, HIGH); delayMicroseconds(10);
+    digitalWrite(TRIG_PIN, LOW);
+    long duration = pulseIn(ECHO_PIN, HIGH, 30000);
+    int distance = (duration * 0.034) / 2;
+    Serial.print("✓ Sensor OK - Distância atual: ");
+    Serial.print(distance);
+    Serial.println(" cm");
+    
+    Serial.println("============================================");
+    Serial.println("✅ TESTE COMPLETO FINALIZADO - TODOS OS COMPONENTES OK!");
+    
+    // Restaura estado
+    setLEDState(currentState);
+  }
   else {
-    Serial.print("ERRO: Comando desconhecido: ");
-    Serial.println(command);
+    Serial.print("ERRO: Comando desconhecido: '");
+    Serial.print(command);
+    Serial.println("'");
+    Serial.println("Comandos disponíveis:");
+    Serial.println("  - FACE_RECOGNIZED / OPEN_GATE");
+    Serial.println("  - CLOSE_GATE");
+    Serial.println("  - STATUS");
+    Serial.println("  - PING");
+    Serial.println("  - TEST_SERVO (testa servo motor)");
+    Serial.println("  - TEST_LED_RED (testa LED vermelho)");
+    Serial.println("  - TEST_LED_GREEN (testa LED verde)");
+    Serial.println("  - TEST_LED_BLUE (testa LED azul)");
+    Serial.println("  - TEST_LED_ALL (testa todos os LEDs)");
+    Serial.println("  - TEST_BUZZER (testa buzzer)");
+    Serial.println("  - TEST_SENSOR (testa sensor HC-SR04)");
+    Serial.println("  - TEST_ALL (testa TODOS os componentes)");
   }
 }
 

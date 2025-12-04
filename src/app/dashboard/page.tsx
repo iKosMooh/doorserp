@@ -341,35 +341,35 @@ export default function Dashboard() {
                 {/* Desktop/Tablet: Tabela */}
                 <div className="hidden md:block overflow-x-auto -mx-6 px-6">
                   <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Hora</TableHead>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Status</TableHead>
+                <TableHeader className="bg-gray-50">
+                  <TableRow className="border-b-2 border-gray-200">
+                    <TableHead className="font-bold text-gray-900">Hora</TableHead>
+                    <TableHead className="font-bold text-gray-900">Nome</TableHead>
+                    <TableHead className="font-bold text-gray-900">Tipo</TableHead>
+                    <TableHead className="font-bold text-gray-900">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {data.recentAccess.map((access) => (
-                    <TableRow key={access.id}>
-                      <TableCell className="font-medium">
+                    <TableRow key={access.id} className="hover:bg-gray-50 transition-colors border-b border-gray-200">
+                      <TableCell className="font-semibold text-gray-900">
                         {new Date(access.timestamp).toLocaleString('pt-BR')}
                       </TableCell>
-                      <TableCell>{access.personName}</TableCell>
+                      <TableCell className="text-gray-900 font-medium">{access.personName}</TableCell>
                       <TableCell>
-                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                        <span className={`px-3 py-1.5 rounded-full text-xs font-bold ${
                           access.accessType === 'USER' 
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-yellow-100 text-yellow-800'
+                            ? 'bg-blue-100 text-blue-900 border border-blue-200'
+                            : 'bg-yellow-100 text-yellow-900 border border-yellow-200'
                         }`}>
                           {access.accessType === 'USER' ? 'Usuário' : 'Convidado'}
                         </span>
                       </TableCell>
                       <TableCell>
-                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                        <span className={`px-3 py-1.5 rounded-full text-xs font-bold ${
                           access.status === 'APPROVED' 
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
+                            ? 'bg-green-100 text-green-900 border border-green-200'
+                            : 'bg-red-100 text-red-900 border border-red-200'
                         }`}>
                           {access.status === 'APPROVED' ? 'Aprovado' : 'Rejeitado'}
                         </span>

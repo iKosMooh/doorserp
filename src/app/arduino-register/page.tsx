@@ -198,8 +198,19 @@ export default function ArduinoRegisterPage() {
       return
     }
 
-    if (!selectedCondominium.id || selectedCondominium.id.length < 10) {
-      showMessage('ID do condomínio inválido. Recarregue a página.', 'error')
+    // Validação do ID do condomínio (UUID ou CUID)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    const cuidRegex = /^c[a-z0-9]{24,25}$/i
+    
+    if (!selectedCondominium.id || 
+        (!uuidRegex.test(selectedCondominium.id) && !cuidRegex.test(selectedCondominium.id))) {
+      showMessage(`ID do condomínio inválido: ${selectedCondominium.id}. Por favor, recarregue a página.`, 'error')
+      console.error('Invalid condominium ID:', {
+        id: selectedCondominium.id,
+        length: selectedCondominium.id?.length,
+        isUUID: uuidRegex.test(selectedCondominium.id || ''),
+        isCUID: cuidRegex.test(selectedCondominium.id || '')
+      })
       return
     }
 
@@ -222,6 +233,8 @@ export default function ArduinoRegisterPage() {
         notes: formData.notes || null,
         isActive: true
       }
+
+      console.log('Enviando configuração do Arduino:', configData)
 
       const response = await fetch('/api/arduino-config', {
         method: 'POST',
@@ -249,6 +262,7 @@ export default function ArduinoRegisterPage() {
         setSelectedArduino(null)
       } else {
         showMessage(result.error || 'Erro ao cadastrar Arduino', 'error')
+        console.error('Erro ao cadastrar Arduino:', result)
       }
     } catch (error) {
       console.error('Erro ao salvar configuração:', error)

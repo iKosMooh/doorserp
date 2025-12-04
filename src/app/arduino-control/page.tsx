@@ -991,13 +991,33 @@ export default function ArduinoControlPage() {
                 {/* Upload via código direto */}
                 {uploadMethod === 'code' && (
                   <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Cole o código Arduino (.ino) abaixo:
-                    </label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-medium">
+                        Cole o código Arduino (.ino) abaixo:
+                      </label>
+                      <Button
+                        onClick={async () => {
+                          try {
+                            const response = await fetch('/arduino_gate_control_default.ino')
+                            const defaultCode = await response.text()
+                            setUploadCode(defaultCode)
+                            setMessage('✅ Código padrão de controle de cancela carregado!')
+                          } catch (error) {
+                            console.error('Erro ao carregar código padrão:', error)
+                            setMessage('❌ Erro ao carregar código padrão')
+                          }
+                        }}
+                        variant="outline"
+                        size="sm"
+                        type="button"
+                      >
+                        📄 Carregar Código Padrão
+                      </Button>
+                    </div>
                     <textarea
                       value={uploadCode}
                       onChange={(e) => setUploadCode(e.target.value)}
-                      placeholder="// Cole seu código Arduino aqui...
+                      placeholder="// Cole seu código Arduino aqui ou clique em 'Carregar Código Padrão'...
 #include <Servo.h>
 
 void setup() {
@@ -1011,9 +1031,22 @@ void loop() {
                       className="w-full h-96 px-3 py-2 border rounded-lg text-sm font-mono resize-none"
                       spellCheck={false}
                     />
-                    <p className="text-xs text-gray-500 mt-1">
-                      {uploadCode.length} caracteres | {uploadCode.split('\n').length} linhas
-                    </p>
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-xs text-gray-500">
+                        {uploadCode.length} caracteres | {uploadCode.split('\n').length} linhas
+                      </p>
+                      {uploadCode.length > 0 && (
+                        <Button
+                          onClick={() => setUploadCode('')}
+                          variant="ghost"
+                          size="sm"
+                          type="button"
+                          className="text-xs text-red-600 hover:text-red-700"
+                        >
+                          🗑️ Limpar
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 )}
                 

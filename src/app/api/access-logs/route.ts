@@ -302,7 +302,9 @@ export async function POST(request: NextRequest) {
         status = 'DENIED',
         method = 'FACIAL_RECOGNITION',
         confidence,
-        timestamp
+        timestamp,
+        userId,
+        guestId
       } = body
 
       if (!personName || !accessType || !condominiumId) {
@@ -354,6 +356,8 @@ export async function POST(request: NextRequest) {
       const accessLog = await prisma.accessLog.create({
         data: {
           condominiumId,
+          userId: userId || undefined,
+          guestId: guestId || undefined,
           accessType: mappedAccessType as "RESIDENT" | "EMPLOYEE" | "GUEST",
           accessMethod: "FACIAL_RECOGNITION",
           status: finalStatus as "APPROVED" | "REJECTED" | "PENDING",

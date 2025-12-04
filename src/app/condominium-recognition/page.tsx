@@ -869,24 +869,38 @@ export default function CondominiumRecognitionPage() {
             // Buscar dados completos da pessoa reconhecida
             const recognizedPerson = residents.find(r => r.name === detection.name)
             
+            // Preparar payload com userId ou guestId para vincular corretamente
+            const logPayload: any = {
+                condominiumId: selectedCondominium.id,
+                personName: detection.name.replace(' (NÃO AUTORIZADO)', ''), // Remove o sufixo se existir
+                accessType: detection.type,
+                unitNumber: detection.unit,
+                building: 'A', // Você pode ajustar conforme necessário
+                status: detection.status || 'DENIED', // MUDANÇA CRÍTICA: Se status não definido, é NEGADO por segurança
+                method: 'FACIAL_RECOGNITION',
+                confidence: detection.confidence,
+                timestamp: new Date().toISOString(),
+                guestData: recognizedPerson?.guestData || null,
+                deniedReason: detection.reason || null
+            }
+
+            // Adicionar userId ou guestId se pessoa foi identificada
+            if (recognizedPerson) {
+                if (detection.type === 'GUEST' && recognizedPerson.guestData?.id) {
+                    logPayload.guestId = recognizedPerson.guestData.id
+                    console.log(`🎫 Vinculando log ao convidado ID: ${recognizedPerson.guestData.id}`)
+                } else if ((detection.type === 'RESIDENT' || detection.type === 'EMPLOYEE') && recognizedPerson.id) {
+                    logPayload.userId = recognizedPerson.id
+                    console.log(`👤 Vinculando log ao usuário ID: ${recognizedPerson.id}`)
+                }
+            }
+            
             const response = await fetch('/api/access-logs', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    condominiumId: selectedCondominium.id,
-                    personName: detection.name.replace(' (NÃO AUTORIZADO)', ''), // Remove o sufixo se existir
-                    accessType: detection.type,
-                    unitNumber: detection.unit,
-                    building: 'A', // Você pode ajustar conforme necessário
-                    status: detection.status || 'DENIED', // MUDANÇA CRÍTICA: Se status não definido, é NEGADO por segurança
-                    method: 'FACIAL_RECOGNITION',
-                    confidence: detection.confidence,
-                    timestamp: new Date().toISOString(),
-                    guestData: recognizedPerson?.guestData || null,
-                    deniedReason: detection.reason || null
-                }),
+                body: JSON.stringify(logPayload),
             })
 
             const data = await response.json()
@@ -1177,8 +1191,8 @@ export default function CondominiumRecognitionPage() {
                 console.log(`🔌 [${method}] Enviando comando FACE_REJECTED para: ${displayName}`)
                 await sendArduinoCommand('FACE_REJECTED')
 
-                // Countdown 3 segundos
-                let timeLeft = 5
+                // Countdown 3 segundos (tempo mínimo entre tentativas)
+                let timeLeft = 3
                 setPauseTimeRemaining(timeLeft)
 
                 const countdown = setInterval(() => {
@@ -1993,7 +2007,11 @@ export default function CondominiumRecognitionPage() {
                         // ⚠️ CRÍTICO: NÃO chamar saveAccessLog() aqui!
                         // Pessoas não identificadas não devem gerar logs no sistema
                         
-                        // Pausar detecção por 3 segundos (mesmo comportamento do autorizado)
+                        // Enviar comando FACE_REJECTED para Arduino
+                        console.log('🔌 Enviando comando FACE_REJECTED para pessoa não identificada')
+                        await sendArduinoCommand('FACE_REJECTED')
+                        
+                        // Pausar detecção por 3 segundos
                         setIsPaused(true)
                         
                         // Parar o loop de detecção imediatamente
@@ -2004,7 +2022,7 @@ export default function CondominiumRecognitionPage() {
                         }
                         
                         // Countdown para mostrar tempo restante
-                        let timeLeft = 5
+                        let timeLeft = 3
                         setPauseTimeRemaining(timeLeft)
 
                         const countdown = setInterval(() => {

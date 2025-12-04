@@ -26,14 +26,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validar formato do UUID
+    // Validar formato do ID (aceita UUID ou CUID do Prisma)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-    if (!uuidRegex.test(condominiumId)) {
+    const cuidRegex = /^c[a-z0-9]{24,25}$/i
+    
+    if (!uuidRegex.test(condominiumId) && !cuidRegex.test(condominiumId)) {
       return NextResponse.json(
         { 
           success: false, 
-          error: 'ID do condomínio deve ser um UUID válido',
-          received: condominiumId
+          error: 'ID do condomínio deve ser um UUID ou CUID válido',
+          received: condominiumId,
+          receivedLength: condominiumId.length
         },
         { status: 400 }
       )
@@ -57,10 +60,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verificar se já existe um Arduino com o mesmo código ou porta para este condomínio
+    // Verificar se já existe um Arduino ATIVO com o mesmo código ou porta para este condomínio
     const existingArduino = await prisma.arduinoConfiguration.findFirst({
       where: {
         condominiumId,
+        isActive: true, // Verifica apenas registros ativos
         OR: [
           { deviceCode },
           { connectionPort }
@@ -72,7 +76,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { 
           success: false, 
-          error: 'Já existe um Arduino cadastrado com este código ou porta para este condomínio' 
+          error: 'Já existe um Arduino ativo com este código ou porta para este condomínio',
+          existingDevice: {
+            name: existingArduino.deviceName,
+            code: existingArduino.deviceCode,
+            port: existingArduino.connectionPort
+          }
         },
         { status: 400 }
       )
